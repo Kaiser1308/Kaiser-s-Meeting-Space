@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Kaiser's Meeting Space",
+    "slug": "kaiser-meeting-space",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "ios": { "supportsTablet": true, "infoPlist": { "NSMicrophoneUsageDescription": "Record meetings you explicitly start." } },
+    "android": { "permissions": ["RECORD_AUDIO"] }
+  }
+}
