@@ -1,0 +1,47 @@
+{
+  "phase": "P02",
+  "task": "T04",
+  "generated": "2026-07-22T10:13:00+07:00",
+  "states": [
+    "draft",
+    "checking",
+    "recording",
+    "paused",
+    "finalizing",
+    "processing",
+    "ready",
+    "recovery_required",
+    "partial_ready",
+    "deleted"
+  ],
+  "commands": [
+    "Create",
+    "Start",
+    "Pause",
+    "Resume",
+    "End",
+    "MarkProcessing",
+    "MarkReady",
+    "MarkPartialReady",
+    "MarkRecoveryRequired",
+    "Recover",
+    "RetryProcessing",
+    "SoftDelete",
+    "Restore",
+    "PermanentDelete"
+  ],
+  "totalTransitions": 27,
+  "legalTransitions": 27,
+  "illegalTransitionsCovered": true,
+  "idempotencyTested": true,
+  "propertyTestRuns": 140,
+  "specialPaths": [
+    "happy path: draft→checking→recording→paused→recording→finalizing→processing→ready",
+    "recovery path: recording→recovery_required→finalizing",
+    "recovery continue: recovery_required→recording",
+    "partial_ready retry: partial_ready→processing→partial_ready",
+    "deletion cycle: ready→deleted→ready→deleted→permanent"
+  ],
+  "testCount": 45,
+  "allTestsPass": true
+}

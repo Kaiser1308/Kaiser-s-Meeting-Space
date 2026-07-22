@@ -1,0 +1,37 @@
+{
+  "phase": "P02",
+  "task": "T01",
+  "generated": "2026-07-22T10:13:00+07:00",
+  "schemas": [
+    "MeetingLanguage",
+    "MeetingMode",
+    "AudioSource",
+    "SpeechMode",
+    "MeetingSettings",
+    "CaptureProfile",
+    "MeetingId",
+    "ChunkId",
+    "Sha256",
+    "Milliseconds",
+    "AudioChunk",
+    "UploadStatus",
+    "PauseInterval",
+    "GapMarker",
+    "TimelineEvent",
+    "ManifestEntry",
+    "DerivedMixMetadata"
+  ],
+  "brandedTypes": ["MeetingId", "ChunkId", "Sha256", "Milliseconds"],
+  "invariants": [
+    "Language is vi|en only (no mixed)",
+    "Mode is meeting_only|meeting_translate (not record/record_translate)",
+    "Chunk IDs format: {meetingId}/{source}/{chunkIndex}",
+    "Monotonic chunk index per source",
+    "Microphone and system audio are separate immutable source tracks",
+    "Derived mix is tagged isDerived:true",
+    "All schemas use .strict() to reject unknown fields",
+    "Capture profile: Opus in WebM, 48kHz, 16-bit, mono, 96kbps"
+  ],
+  "testCount": 49,
+  "allTestsPass": true
+}

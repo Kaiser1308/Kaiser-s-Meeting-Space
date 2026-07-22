@@ -1,0 +1,30 @@
+{
+  "phase": "P02",
+  "task": "T02",
+  "generated": "2026-07-22T10:13:00+07:00",
+  "schemas": [
+    "TranscriptSource",
+    "GapReason",
+    "TranscriptSegment",
+    "TranscriptRevision",
+    "TranslationStatus",
+    "TranslationSegment",
+    "Speaker",
+    "EvidenceRef",
+    "GapEntry",
+    "PendingRange",
+    "Completeness"
+  ],
+  "invariants": [
+    "Source transcript segments are immutable",
+    "Revisions create new entries, never delete originals",
+    "Translation never replaces source text",
+    "EvidenceRef segmentId must reference same meeting",
+    "endMs > startMs for all segments",
+    "Gap segments carry gapReason",
+    "Speaker label defaults to 'Unknown Speaker'",
+    "Unique provider event IDs prevent duplicates"
+  ],
+  "testCount": 27,
+  "allTestsPass": true
+}

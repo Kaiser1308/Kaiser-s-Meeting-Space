@@ -1,0 +1,37 @@
+{
+  "phase": "P02",
+  "task": "T03",
+  "generated": "2026-07-22T10:13:00+07:00",
+  "schemas": [
+    "MinutesTemplate",
+    "DetailLevel",
+    "ActionItemStatus",
+    "ExportFormat",
+    "ExportStatus",
+    "MinutesDocument",
+    "MinutesSection",
+    "ActionItem",
+    "MinutesVersion",
+    "BrandPreset",
+    "HexColor",
+    "PaperSize",
+    "ExportJob",
+    "JobType",
+    "JobState",
+    "JobAttempt",
+    "Job"
+  ],
+  "invariants": [
+    "Five templates: team, one_on_one, direct_report, leadership, recurring",
+    "Detail level: detailed or near_verbatim (not 'verbatim')",
+    "Action items support needs_confirmation status",
+    "Minutes versions are immutable and versioned",
+    "MinutesVersion requires transcriptProjection and isComplete",
+    "Brand preset colors validated as hex",
+    "Job progress clamped 0-100",
+    "maxAttempts must be positive",
+    "All schemas use .strict()"
+  ],
+  "testCount": 34,
+  "allTestsPass": true
+}

@@ -1,0 +1,49 @@
+{
+  "phase": "P02",
+  "task": "T06",
+  "generated": "2026-07-22T10:13:00+07:00",
+  "schemas": [
+    "CommandEnvelopeV1",
+    "DomainEventEnvelopeV1",
+    "IdempotencyKey",
+    "CorrelationId",
+    "CausationId",
+    "EnvelopeVersion",
+    "EntityType"
+  ],
+  "metadata": [
+    "messageId",
+    "correlationId",
+    "causationId",
+    "ownerId",
+    "entityType",
+    "entityId",
+    "version",
+    "idempotencyKey (commands only)",
+    "actorId",
+    "timestamp (RFC3339, not Date)"
+  ],
+  "invariants": [
+    "Envelope version is literal '1'",
+    "All envelopes use .strict()",
+    "Serialization round-trip verified",
+    "Unknown envelope version throws on parse",
+    "Type guards discriminate command vs event",
+    "Timestamp is string (RFC3339), not Date object",
+    "Version numbers are integers, not strings"
+  ],
+  "entityTypes": [
+    "meeting",
+    "audio_chunk",
+    "transcript_segment",
+    "transcript_revision",
+    "translation_segment",
+    "speaker",
+    "minutes_document",
+    "minutes_version",
+    "export_job",
+    "processing_job"
+  ],
+  "testCount": 24,
+  "allTestsPass": true
+}

@@ -1,0 +1,26 @@
+{
+  "phase": "P02",
+  "task": "T05",
+  "generated": "2026-07-22T10:13:00+07:00",
+  "errorCodes": 25,
+  "categories": [
+    "illegal_transition",
+    "validation",
+    "conflict",
+    "auth",
+    "storage",
+    "provider",
+    "rate",
+    "resource",
+    "unsupported_version"
+  ],
+  "invariants": [
+    "No duplicate codes",
+    "Safe error details reject content/credential/token fields",
+    "Every code has HTTP status, category, retryability, localization key",
+    "No raw provider bodies in messages",
+    "DomainError schema validates all fields"
+  ],
+  "testCount": 16,
+  "allTestsPass": true
+}
