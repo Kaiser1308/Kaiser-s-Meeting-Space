@@ -41,6 +41,10 @@ export const TranscriptSegmentSchema = z
   .refine((data) => data.endMs > data.startMs, {
     message: 'endMs must be greater than startMs',
     path: ['endMs'],
+  })
+  .refine((data) => !data.isGap || data.gapReason !== undefined, {
+    message: 'gapReason is required when isGap is true',
+    path: ['gapReason'],
   });
 export type TranscriptSegment = z.infer<typeof TranscriptSegmentSchema>;
 

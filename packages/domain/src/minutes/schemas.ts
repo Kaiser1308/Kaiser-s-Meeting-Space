@@ -104,7 +104,7 @@ export const PaperSizeSchema = z.enum(['A4', 'Letter', 'Legal']);
 
 export const HexColorSchema = z
   .string()
-  .regex(/^#[0-9a-fA-F]{3,6}$/, 'Must be a hex color like #FFF or #2563EB');
+  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a hex color like #FFF or #2563EB');
 
 export const BrandPresetSchema = z
   .object({

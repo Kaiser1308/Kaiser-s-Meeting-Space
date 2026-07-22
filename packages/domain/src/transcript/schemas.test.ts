@@ -66,6 +66,18 @@ describe('TranscriptSegment', () => {
     expect(result.gapReason).toBe('network_loss');
   });
 
+  it('rejects gap segment without gapReason', () => {
+    const result = TranscriptSegmentSchema.safeParse({
+      ...validSegment,
+      id: 'gap-002',
+      isGap: true,
+      text: '',
+      confidence: undefined,
+      providerEventId: undefined,
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('accepts segment with minimum fields', () => {
     const minimal = {
       id: 'seg-002',

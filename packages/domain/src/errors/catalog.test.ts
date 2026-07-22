@@ -39,6 +39,7 @@ describe('ErrorCategory', () => {
       'rate',
       'resource',
       'unsupported_version',
+      'internal',
     ];
     for (const cat of cats) {
       expect(ErrorCategorySchema.parse(cat)).toBe(cat);

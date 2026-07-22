@@ -12,6 +12,7 @@ export const ErrorCategorySchema = z.enum([
   'rate',
   'resource',
   'unsupported_version',
+  'internal',
 ]);
 export type ErrorCategory = z.infer<typeof ErrorCategorySchema>;
 
@@ -346,7 +347,7 @@ export const ErrorCatalog: Record<ErrorCode, ErrorCatalogEntry> = {
   INTERNAL_ERROR: {
     code: 'INTERNAL_ERROR',
     message: 'An unexpected internal error occurred',
-    category: 'resource',
+    category: 'internal',
     httpStatus: 500,
     retryable: true,
     userFacing: true,
