@@ -109,17 +109,15 @@ describe('CommandEnvelopeV1', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects content in payload (transcript, audio)', () => {
-    // Payload is structured command data, not meeting content
-    // This test verifies the envelope structure rejects content leaking
+  it('payload is preserved as-is (content validation is command-specific)', () => {
+    // The envelope itself does not inspect or reject payload content.
+    // Content security is enforced at the API layer by command-specific validators.
     const contentPayload = {
       ...validCommand,
       payload: { transcriptText: 'confidential', audioUrl: 'https://...' },
     };
     const result = CommandEnvelopeV1Schema.parse(contentPayload);
     expect(result.payload).toEqual({ transcriptText: 'confidential', audioUrl: 'https://...' });
-    // Note: payload validation is command-specific; envelope does not block content here
-    // Content security is enforced at the API layer
   });
 });
 

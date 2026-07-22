@@ -59,6 +59,9 @@ export const ALL_ERROR_CODES = [
   // Unsupported version
   'UNSUPPORTED_SCHEMA_VERSION',
   'UNSUPPORTED_ENVELOPE_VERSION',
+
+  // Internal
+  'INTERNAL_ERROR',
 ] as const;
 
 export type ErrorCode = (typeof ALL_ERROR_CODES)[number];
@@ -338,6 +341,16 @@ export const ErrorCatalog: Record<ErrorCode, ErrorCatalogEntry> = {
     retryable: false,
     userFacing: true,
     localizationKey: 'error.version.unsupported_envelope',
+  },
+
+  INTERNAL_ERROR: {
+    code: 'INTERNAL_ERROR',
+    message: 'An unexpected internal error occurred',
+    category: 'resource',
+    httpStatus: 500,
+    retryable: true,
+    userFacing: true,
+    localizationKey: 'error.internal.generic',
   },
 };
 

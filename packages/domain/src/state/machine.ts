@@ -146,15 +146,19 @@ export const LEGAL_TRANSITIONS: readonly Transition[] = [
 export function meetingStateMachine(
   currentState: MeetingState,
   command: MeetingCommand,
+  persistedVersion?: number,
 ): StateMachineResult {
-  // ── Optimistic version check ──
-  if (command.stateVersion !== undefined && command.version !== command.stateVersion) {
+  // ── Optimistic concurrency check ──
+  // Compares the command's expected version against the persisted aggregate version.
+  // When persistedVersion is provided and does not match command.version,
+  // a concurrent modification has occurred.
+  if (persistedVersion !== undefined && command.version !== persistedVersion) {
     return {
       success: false,
       error: {
         code: 'MEETING_VERSION_CONFLICT',
-        message: `Expected version ${command.stateVersion}, got ${command.version}`,
-        details: { expectedVersion: command.stateVersion, actualVersion: command.version },
+        message: `Expected version ${command.version}, but current persisted version is ${persistedVersion}`,
+        details: { expectedVersion: command.version, persistedVersion },
       },
     };
   }
@@ -178,14 +182,31 @@ export function meetingStateMachine(
   // ── Restore special case: use previousState if provided ──
   let newState = transition.to;
   if (command.type === 'Restore' && command.previousState) {
-    // Validate previousState is a valid non-deleted state
-    if (command.previousState !== 'deleted') {
-      newState = command.previousState;
+    if (command.previousState === 'deleted') {
+      return {
+        success: false,
+        error: {
+          code: 'MEETING_INVALID_TRANSITION',
+          message: 'Cannot restore a meeting that was previously deleted',
+          details: { previousState: command.previousState },
+        },
+      };
     }
+    newState = command.previousState;
   }
 
-  // ── Recover special case: use action to determine target ──
-  if (command.type === 'Recover' && command.action) {
+  // ── Recover special case: action is required ──
+  if (command.type === 'Recover') {
+    if (!command.action) {
+      return {
+        success: false,
+        error: {
+          code: 'MEETING_INVALID_TRANSITION',
+          message: "Recover command requires action: 'end' or 'continue'",
+          details: { command: 'Recover' },
+        },
+      };
+    }
     newState = command.action === 'continue' ? 'recording' : 'finalizing';
   }
 

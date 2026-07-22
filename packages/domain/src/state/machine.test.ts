@@ -166,6 +166,18 @@ describe('Legal transitions', () => {
       expect(result.newState).toBe('recording');
     }
   });
+
+  it('recovery_required + Recover without action → error', () => {
+    const result = meetingStateMachine('recovery_required', {
+      ...BASE_CMD,
+      type: 'Recover',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('MEETING_INVALID_TRANSITION');
+      expect(result.error.message).toContain('action');
+    }
+  });
 });
 
 // ── Deletion lifecycle tests ──
@@ -241,6 +253,18 @@ describe('Deletion lifecycle', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('Restore with previousState=deleted fails', () => {
+    const result = meetingStateMachine('deleted', {
+      ...BASE_CMD,
+      type: 'Restore',
+      previousState: 'deleted',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('MEETING_INVALID_TRANSITION');
+    }
+  });
 });
 
 // ── Illegal transition tests ──
@@ -312,40 +336,46 @@ describe('Illegal transitions', () => {
 // ── Version (optimistic concurrency) tests ──
 
 describe('Optimistic versioning', () => {
-  it('succeeds when command version matches state version', () => {
-    const result = meetingStateMachine('draft', {
-      ...BASE_CMD,
-      type: 'Create',
-      version: 1,
-      stateVersion: 1,
-      title: 'Test',
-      language: 'vi',
-      mode: 'meeting_only',
-      captureSources: ['mic'],
-      timezone: 'UTC',
-    });
+  it('succeeds when command version matches persisted version', () => {
+    const result = meetingStateMachine(
+      'draft',
+      {
+        ...BASE_CMD,
+        type: 'Create',
+        version: 1,
+        title: 'Test',
+        language: 'vi',
+        mode: 'meeting_only',
+        captureSources: ['mic'],
+        timezone: 'UTC',
+      },
+      1, // persistedVersion matches
+    );
     expect(result.success).toBe(true);
   });
 
-  it('fails when command version does not match state version', () => {
-    const result = meetingStateMachine('draft', {
-      ...BASE_CMD,
-      type: 'Create',
-      version: 2,
-      stateVersion: 1,
-      title: 'Test',
-      language: 'vi',
-      mode: 'meeting_only',
-      captureSources: ['mic'],
-      timezone: 'UTC',
-    });
+  it('fails when command version does not match persisted version', () => {
+    const result = meetingStateMachine(
+      'draft',
+      {
+        ...BASE_CMD,
+        type: 'Create',
+        version: 2,
+        title: 'Test',
+        language: 'vi',
+        mode: 'meeting_only',
+        captureSources: ['mic'],
+        timezone: 'UTC',
+      },
+      1, // persistedVersion is 1, but command says version 2
+    );
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe('MEETING_VERSION_CONFLICT');
     }
   });
 
-  it('version check skipped when no stateVersion provided', () => {
+  it('version check skipped when no persistedVersion provided', () => {
     const result = meetingStateMachine('draft', {
       ...BASE_CMD,
       type: 'Create',

@@ -40,8 +40,8 @@ export function deriveTranslationTarget(language: MeetingLanguage): MeetingLangu
 export const ChunkIdSchema = z
   .string()
   .regex(
-    /^[0-9a-fA-F-]{36}\/(mic|system|derived_mix)\/\d+$/,
-    'Chunk ID must match {meetingId}/{source}/{chunkIndex}',
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\/(mic|system|derived_mix)\/\d+$/,
+    'Chunk ID must match {meetingId}/{source}/{chunkIndex} with UUID meetingId',
   )
   .brand('ChunkId');
 export type ChunkId = z.infer<typeof ChunkIdSchema>;
@@ -117,11 +117,13 @@ export const MeetingSettingsSchema = z
   .strict()
   .refine(
     (data) => {
+      // endedAt requires startedAt
+      if (data.endedAt && !data.startedAt) return false;
       if (data.startedAt && data.endedAt) {
         return new Date(data.endedAt) >= new Date(data.startedAt);
       }
       return true;
     },
-    { message: 'endedAt must be >= startedAt', path: ['endedAt'] },
+    { message: 'endedAt requires startedAt and must be >= startedAt', path: ['endedAt'] },
   );
 export type MeetingSettings = z.infer<typeof MeetingSettingsSchema>;

@@ -170,6 +170,14 @@ describe('ChunkId parsing and formatting', () => {
     expect(() => parseChunkId('550e8400-e29b-41d4-a716-446655440000/bluetooth/0')).toThrow();
   });
 
+  it('rejects non-numeric chunkIndex', () => {
+    expect(() => parseChunkId('550e8400-e29b-41d4-a716-446655440000/mic/abc')).toThrow();
+  });
+
+  it('rejects non-UUID meetingId in chunk ID', () => {
+    expect(() => parseChunkId('not-a-uuid/mic/0')).toThrow();
+  });
+
   it('ChunkIdSchema validates formatted chunk IDs', () => {
     const id = formatChunkId('550e8400-e29b-41d4-a716-446655440000', 'mic', 0);
     expect(ChunkIdSchema.parse(id)).toBe(id);
@@ -235,6 +243,14 @@ describe('MeetingSettings', () => {
       ...validSettings,
       startedAt: '2026-07-22T10:00:00.000Z',
       endedAt: '2026-07-22T09:00:00.000Z',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects endedAt without startedAt', () => {
+    const result = MeetingSettingsSchema.safeParse({
+      ...validSettings,
+      endedAt: '2026-07-22T10:00:00.000Z',
     });
     expect(result.success).toBe(false);
   });
