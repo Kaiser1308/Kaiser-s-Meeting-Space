@@ -1,0 +1,26 @@
+{
+  "name": "@kms/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kms/database": "workspace:*",
+    "@kms/domain": "workspace:*",
+    "@kms/jobs": "workspace:*",
+    "bullmq": "^5.40.0",
+    "ioredis": "^5.4.1",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/pg": "^8.11.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
+  }
+}
