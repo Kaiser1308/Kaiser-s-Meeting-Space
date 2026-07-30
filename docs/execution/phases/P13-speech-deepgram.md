@@ -1,7 +1,7 @@
 ---
 phase: P13
-title: Provider-neutral speech broker and Deepgram realtime adapter
-status: NOT_STARTED
+title: Provider-neutral cloud-live and desktop local-file speech platform
+packet_status: ACCEPTED
 depends_on: [P06, P09, P12]
 requirements: [FR-3, ADR-003, ADR-004]
 risk: high
@@ -11,7 +11,7 @@ risk: high
 
 # Outcome
 
-Vietnamese/English mobile and desktop meetings may stream a derived audio feed through an owner-bound server-brokered Deepgram session and persist normalized final events idempotently. Interim events are ephemeral, provider credentials/payloads remain inside the adapter, and every provider/network failure leaves recording independent and marks backfill need.
+Vietnamese/English meetings use a versioned speech policy and immutable run/part lineage. Opt-in cloud live uses an owner-bound server-brokered Deepgram session, while the Windows Rust runtime provides the default verified local file-STT capability for final processing after End. Deterministic window planning, minimal language-model verification, normalized events and a frozen bilingual quality/resource corpus are ready for P14 orchestration; recording remains independent from every speech path.
 
 # Authoritative context
 
@@ -19,103 +19,128 @@ Read AI/Speech Providers, API Contracts audio/jobs, Security provider controls, 
 
 # Preconditions and external prerequisites
 
-P06/P09/P12 are `VERIFIED`; a Deepgram test account/key in approved server secret storage, accepted data-processing/region policy, synthetic vi/en audio, and supported network profiles are available. Fixture work can finish without key but live acceptance remains blocked.
+P06/P09/P12 are `VERIFIED`; a Deepgram test account/key in approved server secret storage, accepted data-processing/region policy, a license/provenance-reviewed vi and en local model, minimum supported Windows hardware, synthetic/consented vi/en audio, and supported online/offline network profiles are available. Fixture work can finish without live credentials/models/hardware but their acceptance gates remain blocked.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P06        | Verified outputs and invariants consumed by this packet. | `../evidence/P06/EVIDENCE.md` | VERIFIED          |
+| P09        | Verified outputs and invariants consumed by this packet. | `../evidence/P09/EVIDENCE.md` | VERIFIED          |
+| P12        | Verified outputs and invariants consumed by this packet. | `../evidence/P12/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
-**Allowed:** `packages/speech/`, Deepgram adapter, API speech session broker, mobile/desktop derived-feed stream, final event persistence, safe metrics, conformance/live/fault tests.
+**Allowed:** versioned policy/run/part/segment contracts, `packages/speech/`, deterministic window planner, Deepgram cloud-live adapter and broker, mobile/desktop derived-feed stream, Windows Rust local file-STT adapter, one minimal verified language-model boundary, immutable raw event persistence, bilingual evaluation harness, safe metrics, conformance/live/fault tests.
 
-**Forbidden/out:** backfill/completeness (P14), translation, minutes/local Whisper, provider SDK types in domain/client, master key/client, source capture changes, and automatic provider fallback.
+**Forbidden/out:** final-run scheduling/reconciliation/completeness/cloud-check execution (P14), translation, minutes, mobile local STT, local live STT, immutable import, advanced resumable model catalog/switching (P28), provider SDK types in domain/client, master key/client, source capture changes, and automatic provider/locality fallback.
 
-**Extension seams:** `SpeechProvider` capability/session/file/health contract; only Deepgram realtime is registered here.
+**Extension seams:** `SpeechProvider` capability/session/file/health contract, immutable `TranscriptRun`/`TranscriptRunPart`, `stt-window-v1`, and versioned native local-speech IPC. P14 owns orchestration; P28 must reuse these contracts.
 
 # Contracts and invariants
 
 - Session request binds owner/meeting, language `vi|en`, source/mix ID, capability/config version, expiry, budget, and allowed provider.
 - Normalized events: interim, final segment, speaker update, usage, safe error, session state; raw payload stays adapter-internal.
-- Final event dedupe key combines provider/session/event identity; ordering/reconciliation preserves raw metadata reference safely.
+- `TranscriptionPolicyV1` independently selects live and final behavior; legacy `speechMode` cannot infer cloud consent.
+- Every live/final/check attempt has immutable run lineage; each window or full batch has immutable part lineage and raw-result hash.
+- `stt-window-v1` deterministically plans 300-second windows with 2-second overlaps independently of capture-chunk boundaries.
+- The local adapter accepts exact planned windows, uses one verified allowlisted vi or en model, bounds resources/cancellation, yields to capture, and makes no network request.
+- Final event dedupe combines run/part/provider/session/event identity; P13 preserves reconciliation inputs but P14 owns the canonical projection.
 - Client streams derived feed only; loss never blocks source writer and emits delayed/backfill-required state.
-- Cross-provider fallback is off; secrets/errors/content absent from tokens, client bundle, logs, telemetry.
+- Cloud work requires named-provider disclosure, consent and approved range. Cross-provider/locality fallback is off; secrets/errors/content are absent from tokens, client bundles, logs and telemetry.
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/speech/src/core/` | capabilities/session/events/errors/conformance | Speech core |
-| `packages/speech/src/deepgram/` | SDK isolation/normalization/live/file seam | Adapter |
-| API speech module | owner/session credential/budget policy | Broker |
-| mobile/desktop speech stream feature | derived feed/reconnect/display state | Client integration |
-| speech contract/live/security tests | fixtures, live synthetic, latency/fault | Independent reviewer |
+| Path                                  | Responsibility                                       | Owner                |
+| ------------------------------------- | ---------------------------------------------------- | -------------------- |
+| `packages/domain/src/transcript/`     | policy/run/part/segment lineage contracts            | Speech core          |
+| `packages/speech/src/core/`           | capabilities/window/events/errors/conformance        | Speech core          |
+| `packages/speech/src/deepgram/`       | SDK isolation/normalization/cloud live               | Cloud adapter        |
+| `packages/native-contract/`           | versioned local file-STT IPC                         | Native contract      |
+| `native/kms-native/src/local_speech/` | verified model boundary and bounded local engine     | Local adapter        |
+| API/client speech modules             | broker, derived feed and immutable event persistence | Integration          |
+| speech evaluation/security tests      | bilingual quality/resource/live/offline/fault        | Independent reviewer |
 
 # Ordered task packets
 
 ## P13-T01 - Provider-neutral speech contracts and fixtures
 
-Define runtime capability/readiness/session/file/event/usage/health/cancel/safe error schemas and adapter conformance. Test unknown versions, invalid time/language/speaker/confidence, raw SDK leakage, duplicates/out-of-order, and content-free error mapping. Evidence: `evidence/P13/speech-contract.json`.
+Define runtime `TranscriptionPolicyV1`, immutable run/part/segment lineage, capability/readiness/session/file/event/usage/health/cancel/safe error schemas and adapter conformance. Add additive persistence for runs, parts and raw events. Test invalid policy/locality/consent/ranges, immutability, owner isolation, unknown versions, raw SDK leakage, duplicates/out-of-order and content-free errors. Evidence: `evidence/P13/speech-contract.json`.
 
 ## P13-T02 - Owner-bound short-lived session broker
 
-Implement authenticated API session creation with meeting state/language/source/capability/allowlist/region/budget/rate validation and short expiry; master credentials stay server-side. Test two owners, stale meeting/state, unsupported capability, quota, token replay/expiry, and redaction. Evidence: `speech-broker-report.json`.
+Implement `stt-window-v1` deterministic planning from verified manifest ranges with 300-second windows and 2-second overlaps, stable plan hash and no capture-chunk linguistic boundary. Add golden/property tests for short/exact/two-hour, pause/gap, multi-source and repeatability cases. Evidence: `window-planner-report.json`.
 
 ## P13-T03 - Deepgram realtime adapter
 
-Implement explicit vi/en config, encoding/sample rate/channels from derived feed, punctuation/finalization/diarization capability, keepalive/close, normalized events, timeout/rate/error mapping. Contract tests and authorized live synthetic session tests cover both languages and every normalized event/error class. Evidence: `deepgram-conformance.json`.
+Implement the versioned TS/Rust local-speech IPC, fixed allowlisted model manifest and whisper.cpp-compatible Windows file adapter with vi/en fixed language, exact range metadata, bounded thread/memory/queue/progress/cancel, capture priority and no-network behavior. Reject corrupt/incompatible/unreviewed/path-escaping models. Evidence: `local-speech-conformance.json`.
 
 ## P13-T04 - Recording-independent client streaming
 
-Implement bounded derived-feed tap, session connect/rollover/reconnect, backpressure/drop accounting, cancellation, and delayed/backfill-required state for mobile/desktop. Fault tests disconnect/slow the provider while recording and prove local chunks/controls continue with explicit delayed ranges. Evidence: `client-stream-fault.json`.
+Implement authenticated cloud-live session creation plus the Deepgram realtime adapter with explicit vi/en config, derived-feed format, normalization, keepalive/close and safe error mapping. Require matching live-cloud policy/disclosure/consent; master credentials stay server-side. Test two owners, replay/expiry, quota, unsupported capability, every normalized event/error and authorized live synthetic vi/en sessions. Evidence: `deepgram-conformance.json`.
 
 ## P13-T05 - Idempotent final event persistence
 
-Persist only normalized final/speaker/usage events through owner/meeting/session identity, unique dedupe/order semantics, P02 validation, and transaction/outbox progress. Interim remains memory/UI only. Test retry, out-of-order, conflicting duplicate, stale session, and cross-meeting event. Evidence: `speech-persistence.json`.
+Implement bounded mobile/desktop cloud-live derived-feed streaming and desktop local-file submission. Persist normalized final/speaker/usage events under immutable run/part lineage; interim remains memory/UI only. Test retry, out-of-order, conflicting duplicate, stale/cross-meeting event, per-window resume input, provider/network/model failure and prove capture continues. Evidence: `speech-persistence.json`.
 
 ## P13-T06 - Safe state, latency, usage, and cancellation
 
-Expose session/provider state, p50/p95 final latency, units, retries, delayed ranges, and safe errors through P06 events; close sockets/resources on End/cancel/timeout. Test log/telemetry content/credential injection and leaked handles. Evidence: `speech-operations-report.json`.
+Freeze the synthetic/consented bilingual corpus and evaluation calculations before tuning. Measure clean/noisy WER, timestamp p95, local RTF, memory/CPU, cancellation, deterministic plans, coverage, ordering, no-network local behavior and cloud-contact absence. Expose only safe state/usage/resource metrics and close all resources. Evidence: `local-speech-evaluation.json`.
 
 ## P13-T07 - Live synthetic and fault qualification
 
-Run fixed vi/en synthetic audio on mobile/desktop derived feeds, reconnect/rollover/network flap/rate/quota/malformed/duplicate/provider outage/cancel, measure latency and inspect persistence/bundles/logs. Fixtures cannot replace live test. Evidence: `evidence/P13/EVIDENCE.md`.
+Run fixed vi/en local and cloud-live qualification: minimum-Windows local file STT, offline/cancel/crash/resource limits, mobile/desktop cloud-live reconnect/rollover/network/rate/quota/provider outage, persistence replay and bundle/log/secret inspection. Enforce clean WER ≤18%, noisy WER ≤30%, timestamp p95 ≤1.5s, local RTF ≤1.0 and cancel ≤2s. Fixtures cannot replace live provider or hardware evidence. Evidence: `evidence/P13/EVIDENCE.md`.
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Core/fixtures | T01 | speech core | P02 | contract/content review |
-| Adapter/broker | T02,T03,T06 server | Deepgram + API | T01,P04,P06 | secret/policy review |
-| Client/persistence | T04,T05,T06 client | client stream + persistence | T01-T03 | recording/idempotency review |
-| Independent live QA | T07 | tests/evidence | all | provider/security/latency review |
+| Package            | Tasks             | Exclusive paths             | Depends on  | Review gate                      |
+| ------------------ | ----------------- | --------------------------- | ----------- | -------------------------------- |
+| Contracts/windows  | T01,T02           | domain/database/speech core | P02,P06     | lineage/determinism review       |
+| Local model/engine | T03,T06 local     | native contract/runtime     | T01,T02,P12 | license/resource/privacy review  |
+| Cloud/integration  | T04,T05,T06 cloud | Deepgram/API/clients        | T01,P06     | consent/secret/capture review    |
+| Independent QA     | T07               | tests/evidence              | all         | quality/security/resource review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Provider/network loss | provider | Recording continues; delayed/backfill range visible | forced outage |
-| Session expires | timing | Bounded rollover without duplicate finals | expiry/reconnect test |
-| Duplicate/out-of-order final | state | One event and deterministic order/reconciliation input | replay property |
-| Unsupported language/capability | contract | Reject before provider; no mode change | capability matrix |
-| Quota/rate limit | provider | Safe delayed/retry-after; no key/body leak | live/fake rate test |
+| Failure                         | Classification | Expected behavior                                      | Recovery/regression   |
+| ------------------------------- | -------------- | ------------------------------------------------------ | --------------------- |
+| Provider/network loss           | provider       | Recording continues; delayed/backfill range visible    | forced outage         |
+| Session expires                 | timing         | Bounded rollover without duplicate finals              | expiry/reconnect test |
+| Duplicate/out-of-order final    | state          | One event and deterministic order/reconciliation input | replay property       |
+| Unsupported language/capability | contract       | Reject before provider; no mode change                 | capability matrix     |
+| Quota/rate limit                | provider       | Safe delayed/retry-after; no key/body leak             | live/fake rate test   |
+| Model absent/corrupt            | environment    | Wait/reject locally; recording continues; no cloud job | model boundary test   |
+| Local engine/resource failure   | platform       | Preserve committed parts; bounded cancel/retry         | offline/crash test    |
+| Window boundary speech          | contract       | Preserve raw candidates for P14 reconciliation         | boundary corpus       |
 
 # Integrated verification
 
-Run speech contract/conformance, API broker auth/security, persistence integration, client capture-independence/resilience, live synthetic vi/en tests, latency baseline, secret/content/bundle/log scan, resource leak tests, and `pnpm verify`.
+Run policy/run persistence, deterministic planner, TS/Rust IPC/model/local-engine conformance, API broker auth/consent/security, Deepgram live synthetic, client capture-independence, bilingual quality/resource/offline tests, persistence replay, secret/content/bundle/log scans, resource-leak tests, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P13/EVIDENCE.md` |
 
 # Acceptance gate
 
-- [ ] P13-A01 - Provider master credential/payload never reaches clients/domain/logs.
-- [ ] P13-A02 - Explicit-language normalized final events persist idempotently with stable ordering/lineage.
-- [ ] P13-A03 - Provider/network/quota failure cannot stop/corrupt mobile or Windows recording.
-- [ ] P13-A04 - Core conformance and real Deepgram vi/en synthetic matrix pass.
-- [ ] P13-A05 - Latency/usage/state/errors are bounded, actionable, and content-free.
-- [ ] P13-A06 - Session authorization/expiry/budget/region/allowlist controls pass two-user tests.
+- [ ] P13-A01 - Policy/run/part/event contracts are versioned, owner-scoped, immutable, idempotent and contain no provider SDK leakage.
+- [ ] P13-A02 - `stt-window-v1` is deterministic, independent of capture chunks and preserves exact range/overlap lineage for P14.
+- [ ] P13-A03 - Verified Windows local file STT is explicit-language, bounded, cancellable, network-independent and cannot interfere with recording.
+- [ ] P13-A04 - Real Deepgram cloud-live vi/en matrix passes consent/session/security controls and provider failure cannot stop capture.
+- [ ] P13-A05 - Frozen bilingual quality/resource thresholds pass on the minimum Windows profile with complete range accounting inputs.
+- [ ] P13-A06 - No local failure creates cloud work; credentials/content stay out of clients/domain/logs/telemetry and two-owner controls pass.
 
 # Migration, rollout, and rollback
 
-Feature/account allowlist and budget. Disable session creation on rollback; existing recordings continue and final events remain immutable. Live key never enters repo.
+Use separate local-final and cloud-live feature flags plus provider/account allowlist and budget. Rollback disables new sessions/local jobs while preserving verified models, audio, runs, parts and raw events. Live key/model binaries never enter the repo.
 
 # Required documentation updates
 
 AI/Speech provider configuration/capabilities, API session contract, privacy disclosure, Operations provider runbook, Status/Traceability/Progress, and P13 evidence.
+
+# Conversation boundary
+
+Speech platform capability only. Do not implement final-run orchestration, canonical overlap reconciliation, cloud-check execution, completeness, translation, minutes, mobile local, local live, import, advanced model lifecycle, client master credentials, or automatic provider/locality fallback. Stop before P14.
 
 # Handoff record
 

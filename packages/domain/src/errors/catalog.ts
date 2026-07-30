@@ -373,9 +373,9 @@ export type DomainError = z.infer<typeof DomainErrorSchema>;
 
 // ── Utility functions ──
 
-export function hasDuplicateCodes(): boolean {
+export function hasDuplicateCodes(codes: readonly ErrorCode[] = ALL_ERROR_CODES): boolean {
   const seen = new Set<ErrorCode>();
-  for (const code of ALL_ERROR_CODES) {
+  for (const code of codes) {
     if (seen.has(code)) return true;
     seen.add(code);
   }

@@ -24,14 +24,14 @@ Kaiser’s Meeting Space must capture the full meeting, retain original evidence
 
 ### Alpha success measures
 
-| Measure | Target |
-|---|---|
-| Successfully finalized test meetings | ≥ 99% for supported devices and sessions up to 2 hours |
-| Recoverable audio after simulated network loss | 100% |
-| Transcript coverage | No silent gaps; every gap is explicitly marked |
-| Evidence validity | 100% of generated evidence references point to an existing segment/time range |
-| Start-flow completion | ≥ 95% in usability testing without assistance |
-| Critical data-loss defects | 0 open at release |
+| Measure                                        | Target                                                                        |
+| ---------------------------------------------- | ----------------------------------------------------------------------------- |
+| Successfully finalized test meetings           | ≥ 99% for supported devices and sessions up to 2 hours                        |
+| Recoverable audio after simulated network loss | 100%                                                                          |
+| Transcript coverage                            | No silent gaps; every gap is explicitly marked                                |
+| Evidence validity                              | 100% of generated evidence references point to an existing segment/time range |
+| Start-flow completion                          | ≥ 95% in usability testing without assistance                                 |
+| Critical data-loss defects                     | 0 open at release                                                             |
 
 Transcription word accuracy is measured by language and acoustic environment during beta; no universal accuracy promise is made before benchmark data exists.
 
@@ -59,7 +59,7 @@ An individual professional who attends in-person and online meetings, works in V
 - One personal account and synchronized mobile/desktop library.
 - Vietnamese or English selected before each meeting.
 - `Meeting only` and `Meeting + live translation` modes.
-- API transcription with diarization; local transcription as a later optional capability.
+- Desktop local final transcription by default; explicit cloud live, cloud final and post-local cloud-check choices.
 - Mobile microphone capture; Windows microphone and system-audio capture.
 - Pause, resume, end, local-first chunks, background upload and recovery.
 - Complete transcript, revision history, speaker naming and evidence playback.
@@ -160,6 +160,21 @@ Alpha is releasable only when:
 6. Backup/restore and permanent deletion tests pass in a production-like environment.
 7. Known limitations and consent/privacy copy are present in-product.
 
-## 8. Open product approvals
+## 8. Approved local-first transcription policy
+
+- New meetings default to cloud live off and desktop local final after End.
+- Live transcription is independently `off | cloud`; final transcription is `none | local | cloud | local_cloud_check`.
+- Reader-facing choices are Record only, Show live transcript using cloud, Create transcript on this computer after the meeting, Create transcript with cloud after the meeting, and Create locally then check approved difficult parts with cloud.
+- Missing desktop/model or provider availability may delay processing but cannot block safe recording when audio readiness is valid.
+- Cloud live, cloud final and cloud check each require a named-provider disclosure, an exact approved audio scope and explicit versioned consent. Speech consent is separate from cloud minutes-AI consent.
+- Local failure never changes the selected final mode to cloud.
+- Every live/final/check attempt is an immutable transcript run. Audio remains highest authority; the current transcript is a versioned projection and user edits are revisions.
+- Local final uses deterministic bounded overlapped windows with per-window resume. Cloud final prefers a consented full-meeting batch and may use equivalent windows only within the same approved provider and audio scope.
+- Review exposes run provenance, local/cloud disagreements and exact audio evidence. Cloud check cannot change the projection without an explicit decision.
+- Mobile-originated local final may show `waiting_for_desktop`; a missing verified model may show `waiting_for_model`.
+
+Initial speech release gates are: clean/online bilingual WER at or below 18%, noisy-room WER at or below 30%, timestamp p95 error at or below 1.5 seconds, desktop local real-time factor at or below 1.0 on the minimum Windows profile, cancellation acknowledgement within 2 seconds, and 100% expected-range accounting by canonical text or explicit gap.
+
+## 9. Open product approvals
 
 Before external beta, product ownership must approve pricing/cost limits, retention duration, supported OS versions, privacy jurisdiction, model/provider data-processing terms and branding. Defaults for engineering are documented in the architecture and security documents but are not legal approval.

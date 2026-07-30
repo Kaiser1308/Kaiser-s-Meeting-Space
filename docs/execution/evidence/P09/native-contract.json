@@ -1,0 +1,44 @@
+{
+  "task": "P09-T01",
+  "title": "Versioned native module contract and deterministic fake",
+  "status": "COMPLETE",
+  "package": "@kms/mobile-audio",
+  "version": "0.1.0",
+  "testCount": 46,
+  "testFiles": 1,
+  "files": [
+    "src/contracts/commands.ts",
+    "src/contracts/events.ts",
+    "src/contracts/module.ts",
+    "src/contracts/index.ts",
+    "src/adapters/fake-module.ts",
+    "src/index.ts",
+    "package.json",
+    "tsconfig.json",
+    "vitest.config.ts"
+  ],
+  "contracts": {
+    "protocolVersion": 1,
+    "commands": ["configure", "start", "pause", "resume", "stop", "status", "cancel"],
+    "events": ["chunk", "device", "interrupt", "storage", "gap", "error", "status"],
+    "fakeConfigOptions": [
+      "chunkDelayMs",
+      "stopTimeout",
+      "errorAfterChunks",
+      "gapAtChunk",
+      "deviceEventAfterMs",
+      "storageThreshold",
+      "configureFails",
+      "startFails",
+      "pauseFails",
+      "diskFullOnStop",
+      "checksumMismatch",
+      "routeChangeOnStart"
+    ]
+  },
+  "typecheck": "PASS",
+  "commands": {
+    "pnpm --filter @kms/mobile-audio typecheck": { "exitCode": 0 },
+    "pnpm --filter @kms/mobile-audio test:unit": { "exitCode": 0, "tests": 46, "files": 1 }
+  }
+}

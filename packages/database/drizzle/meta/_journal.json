@@ -1,0 +1,69 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784730793763,
+      "tag": "0000_init_identity_meeting_capture_audio",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784733045493,
+      "tag": "0001_transcript",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784733211719,
+      "tag": "0002_minutes_brand_export",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784733373852,
+      "tag": "0003_operational",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784750000000,
+      "tag": "0004_identity_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784750100000,
+      "tag": "0005_audio_orphan_reconciliation",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784750200000,
+      "tag": "0006_jobs_outbox_improvements",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784840000000,
+      "tag": "0007_speech_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784841000000,
+      "tag": "0008_meeting_transcription_policy",
+      "breakpoints": true
+    }
+  ]
+}

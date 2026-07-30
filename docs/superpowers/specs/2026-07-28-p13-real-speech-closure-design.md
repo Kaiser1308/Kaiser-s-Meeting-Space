@@ -145,16 +145,16 @@ Cancellation is observable at queue wait, decode/resample, and Whisper
 inference boundaries. The target acknowledgement is at most two seconds.
 Cancellation never marks a part complete.
 
-| Failure | Required result |
-| --- | --- |
+| Failure                                 | Required result                                                          |
+| --------------------------------------- | ------------------------------------------------------------------------ |
 | Model missing, corrupt, or incompatible | Reject before inference; preserve recording and previous committed parts |
-| Source path escapes audio root | Reject as a security error without echoing the path |
-| Source checksum mismatch | Reject as integrity failure |
-| Unsupported or malformed audio | Reject locally; no cloud work |
-| Queue full or memory budget exceeded | Return bounded retryable local error |
-| Engine panic or native failure | Emit safe failure, release resources, keep runtime recoverable |
-| Cancel | Stop within the bounded target and retain already committed parts |
-| Network unavailable | Local transcription behavior is unchanged |
+| Source path escapes audio root          | Reject as a security error without echoing the path                      |
+| Source checksum mismatch                | Reject as integrity failure                                              |
+| Unsupported or malformed audio          | Reject locally; no cloud work                                            |
+| Queue full or memory budget exceeded    | Return bounded retryable local error                                     |
+| Engine panic or native failure          | Emit safe failure, release resources, keep runtime recoverable           |
+| Cancel                                  | Stop within the bounded target and retain already committed parts        |
+| Network unavailable                     | Local transcription behavior is unchanged                                |
 
 No automatic local-to-cloud fallback is introduced.
 
@@ -234,4 +234,3 @@ This closure does not implement P14 scheduling, reconciliation, completeness,
 cloud check execution, translation, minutes, mobile local STT, local live STT,
 audio import, advanced model lifecycle, diarization approximation, arbitrary
 models, or automatic provider/locality fallback.
-

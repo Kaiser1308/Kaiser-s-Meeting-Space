@@ -1,7 +1,8 @@
 import { Worker, type Job as BullMQJob } from 'bullmq';
 import Redis from 'ioredis';
 import { createClient, JobsMetadataRepository, type ClientHandle } from '@kms/database';
-import { type JobAttempt } from '@kms/domain';
+import { JobTypeSchema, type JobAttempt, type JobType } from '@kms/domain';
+import { getJobConfig } from '@kms/jobs';
 
 export class KMSWorker {
   private worker: Worker | null = null;
@@ -11,10 +12,10 @@ export class KMSWorker {
   private isRunning = false;
   private databaseUrl: string;
   private redisUrl: string;
-  private jobType: string;
+  private jobType: JobType;
 
   constructor(jobType: string, opts: { databaseUrl: string; redisUrl: string }) {
-    this.jobType = jobType;
+    this.jobType = JobTypeSchema.parse(jobType);
     this.databaseUrl = opts.databaseUrl;
     this.redisUrl = opts.redisUrl;
   }
@@ -25,16 +26,24 @@ export class KMSWorker {
 
     this.redis = new Redis(this.redisUrl, { maxRetriesPerRequest: null });
     this.handle = createClient(this.databaseUrl);
+    const config = getJobConfig(this.jobType);
 
     this.worker = new Worker(
       this.jobType,
       async (bullJob: BullMQJob) => {
-        return this.processJob(bullJob);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+        try {
+          return await this.processJob(bullJob, controller.signal);
+        } finally {
+          clearTimeout(timeout);
+        }
       },
       {
         connection: this.redis,
-        concurrency: 1,
-      }
+        concurrency: config.concurrency,
+        lockDuration: config.timeoutMs + 30_000,
+      },
     );
 
     this.worker.on('error', (err) => {
@@ -59,7 +68,10 @@ export class KMSWorker {
     }
   }
 
-  private async processJob(bullJob: BullMQJob): Promise<any> {
+  private async processJob(
+    bullJob: BullMQJob,
+    signal: AbortSignal,
+  ): Promise<Record<string, unknown>> {
     if (!this.handle) throw new Error('Database connection not initialized');
 
     const jobId = bullJob.data.jobId;
@@ -84,12 +96,13 @@ export class KMSWorker {
     const nextAttemptNum = job.attempts.length + 1;
     const startedAt = new Date().toISOString();
 
-    let executionError: any = null;
+    let executionError: unknown = null;
     let result: Record<string, unknown> | undefined = undefined;
 
     try {
       // Mock execution progress
       for (let p = 10; p <= 100; p += 30) {
+        if (signal.aborted) throw new Error('JOB_TIMEOUT');
         // Heartbeat check: Query database to see if job was cancelled
         const currentJob = await this.jobsRepo.get(ownerCtx, this.handle.db, jobId);
         if (currentJob?.state === 'cancelled') {
@@ -105,7 +118,7 @@ export class KMSWorker {
         handler: 'deterministic-mock',
         timestamp: new Date().toISOString(),
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       executionError = err;
     }
 
@@ -119,8 +132,8 @@ export class KMSWorker {
       success,
       error: executionError
         ? {
-            code: executionError.message === 'JOB_CANCELLED' ? 'CANCELLED' : 'EXECUTION_FAILED',
-            message: executionError.message,
+            code: this.safeErrorCode(executionError),
+            message: this.safeErrorMessage(executionError),
           }
         : undefined,
     };
@@ -139,7 +152,7 @@ export class KMSWorker {
       if (success) {
         await this.jobsRepo.markState(ownerCtx, tx, jobId, 'completed', result);
       } else {
-        const isCancelled = executionError.message === 'JOB_CANCELLED';
+        const isCancelled = this.errorMessage(executionError) === 'JOB_CANCELLED';
         const isLastAttempt = nextAttemptNum >= job.maxAttempts;
         const nextState = isCancelled ? 'cancelled' : isLastAttempt ? 'failed' : 'retrying';
 
@@ -148,9 +161,29 @@ export class KMSWorker {
     });
 
     if (executionError) {
-      throw executionError;
+      throw executionError instanceof Error ? executionError : new Error('JOB_EXECUTION_FAILED');
     }
 
+    if (!result) throw new Error('JOB_EXECUTION_FAILED');
     return result;
+  }
+
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : '';
+  }
+
+  private safeErrorCode(error: unknown): 'CANCELLED' | 'TIMEOUT' | 'EXECUTION_FAILED' {
+    const message = this.errorMessage(error);
+    if (message === 'JOB_CANCELLED') return 'CANCELLED';
+    if (message === 'JOB_TIMEOUT') return 'TIMEOUT';
+    return 'EXECUTION_FAILED';
+  }
+
+  private safeErrorMessage(error: unknown): string {
+    return this.safeErrorCode(error) === 'CANCELLED'
+      ? 'Job cancelled'
+      : this.safeErrorCode(error) === 'TIMEOUT'
+        ? 'Job timed out'
+        : 'Job execution failed';
   }
 }

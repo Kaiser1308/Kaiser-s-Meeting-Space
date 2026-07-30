@@ -26,15 +26,23 @@ The phase agent must also read every authoritative document named by its packet.
 
 ## Truth model
 
+`PROGRESS.md` is the only canonical runtime lifecycle ledger:
+
 `NOT_STARTED -> IN_PROGRESS -> IMPLEMENTED -> VERIFIED -> RELEASED`
 
 Use `BLOCKED` only for a concrete external prerequisite with reproduction and an exact owner action. `IMPLEMENTED` means code is ready but a required real environment gate remains. `VERIFIED` requires every binary acceptance ID to have direct evidence. `RELEASED` is reserved for P27.
 
-Conversation text is not evidence. `PROGRESS.md`, `STATUS.md`, `TRACEABILITY.md`, and `evidence/Pxx/` must agree.
+Conversation text is not evidence. Phase packet frontmatter describes document
+acceptance, not runtime state. `STATUS.md`, `TRACEABILITY.md`, and
+`evidence/Pxx/` link back to the canonical lifecycle in `PROGRESS.md`.
 
 ## Phase discipline
 
-- Direct dependencies must already be `VERIFIED`.
+- Direct dependencies default to `VERIFIED`. A packet may name an
+  `IMPLEMENTED` capability only when direct evidence proves the consumed
+  contract and every unsatisfied dependency gate is orthogonal.
+- Owner approval may supply an external prerequisite; it may not waive an
+  acceptance criterion or invent a dependency exception.
 - Future work discovered during execution is recorded, not implemented.
 - No mock satisfies a required real provider/device/signing/deployment gate.
 - No agent claims unavailable manual tests passed.

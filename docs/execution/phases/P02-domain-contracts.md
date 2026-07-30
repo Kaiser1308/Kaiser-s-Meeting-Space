@@ -1,7 +1,7 @@
 ---
 phase: P02
 title: Canonical runtime domain contracts and state machine
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P01]
 requirements: [FR-1, FR-2, FR-3, FR-4, FR-5, ADR-001, ADR-002, ADR-004]
 risk: critical
@@ -21,6 +21,12 @@ Read PRD, User Flows, Data Model, API Contracts, System Architecture, Glossary, 
 
 P01 is `VERIFIED`. No database, HTTP, UI, native audio, or provider account is needed. If authoritative docs conflict, stop the affected task for an ADR/doc correction within P02 only when contract clarification is in scope.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P01        | Verified outputs and invariants consumed by this packet. | `../evidence/P01/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** focused files under `packages/domain/src/`, domain fixtures/tests, package exports, and contract documentation.
@@ -39,15 +45,15 @@ P01 is `VERIFIED`. No database, HTTP, UI, native audio, or provider account is n
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/domain/src/meeting/` | settings, states, commands, state machine | Meeting/capture |
-| `packages/domain/src/audio/` | sources, chunks, manifests, intervals, gaps | Meeting/capture |
-| `packages/domain/src/transcript/` | segments, revisions, speakers, projections, completeness | Transcript |
-| `packages/domain/src/minutes/` | templates, minutes, citations, brand/export | Minutes |
-| `packages/domain/src/jobs/` | job/event/envelope metadata | State/error |
-| `packages/domain/src/errors/` | stable provider-neutral errors | State/error |
-| `packages/domain/src/index.ts` | reviewed public exports only | Main agent |
+| Path                              | Responsibility                                           | Owner           |
+| --------------------------------- | -------------------------------------------------------- | --------------- |
+| `packages/domain/src/meeting/`    | settings, states, commands, state machine                | Meeting/capture |
+| `packages/domain/src/audio/`      | sources, chunks, manifests, intervals, gaps              | Meeting/capture |
+| `packages/domain/src/transcript/` | segments, revisions, speakers, projections, completeness | Transcript      |
+| `packages/domain/src/minutes/`    | templates, minutes, citations, brand/export              | Minutes         |
+| `packages/domain/src/jobs/`       | job/event/envelope metadata                              | State/error     |
+| `packages/domain/src/errors/`     | stable provider-neutral errors                           | State/error     |
+| `packages/domain/src/index.ts`    | reviewed public exports only                             | Main agent      |
 
 # Ordered task packets
 
@@ -81,26 +87,30 @@ Replace conflicting prototype enums/imports with canonical exports without imple
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Meeting/capture | T01,T04 | meeting/audio/state tests | P01 | invariant/state coverage |
-| Transcript/derived | T02,T03 | transcript/minutes schemas | P01 | immutability/lineage review |
-| Errors/envelopes | T05,T06 | errors/jobs/events | P01 | version/redaction review |
-| Main integration | T07 | package exports/consumer migration | all | public API/exhaustiveness review |
+| Package            | Tasks   | Exclusive paths                    | Depends on | Review gate                      |
+| ------------------ | ------- | ---------------------------------- | ---------- | -------------------------------- |
+| Meeting/capture    | T01,T04 | meeting/audio/state tests          | P01        | invariant/state coverage         |
+| Transcript/derived | T02,T03 | transcript/minutes schemas         | P01        | immutability/lineage review      |
+| Errors/envelopes   | T05,T06 | errors/jobs/events                 | P01        | version/redaction review         |
+| Main integration   | T07     | package exports/consumer migration | all        | public API/exhaustiveness review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Unknown schema/envelope version | contract | Stable unsupported-version error; no partial parse | version fixture |
-| Illegal transition | state | Pure typed failure, no mutation/event | full state-command table |
-| Cross-meeting/invalid evidence | security | Reject before persistence/provider use | adversarial evidence tests |
-| Duplicate event/idempotency | state | Deterministic dedupe identity | property/replay tests |
-| Prototype consumer breaks | contract | Explicit compile-time migration, no compatibility alias that preserves wrong semantics | consumer typecheck |
+| Failure                         | Classification | Expected behavior                                                                      | Recovery/regression        |
+| ------------------------------- | -------------- | -------------------------------------------------------------------------------------- | -------------------------- |
+| Unknown schema/envelope version | contract       | Stable unsupported-version error; no partial parse                                     | version fixture            |
+| Illegal transition              | state          | Pure typed failure, no mutation/event                                                  | full state-command table   |
+| Cross-meeting/invalid evidence  | security       | Reject before persistence/provider use                                                 | adversarial evidence tests |
+| Duplicate event/idempotency     | state          | Deterministic dedupe identity                                                          | property/replay tests      |
+| Prototype consumer breaks       | contract       | Explicit compile-time migration, no compatibility alias that preserves wrong semantics | consumer typecheck         |
 
 # Integrated verification
 
 Run domain unit/property/mutation coverage, contract fixture snapshots, repository typecheck, consumer contract tests, deprecated-name search, and `pnpm verify`. State/integrity validators require 100% branches and every intended suite must run tests.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P02/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -118,6 +128,10 @@ Breaking prototype types are allowed before release but require explicit migrati
 # Required documentation updates
 
 Data Model, API Contracts, Glossary, current capability status, traceability/progress, and P02 evidence.
+
+# Conversation boundary
+
+Domain contracts only. Do not implement database, HTTP routes, client UI, native capture, or provider SDK behavior. Stop before P03.
 
 # Handoff record
 

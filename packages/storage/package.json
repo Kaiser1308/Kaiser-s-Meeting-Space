@@ -1,0 +1,24 @@
+{
+  "name": "@kms/storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src --exclude src/s3/**/*.minio.test.ts",
+    "test:integration": "vitest run src/s3/**/*.minio.test.ts"
+  },
+  "dependencies": {
+    "@kms/domain": "workspace:*",
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@testcontainers/minio": "^10.14.0",
+    "testcontainers": "^10.14.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
+  }
+}

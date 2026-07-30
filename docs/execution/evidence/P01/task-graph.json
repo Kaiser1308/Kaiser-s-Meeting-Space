@@ -1,0 +1,45 @@
+{
+  "task": "P01-T01",
+  "description": "Mandatory workspace task graph",
+  "result": "PASS",
+  "timestamp": "2026-07-21T23:26:44+07:00",
+  "test": {
+    "command": "npx vitest run tests/script-inventory.test.ts",
+    "exitCode": 0,
+    "intendedTests": 33,
+    "executedTests": 33,
+    "passedTests": 33,
+    "failedTests": 0
+  },
+  "scripts": {
+    "root": [
+      "format:check",
+      "format",
+      "lint",
+      "typecheck",
+      "test",
+      "test:unit",
+      "test:integration",
+      "test:contract",
+      "test:e2e:desktop",
+      "test:e2e:mobile",
+      "test:security",
+      "test:resilience",
+      "test:performance",
+      "build",
+      "verify",
+      "verify:release"
+    ],
+    "workspacePackages": {
+      "@kms/domain": ["typecheck", "test:unit"],
+      "@kms/ai": ["typecheck", "test:unit"],
+      "@kms/api": ["typecheck", "test:unit"],
+      "@kms/desktop": ["typecheck", "test:unit"],
+      "@kms/mobile": ["typecheck", "test:unit"]
+    }
+  },
+  "verifyCommand": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:integration && pnpm test:contract && pnpm build",
+  "verifyReleaseCommand": "pnpm verify && pnpm test:e2e:desktop && pnpm test:e2e:mobile && pnpm test:security && pnpm test:resilience && pnpm test:performance",
+  "noIfPresent": true,
+  "packageManager": "pnpm@10.14.0"
+}

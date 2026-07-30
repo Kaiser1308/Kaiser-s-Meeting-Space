@@ -1,7 +1,7 @@
 ---
 phase: P06
 title: Durable jobs, transactional outbox, and resumable progress events
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P03, P04]
 requirements: [NFR-Reliability, NFR-Observability, ADR-005]
 risk: critical
@@ -19,7 +19,17 @@ Read System Architecture state/worker sections, API Contracts jobs/SSE, Operatio
 
 # Preconditions and external prerequisites
 
-P03/P04 are `VERIFIED`; real PostgreSQL and Redis Testcontainers run. Use deterministic mock handlers only; no speech/AI/export implementation.
+P03 is `VERIFIED`. P04 satisfies the capability-scoped `IMPLEMENTED` gate below;
+its full-route and OS-keychain/device acceptance remain open and are not consumed
+by this server-side phase. Real PostgreSQL and Redis Testcontainers run. Use
+deterministic mock handlers only; no speech/AI/export implementation.
+
+# Dependency gate
+
+| Dependency | Required capability                                                                                                                                                                                         | Required evidence                                                      | Minimum lifecycle |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------- |
+| P03        | Verified outputs and invariants consumed by this packet.                                                                                                                                                    | `../evidence/P03/EVIDENCE.md`                                          | VERIFIED          |
+| P04        | JWT verification, authenticated owner context, owner-isolation policy, and safe API conventions. P04-A04 full-route coverage and P04-A05 OS-keychain/device evidence are orthogonal and remain unsatisfied. | [P04 acceptance ledger](../evidence/P04/EVIDENCE.md#acceptance-ledger) | IMPLEMENTED       |
 
 # Scope firewall
 
@@ -39,13 +49,13 @@ P03/P04 are `VERIFIED`; real PostgreSQL and Redis Testcontainers run. Use determ
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/jobs/src/` | registry, retry policy, handler context | Queue/worker |
-| database outbox/job repositories | transactions, leases, event log | Outbox |
-| `apps/worker/src/` | dispatcher/worker bootstrap/mock handlers | Queue/worker |
-| `apps/api/src/modules/jobs/` | get/retry/cancel/SSE | API/events |
-| `tests/resilience/jobs/` | crash/race/Redis-loss matrix | Independent reviewer |
+| Path                             | Responsibility                            | Owner                |
+| -------------------------------- | ----------------------------------------- | -------------------- |
+| `packages/jobs/src/`             | registry, retry policy, handler context   | Queue/worker         |
+| database outbox/job repositories | transactions, leases, event log           | Outbox               |
+| `apps/worker/src/`               | dispatcher/worker bootstrap/mock handlers | Queue/worker         |
+| `apps/api/src/modules/jobs/`     | get/retry/cancel/SSE                      | API/events           |
+| `tests/resilience/jobs/`         | crash/race/Redis-loss matrix              | Independent reviewer |
 
 # Ordered task packets
 
@@ -79,26 +89,30 @@ Run mock business commands through outbox/Redis/worker/result/SSE while killing 
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Outbox | T02 | DB outbox/dispatcher | P03 | transaction/lease review |
-| Queue/worker | T01,T03,T04 | jobs + worker | T02 contracts | retry/idempotency review |
-| API/events | T05,T06 | API jobs/SSE | T01,T02 | auth/backpressure review |
-| Fault reviewer | T07 | resilience tests/evidence | all | independent crash/Redis review |
+| Package        | Tasks       | Exclusive paths           | Depends on    | Review gate                    |
+| -------------- | ----------- | ------------------------- | ------------- | ------------------------------ |
+| Outbox         | T02         | DB outbox/dispatcher      | P03           | transaction/lease review       |
+| Queue/worker   | T01,T03,T04 | jobs + worker             | T02 contracts | retry/idempotency review       |
+| API/events     | T05,T06     | API jobs/SSE              | T01,T02       | auth/backpressure review       |
+| Fault reviewer | T07         | resilience tests/evidence | all           | independent crash/Redis review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| DB commit then dispatcher crash | timing | Reclaim committed outbox after lease | boundary test |
-| Worker result then ACK lost | timing | Replay returns one result | attempt/version test |
-| Redis wiped | state | Recreate dispatchable jobs from PostgreSQL | rebuild test |
-| SSE disconnect/slow client | timing | Resume/dedupe or bounded snapshot path | reconnect/backpressure test |
-| Cancel during non-cancellable call | provider | `cancel_requested`; discard late result | late-result test |
+| Failure                            | Classification | Expected behavior                          | Recovery/regression         |
+| ---------------------------------- | -------------- | ------------------------------------------ | --------------------------- |
+| DB commit then dispatcher crash    | timing         | Reclaim committed outbox after lease       | boundary test               |
+| Worker result then ACK lost        | timing         | Replay returns one result                  | attempt/version test        |
+| Redis wiped                        | state          | Recreate dispatchable jobs from PostgreSQL | rebuild test                |
+| SSE disconnect/slow client         | timing         | Resume/dedupe or bounded snapshot path     | reconnect/backpressure test |
+| Cancel during non-cancellable call | provider       | `cancel_requested`; discard late result    | late-result test            |
 
 # Integrated verification
 
 Run job unit/property/contract tests, real PostgreSQL+Redis integration, API authorization/SSE tests, full resilience fault campaign, content-free log scan, typecheck, and `pnpm verify`. Assert every submitted job is canonical complete, visible failed/DLQ, or cancel state—never missing.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P06/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -116,6 +130,10 @@ Mock handlers only. Queue features remain disabled until a later phase registers
 # Required documentation updates
 
 API jobs/SSE, System Architecture worker flow, Operations queue runbook, Status/Traceability/Progress, and P06 evidence.
+
+# Conversation boundary
+
+Use deterministic mock handlers only. Do not implement speech, translation, generative AI, export behavior, or production dashboards. Stop after P06.
 
 # Handoff record
 

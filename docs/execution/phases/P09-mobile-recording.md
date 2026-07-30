@@ -1,7 +1,7 @@
 ---
 phase: P09
 title: Mobile local-first microphone recording lifecycle
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P08]
 requirements: [FR-2, ADR-001]
 risk: critical
@@ -21,6 +21,12 @@ Read P00 capture profile/support matrix, P02 meeting/capture commands, P07 confo
 
 P08 is `VERIFIED`; supported physical Android and iOS devices, native development build toolchains, private app storage, microphone permissions, and at least one wired/Bluetooth route class are available. Emulator microphone results cannot satisfy physical acceptance.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P08        | Verified outputs and invariants consumed by this packet. | `../evidence/P08/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** a local Expo/React Native audio module, Android/iOS native code, P07 platform adapters, capture service/reducer/events, recording controls/health UI, and native/device/fault/performance tests.
@@ -39,13 +45,13 @@ P08 is `VERIFIED`; supported physical Android and iOS devices, native developmen
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| mobile local audio module shared/JS | typed native interface and fake | JS integration |
-| audio module Android sources | AudioRecord/focus/route/chunk adapter | Android |
-| audio module iOS sources | AVAudioEngine/Session/interruption/chunk adapter | iOS |
-| mobile recording feature | lifecycle reducer/service/controls/health | JS integration |
-| native/device/resilience tests | conformance, two-hour, fault matrix | Independent reviewer |
+| Path                                | Responsibility                                   | Owner                |
+| ----------------------------------- | ------------------------------------------------ | -------------------- |
+| mobile local audio module shared/JS | typed native interface and fake                  | JS integration       |
+| audio module Android sources        | AudioRecord/focus/route/chunk adapter            | Android              |
+| audio module iOS sources            | AVAudioEngine/Session/interruption/chunk adapter | iOS                  |
+| mobile recording feature            | lifecycle reducer/service/controls/health        | JS integration       |
+| native/device/resilience tests      | conformance, two-hour, fault matrix              | Independent reviewer |
 
 # Ordered task packets
 
@@ -79,26 +85,30 @@ On supported Android/iOS run silence/noise/synthetic playback, rapid pause/resum
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Contract/JS | T01,T04,T05 | JS module + recording feature | P08 | state/IPC review |
-| Android | T02,T06 Android | Android native | T01,P07 | realtime/durability review |
-| iOS | T03,T06 iOS | iOS native | T01,P07 | realtime/durability review |
-| Independent devices | T07 | tests/evidence only | all | data-loss/platform review |
+| Package             | Tasks           | Exclusive paths               | Depends on | Review gate                |
+| ------------------- | --------------- | ----------------------------- | ---------- | -------------------------- |
+| Contract/JS         | T01,T04,T05     | JS module + recording feature | P08        | state/IPC review           |
+| Android             | T02,T06 Android | Android native                | T01,P07    | realtime/durability review |
+| iOS                 | T03,T06 iOS     | iOS native                    | T01,P07    | realtime/durability review |
+| Independent devices | T07             | tests/evidence only           | all        | data-loss/platform review  |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Callback overload | timing | Bounded gap/error; no OOM/block | overload stress |
-| Background/call | platform | Finalize/pause/stop per policy visibly | device matrix |
-| Route/sample rate changes | platform | Close chunk and record new format/event | route test |
-| Kill during write | persistence | Prior ack chunks recover; partial repair/quarantine | kill boundary |
-| End timeout | timing | Stay finalizing/recovery; no saved claim | handshake test |
+| Failure                   | Classification | Expected behavior                                   | Recovery/regression |
+| ------------------------- | -------------- | --------------------------------------------------- | ------------------- |
+| Callback overload         | timing         | Bounded gap/error; no OOM/block                     | overload stress     |
+| Background/call           | platform       | Finalize/pause/stop per policy visibly              | device matrix       |
+| Route/sample rate changes | platform       | Close chunk and record new format/event             | route test          |
+| Kill during write         | persistence    | Prior ack chunks recover; partial repair/quarantine | kill boundary       |
+| End timeout               | timing         | Stay finalizing/recovery; no saved claim            | handshake test      |
 
 # Integrated verification
 
 Run JS/native unit/conformance, P07 recovery suite on both adapters, mobile E2E recording, resilience/storage/interruption tests, native static checks, physical two-hour matrix, bundle/log scan, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P09/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -115,6 +125,10 @@ Internal development builds only. Feature flag can disable new sessions while le
 # Required documentation updates
 
 Support limitations, mobile permissions/background behavior, Test Strategy measured budgets, Status/Traceability/Progress, and P09 evidence.
+
+# Conversation boundary
+
+Mobile microphone capture only. Do not implement upload/library, speech/translation, hidden background guarantees, or system audio. Stop before P10.
 
 # Handoff record
 

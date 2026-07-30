@@ -1,7 +1,7 @@
 ---
 phase: P28
-title: Optional local speech and immutable audio import extension
-status: NOT_STARTED
+title: Optional mobile/local-live/model-lifecycle and audio-import extension
+packet_status: ACCEPTED
 depends_on: [P14]
 requirements: [FR-2, FR-3, ADR-001, ADR-002, ADR-003, ADR-006]
 risk: high
@@ -11,7 +11,7 @@ risk: high
 
 # Outcome
 
-The personal user may install a verified local speech model and transcribe durable meeting audio without cloud speech, or import supported audio as a new immutable source asset. Both paths enter the existing manifest/finalization/revision pipeline, expose limitations truthfully, and cannot corrupt or replace prior evidence.
+The personal user may extend the P13/P14 desktop local-final foundation with advanced resumable model lifecycle, qualified mobile local final, benchmark-gated local live transcription, or supported immutable audio import. Every path reuses the existing policy/run/part/window/reconciliation/projection contracts, exposes limitations truthfully, and cannot corrupt, replace or weaken prior evidence or P27 release gates.
 
 # Authoritative context
 
@@ -19,20 +19,26 @@ Read PRD optional local processing scope, User Flows processing selection, Syste
 
 # Preconditions and external prerequisites
 
-- P14 is `VERIFIED`; source manifests, file backfill, completeness, and projections are stable.
+- P14 is `VERIFIED`; P13 local-file/run/part/window contracts and P14 final orchestration/reconciliation/completeness are stable.
 - Rust build/runtime, supported Windows hardware, disk/memory budgets, model license/source/checksum/signature review, and representative synthetic audio formats are available.
 - Local diarization is declared unsupported unless independently implemented/evaluated; no fake speaker labels.
 - P28 is optional and cannot modify P27 evidence or block cloud-backed personal release.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P14        | Verified outputs and invariants consumed by this packet. | `../evidence/P14/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
 ## In scope
 
-Local speech capability contract, whisper.cpp-compatible Rust adapter, verified model catalog/download/resume/cancel/activation/removal, resource scheduling, local file transcription, immutable audio import/normalization/manifest, UI/status/cancellation, evaluation, security, and recovery.
+Advanced verified model catalog/download/resume/cancel/activation/removal, mobile local file transcription on qualified profiles, local live transcription behind an independent benchmark gate, immutable audio import/normalization/manifest, UI/status/cancellation, evaluation, security, and recovery.
 
 ## Out of scope
 
-Realtime offline diarization guarantees, automatic mixed-language detection, training/fine-tuning, arbitrary executable models/plugins, cloud fallback without explicit user action, video import, meeting merge, and replacement of existing source evidence.
+Reimplementation or semantic change of P13/P14 policy/run/part/window/reconciliation contracts, realtime offline diarization guarantees, automatic mixed-language detection, training/fine-tuning, arbitrary executable models/plugins, cloud fallback without explicit user action, video import, meeting merge, and replacement of existing source evidence.
 
 ## Allowed paths
 
@@ -44,7 +50,7 @@ Provider keys in native/client code, writable executable search paths, model act
 
 ## Extension seams
 
-Local engines implement `SpeechProvider` file capabilities with an explicit execution locality/resource profile. Import parsers normalize into the same immutable source-manifest contract and can add reviewed formats later.
+Mobile/local-live engines extend P13 capabilities with an explicit execution locality/resource profile. They emit P13 run parts and enter P14 reconciliation/completeness unchanged. Import parsers normalize into the same immutable source-manifest contract and can add reviewed formats later.
 
 # Contracts and invariants
 
@@ -54,22 +60,24 @@ Local engines implement `SpeechProvider` file capabilities with an explicit exec
 - `AudioImportRequestV1` creates a new meeting/source with original file hash, detected container/codec, duration, normalized derivative link, consent/ownership acknowledgement, and idempotency key.
 - Original imported audio is immutable source evidence; normalization/transcription/projections are derived/versioned.
 - Local processing is bounded/cancellable and yields recording/native capture resources; it never silently falls back to cloud.
+- All P13/P14 fixtures remain backward compatible and replay to the same projections.
+- Local live remains unavailable unless its independent latency, accuracy, resource and capture-isolation thresholds pass.
 
 # File and ownership map
 
-| Path | Responsibility | Task owner |
-|---|---|---|
-| shared speech/import contracts | capabilities, model/import state, errors, events | Contract package |
-| Rust local speech modules | engine bridge, model manager, resource/cancel behavior | Native package |
-| import/normalization service | format validation, immutable commit, derivative job | Import package |
-| desktop UI | model lifecycle, import, progress, limits, cancellation | Client package |
-| local evaluation/security tests | quality/resource/license/path/adversarial matrix | Independent reviewer |
+| Path                            | Responsibility                                          | Task owner           |
+| ------------------------------- | ------------------------------------------------------- | -------------------- |
+| shared speech/import contracts  | capabilities, model/import state, errors, events        | Contract package     |
+| Rust local speech modules       | engine bridge, model manager, resource/cancel behavior  | Native package       |
+| import/normalization service    | format validation, immutable commit, derivative job     | Import package       |
+| desktop UI                      | model lifecycle, import, progress, limits, cancellation | Client package       |
+| local evaluation/security tests | quality/resource/license/path/adversarial matrix        | Independent reviewer |
 
 # Ordered task packets
 
-## P28-T01 - Local speech and import capability contracts
+## P28-T01 - Backward-compatible extension and import contracts
 
-Add runtime/TS/Rust conformance fixtures for locality, model lifecycle, file transcription events, resource estimates, cancellation, imported source metadata, normalized derivative, and safe errors. Test unknown versions/formats/capabilities and ensure provider SDK/engine types do not escape. Evidence: `evidence/P28/contract-report.json`.
+Extend P13 runtime/TS/Rust capabilities for mobile local, benchmark-gated local live, advanced model lifecycle and import metadata without changing run/part/window/reconciliation semantics. Rerun all P13/P14 golden fixtures and test unknown versions/formats/capabilities plus SDK/engine leakage. Evidence: `evidence/P28/contract-report.json`.
 
 ## P28-T02 - Verified model catalog and storage boundary
 
@@ -79,9 +87,9 @@ Implement an allowlisted catalog with licenses/provenance/hashes/compatibility a
 
 Implement partial download metadata, range resume, pause/cancel, full hash/signature verification, atomic activation, previous-model preservation, and safe removal. Crash/fail at every boundary and prove either the old active model or one verified new model remains. Evidence: `evidence/P28/model-lifecycle-matrix.json`.
 
-## P28-T04 - Bounded Rust local transcription adapter
+## P28-T04 - Qualified mobile local and benchmark-gated local live adapters
 
-Integrate the approved whisper.cpp-compatible engine behind the provider-neutral file interface with thread/memory limits, progress, cancellation, language fixed to `vi|en`, timestamps/confidence where supported, content-free logs, and capture-resource priority. Test OOM prevention, malformed model/audio, cancel/restart, and no-network operation. Evidence: `evidence/P28/local-engine-report.json`.
+Extend the approved engine boundary to qualified mobile local-file profiles and optional local live with bounded latency/thread/memory/battery, progress/cancel, vi/en fixed language, content-free logs and capture priority. Test OOM/battery prevention, malformed model/audio, cancel/restart, no-network operation and prove local live remains unavailable when its benchmark fails. Evidence: `evidence/P28/local-engine-report.json`.
 
 ## P28-T05 - Immutable audio import and normalization
 
@@ -89,7 +97,7 @@ Validate allowlisted containers/codecs/size/duration, copy original to a new loc
 
 ## P28-T06 - Finalization/backfill/projection integration and UI
 
-Route local transcription/import through P14 jobs, normalized final events, completeness, revisions, evidence seek, and optional later cloud regeneration as a distinct version. Build desktop model/import/progress/cancel/recovery UX with explicit privacy/resource/diarization limitations. End-to-end tests cover success, cancel, crash/restart, offline, later cloud regeneration, and unsupported diarization. Evidence: `evidence/P28/local-flow-e2e.json`.
+Route mobile local/local live/import through unchanged P13 runs/parts and P14 jobs, reconciliation, completeness, revisions and evidence seek. Build model/import/mobile capability/progress/cancel/recovery UX with explicit privacy/resource/diarization limitations. End-to-end tests cover success, cancel, crash/restart, offline, later explicit cloud regeneration and unsupported local live/diarization. Evidence: `evidence/P28/local-flow-e2e.json`.
 
 ## P28-T07 - Vietnamese/English quality, resource, and privacy evaluation
 
@@ -101,37 +109,41 @@ Independently review licenses/provenance, model/import path boundary, binary/mod
 
 # Subagent work packages
 
-| Package | Task IDs | Exclusive paths | Depends on | Review gate | Output |
-|---|---|---|---|---|---|
-| Contracts/model manager | T01-T03 | shared contract + model storage | P14 | supply-chain/path review | verified lifecycle |
-| Native engine | T04 | Rust local speech | T01-T03 | resource/native review | local adapter |
-| Import | T05 | import/normalization | T01 | parser/integrity review | immutable import |
-| UI/integration | T06 | desktop local flow | T04,T05 | UX/privacy review | end-to-end flow |
-| Evaluation/release review | T07,T08 | tests/evidence only | all | independent quality/security | optional sign-off |
+| Package                   | Task IDs | Exclusive paths                 | Depends on | Review gate                  | Output             |
+| ------------------------- | -------- | ------------------------------- | ---------- | ---------------------------- | ------------------ |
+| Contracts/model manager   | T01-T03  | shared contract + model storage | P14        | supply-chain/path review     | verified lifecycle |
+| Native engine             | T04      | Rust local speech               | T01-T03    | resource/native review       | local adapter      |
+| Import                    | T05      | import/normalization            | T01        | parser/integrity review      | immutable import   |
+| UI/integration            | T06      | desktop local flow              | T04,T05    | UX/privacy review            | end-to-end flow    |
+| Evaluation/release review | T07,T08  | tests/evidence only             | all        | independent quality/security | optional sign-off  |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Content-free diagnostics | Recovery/regression |
-|---|---|---|---|---|
-| Download/hash/signature mismatch | security | Never activate; preserve previous model | model/version/hash status | lifecycle fault test |
-| Local engine exhausts resources | platform | Bounded fail/cancel; capture remains prioritized | resource counters/error | constrained-device test |
-| Imported file malicious/corrupt | security | Reject/quarantine before source registration | format/size/error | parser adversarial test |
-| Crash during import/model swap | persistence | Recover old active model and committed sources only | state/manifest IDs | boundary crash matrix |
-| Local diarization unsupported | contract | Show unavailable, do not synthesize speakers | capability flag | UI/contract test |
+| Failure                          | Classification | Expected behavior                                   | Content-free diagnostics  | Recovery/regression     |
+| -------------------------------- | -------------- | --------------------------------------------------- | ------------------------- | ----------------------- |
+| Download/hash/signature mismatch | security       | Never activate; preserve previous model             | model/version/hash status | lifecycle fault test    |
+| Local engine exhausts resources  | platform       | Bounded fail/cancel; capture remains prioritized    | resource counters/error   | constrained-device test |
+| Imported file malicious/corrupt  | security       | Reject/quarantine before source registration        | format/size/error         | parser adversarial test |
+| Crash during import/model swap   | persistence    | Recover old active model and committed sources only | state/manifest IDs        | boundary crash matrix   |
+| Local diarization unsupported    | contract       | Show unavailable, do not synthesize speakers        | capability flag           | UI/contract test        |
 
 # Integrated verification
 
 Run TS/Rust contract tests, Rust format/clippy/tests/benchmarks, model lifecycle fault tests, parser fuzz/security scans, import/local-flow desktop E2E, no-network/resource/cancel tests, bilingual evaluation, source-immutability/recovery suites, `pnpm verify:release`, and an independent license/provenance review.
 
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P28/EVIDENCE.md` |
+
 # Acceptance gate
 
 - [ ] P28-A01 - Only allowlisted, license-reviewed, hash/signature-verified compatible models can activate.
 - [ ] P28-A02 - Model download/resume/cancel/crash always leaves a verified active model or recoverable non-active partial.
-- [ ] P28-A03 - Local transcription is provider-neutral, bounded, cancellable, explicit-language, and network-independent.
+- [ ] P28-A03 - Mobile local and any enabled local live mode are provider-neutral, bounded, cancellable, explicit-language, network-independent and preserve capture priority.
 - [ ] P28-A04 - Import preserves immutable original bytes and creates only versioned derivatives/projections.
 - [ ] P28-A05 - Adversarial file/path/model/resource tests pass without content/secret leakage or capture interference.
 - [ ] P28-A06 - Fixed Vietnamese/English quality/resource thresholds and supported limitations are published and pass.
-- [ ] P28-A07 - Optional release review confirms no weakening of P14/P21/P27 invariants.
+- [ ] P28-A07 - P13/P14 golden fixtures replay unchanged and optional release review confirms no weakening of P14/P21/P27 invariants.
 
 # Migration, rollout, and rollback
 
@@ -140,6 +152,10 @@ Ship behind an optional feature flag and model allowlist. Model catalog changes 
 # Required documentation updates
 
 Update PRD/roadmap optional capability status, AI/Speech provider architecture, data model/API/UI flows, security/model provenance, supported resource profiles/limitations, `STATUS.md`, `TRACEABILITY.md`, `PROGRESS.md`, and P28 evidence.
+
+# Conversation boundary
+
+Optional extension only. Do not redefine P13/P14 contracts, weaken or block P27, promise unsupported local live/diarization, add mixed-language detection, run arbitrary models, silently use cloud, import video, or overwrite existing source. Stop after the optional-release handoff.
 
 # Handoff record
 

@@ -1,0 +1,40 @@
+{
+  "task": "P13-T03",
+  "evidenceDate": "2026-07-27",
+  "ipcVersion": "PROTOCOL_VERSION = 1 (additive command/event allowlist)",
+  "commands": [
+    "local_speech_manifest_load",
+    "local_speech_engine_init",
+    "local_speech_transcribe_window",
+    "local_speech_cancel",
+    "local_speech_get_state"
+  ],
+  "events": ["local_speech_event"],
+  "manifestRejections": [
+    "MODEL_CORRUPT",
+    "MODEL_INCOMPATIBLE",
+    "MODEL_UNREVIEWED",
+    "MODEL_PATH_INVALID"
+  ],
+  "engine": {
+    "memoryBudgetMb": 512,
+    "cancelAckMsTarget": 2000,
+    "capturePriority": "tokio::task::yield_now between progress steps"
+  },
+  "isSimulated": true,
+  "realModelIntegration": "P28 (boundary only in P13)",
+  "tests": {
+    "tsManifest": { "files": 1, "tests": 16, "pass": true },
+    "tsConformance": { "files": 2, "tests": 81, "pass": true },
+    "rustUnit": { "tests": 75, "pass": true }
+  },
+  "typecheck": "clean (native-contract)",
+  "cargoCheck": "clean (warnings only: unused enum variants for future use)",
+  "noNetworkEnforced": true,
+  "a03status": {
+    "adapterAndIpc": "VERIFIED (CI grade — 81 TS + 75 Rust tests)",
+    "manifestRejections": "VERIFIED",
+    "boundedEngine": "VERIFIED (stub — cancel honored within 2s window)",
+    "realStt": "BLOCKED on whisper binary (P28)"
+  }
+}

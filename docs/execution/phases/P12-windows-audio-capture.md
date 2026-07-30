@@ -1,7 +1,7 @@
 ---
 phase: P12
 title: Windows microphone and WASAPI system-audio capture
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P05, P11]
 requirements: [FR-2, ADR-001, ADR-006]
 risk: critical
@@ -21,6 +21,13 @@ Read P00 support/capture profile, ADR-001/006, P05/P07/P11 evidence, Windows aud
 
 P05/P11 are `VERIFIED`; supported Windows build, at least default/USB/Bluetooth microphone classes, loopback-capable output, and Zoom/Meet/Teams synthetic test calls are available. Missing physical matrix cells block verification; simulator cannot replace them.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P05        | Verified outputs and invariants consumed by this packet. | `../evidence/P05/EVIDENCE.md` | VERIFIED          |
+| P11        | Verified outputs and invariants consumed by this packet. | `../evidence/P11/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** Rust Windows device/capture/resample/timeline/buffer/mix/level modules, IPC additions, desktop controls/readiness/health, benchmarks/fault/device tests.
@@ -39,13 +46,13 @@ P05/P11 are `VERIFIED`; supported Windows build, at least default/USB/Bluetooth 
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| Rust Windows device modules | enumeration, readiness, hot-plug/default/sleep | Capture/device |
-| Rust capture/buffer modules | mic/loopback callbacks and bounded handoff | Capture/device |
-| Rust DSP/timeline modules | persistent resample, alignment, drift, derived mix | Timeline/DSP |
-| desktop capture feature + IPC | controls, meters, warnings, device actions | Desktop integration |
-| audio simulator/property/device harness | two-hour/fault/real-app evidence | Independent reviewer |
+| Path                                    | Responsibility                                     | Owner                |
+| --------------------------------------- | -------------------------------------------------- | -------------------- |
+| Rust Windows device modules             | enumeration, readiness, hot-plug/default/sleep     | Capture/device       |
+| Rust capture/buffer modules             | mic/loopback callbacks and bounded handoff         | Capture/device       |
+| Rust DSP/timeline modules               | persistent resample, alignment, drift, derived mix | Timeline/DSP         |
+| desktop capture feature + IPC           | controls, meters, warnings, device actions         | Desktop integration  |
+| audio simulator/property/device harness | two-hour/fault/real-app evidence                   | Independent reviewer |
 
 # Ordered task packets
 
@@ -83,26 +90,30 @@ Run simulator stress plus physical mic/system/both sessions for 2h across Zoom/M
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Capture/device | T01,T02,T06 | Windows device/capture | P11 | realtime/device review |
-| Timeline/DSP | T03,T04,T07 DSP | resample/timeline/mix | T02 | signal/invariant review |
-| Desktop/lifecycle | T05,T07 UI | IPC/UI/storage integration | T01-T04 | durability/privilege review |
-| Independent devices | T08 | tests/evidence only | all | two-hour/data-loss review |
+| Package             | Tasks           | Exclusive paths            | Depends on | Review gate                 |
+| ------------------- | --------------- | -------------------------- | ---------- | --------------------------- |
+| Capture/device      | T01,T02,T06     | Windows device/capture     | P11        | realtime/device review      |
+| Timeline/DSP        | T03,T04,T07 DSP | resample/timeline/mix      | T02        | signal/invariant review     |
+| Desktop/lifecycle   | T05,T07 UI      | IPC/UI/storage integration | T01-T04    | durability/privilege review |
+| Independent devices | T08             | tests/evidence only        | all        | two-hour/data-loss review   |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Buffer overflow | timing | Bounded explicit gap/counter; no OOM | overload stress |
-| Device unplug/default change | platform | Finalize valid data and prompt/recover/gap | device matrix |
-| Clock drift | timing | Derived correction only; source unchanged | long property test |
-| Loopback protected/unavailable | platform | Readiness failure/explicit mic choice; no fake success | app/device test |
-| Native crash | platform | Recovery finds committed chunks/partial gap truthfully | boundary crash |
+| Failure                        | Classification | Expected behavior                                      | Recovery/regression |
+| ------------------------------ | -------------- | ------------------------------------------------------ | ------------------- |
+| Buffer overflow                | timing         | Bounded explicit gap/counter; no OOM                   | overload stress     |
+| Device unplug/default change   | platform       | Finalize valid data and prompt/recover/gap             | device matrix       |
+| Clock drift                    | timing         | Derived correction only; source unchanged              | long property test  |
+| Loopback protected/unavailable | platform       | Readiness failure/explicit mic choice; no fake success | app/device test     |
+| Native crash                   | platform       | Recovery finds committed chunks/partial gap truthfully | boundary crash      |
 
 # Integrated verification
 
 Run Rust fmt/clippy/tests/property/benchmarks, P07 conformance, IPC/desktop E2E, resilience windows-capture, performance audio-2h, source/mix golden checks, content-free diagnostic scan, physical hardware/application matrix, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P12/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -120,6 +131,10 @@ Internal Windows development channel only; enable by supported OS/hardware capab
 # Required documentation updates
 
 Capture profile measured choice, support/device limitations, native IPC/capabilities, Test Strategy thresholds, Status/Traceability/Progress, and P12 evidence.
+
+# Conversation boundary
+
+Windows capture only. Do not implement speech/providers, macOS/Linux, source-destructive DSP, automatic device switching, or production signing. Stop before P13.
 
 # Handoff record
 

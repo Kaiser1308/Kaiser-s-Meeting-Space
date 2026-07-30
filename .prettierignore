@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.expo/
+pnpm-lock.yaml
+coverage/
+*.log
+recordings/
+exports/
+.claude/
+.gitnexus/
+apps/desktop/dist-electron/
+native/target/
+native/
+task.md
+install.md

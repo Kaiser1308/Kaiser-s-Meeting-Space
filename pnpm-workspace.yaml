@@ -2,7 +2,15 @@ packages:
   - apps/*
   - packages/*
 
+allowBuilds:
+  better-sqlite3: set this to true or false
+  cpu-features: set this to true or false
+  electron: set this to true or false
+  esbuild: set this to true or false
+  keytar: set this to true or false
+  msgpackr-extract: set this to true or false
+  protobufjs: set this to true or false
+  ssh2: set this to true or false
+
 onlyBuiltDependencies:
   - esbuild
-allowBuilds:
-  esbuild: set this to true or false

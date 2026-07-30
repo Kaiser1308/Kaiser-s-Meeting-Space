@@ -1,7 +1,7 @@
 ---
 phase: P10
 title: Mobile sync, Recovery Inbox, library, and source playback
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P05, P09]
 requirements: [FR-2, FR-4, FR-7]
 risk: critical
@@ -21,6 +21,13 @@ Read API Contracts meeting/audio/library sections, User Flows recovery/library, 
 
 P05/P09 are `VERIFIED`; real local API/PostgreSQL/MinIO/OIDC stack and supported physical devices are available. P06/P14 processing is not yet available; the UI must label server finalization/transcript as unavailable/pending truthfully.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P05        | Verified outputs and invariants consumed by this packet. | `../evidence/P05/EVIDENCE.md` | VERIFIED          |
+| P09        | Verified outputs and invariants consumed by this packet. | `../evidence/P09/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** mobile sync transport/scheduler/state UI, Recovery Inbox screens/actions, meeting end request boundary, library/detail/cache, audio playback, and mobile integration/E2E/security/fault tests.
@@ -39,13 +46,13 @@ P05/P09 are `VERIFIED`; real local API/PostgreSQL/MinIO/OIDC stack and supported
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| mobile sync feature | transport, scheduler, persisted status, auth refresh | Sync |
-| mobile recovery feature | inbox/preview/actions | Recovery |
-| mobile library/player feature | cursor cache/detail/playback/timeline | Library |
-| API meeting/library endpoints if absent | owner-scoped metadata only | Sync/API |
-| mobile integration/E2E tests | network/auth/crash/two-user/playback | Independent reviewer |
+| Path                                    | Responsibility                                       | Owner                |
+| --------------------------------------- | ---------------------------------------------------- | -------------------- |
+| mobile sync feature                     | transport, scheduler, persisted status, auth refresh | Sync                 |
+| mobile recovery feature                 | inbox/preview/actions                                | Recovery             |
+| mobile library/player feature           | cursor cache/detail/playback/timeline                | Library              |
+| API meeting/library endpoints if absent | owner-scoped metadata only                           | Sync/API             |
+| mobile integration/E2E tests            | network/auth/crash/two-user/playback                 | Independent reviewer |
 
 # Ordered task packets
 
@@ -79,26 +86,30 @@ Run network flap, airplane mode, token expiry, process kill at each upload/End b
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Sync/API | T01,T02,T04 | sync feature + needed metadata API | P05,P09 | auth/idempotency review |
-| Recovery | T03 | recovery UI/service | P07,T02 | destructive/data-loss review |
-| Library/player | T05,T06 | library/player/cache | T01 | URL/cache/a11y review |
-| Independent QA | T07 | tests/evidence only | all | device/two-user/fault review |
+| Package        | Tasks       | Exclusive paths                    | Depends on | Review gate                  |
+| -------------- | ----------- | ---------------------------------- | ---------- | ---------------------------- |
+| Sync/API       | T01,T02,T04 | sync feature + needed metadata API | P05,P09    | auth/idempotency review      |
+| Recovery       | T03         | recovery UI/service                | P07,T02    | destructive/data-loss review |
+| Library/player | T05,T06     | library/player/cache               | T01        | URL/cache/a11y review        |
+| Independent QA | T07         | tests/evidence only                | all        | device/two-user/fault review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Token expires mid-upload | security | Refresh/retry same idempotent chunk; retain source | expiry test |
-| Kill after object upload | timing | HEAD/reconcile/complete after restart | boundary test |
-| Checksum conflict | security | Stop auto-retry, preserve diagnostic/source | conflict E2E |
-| Cloud unavailable | environment | Record/recovery/cached library remain usable | offline matrix |
-| Signed URL/local file missing | persistence | Truthful unavailable/retry, never fake playback | player fault test |
+| Failure                       | Classification | Expected behavior                                  | Recovery/regression |
+| ----------------------------- | -------------- | -------------------------------------------------- | ------------------- |
+| Token expires mid-upload      | security       | Refresh/retry same idempotent chunk; retain source | expiry test         |
+| Kill after object upload      | timing         | HEAD/reconcile/complete after restart              | boundary test       |
+| Checksum conflict             | security       | Stop auto-retry, preserve diagnostic/source        | conflict E2E        |
+| Cloud unavailable             | environment    | Record/recovery/cached library remain usable       | offline matrix      |
+| Signed URL/local file missing | persistence    | Truthful unavailable/retry, never fake playback    | player fault test   |
 
 # Integrated verification
 
 Run mobile sync/library/player unit/component tests, real API/PostgreSQL/MinIO/OIDC integration, P07/P05 conformance, resilience/crash suite, two-user security tests, supported-device Maestro/offline/playback matrix, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P10/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -116,6 +127,10 @@ Internal alpha flag. Disable new sync/library requests while retaining local que
 # Required documentation updates
 
 API library/end contract, User Flows recovery/status, mobile runbook, Status/Traceability/Progress, and P10 evidence.
+
+# Conversation boundary
+
+Do not implement transcript review, speech/backfill, minutes/export, or permanent deletion. Do not fake P14 processing completion. Stop after P10.
 
 # Handoff record
 

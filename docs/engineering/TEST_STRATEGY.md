@@ -10,18 +10,18 @@ Highest severity risks are silent audio loss, corrupt ordering, transcript evide
 
 ## Test layers
 
-| Layer | Tools | Focus |
-|---|---|---|
-| Static | TypeScript, lint, dependency/secret scan | Types, policy and supply-chain hygiene |
-| Unit | Vitest | State machine, manifests, validators, provider normalization |
-| Property/fuzz | fast-check where useful | Chunk ordering, idempotency and timestamp invariants |
-| Integration | Vitest + Testcontainers | PostgreSQL, Redis, S3, jobs and migrations |
-| Contract | OpenAPI/provider fixtures | Client/API and adapter compatibility |
-| Desktop E2E | Playwright | Setup, recording controls, recovery, editor/export |
-| Mobile E2E | Maestro | Permissions, setup, recording lifecycle, recovery |
-| Resilience | Fault injection | Network/provider/storage/process failures |
-| Performance | Duration/load harnesses | Two-hour capture and worker throughput |
-| Security | SAST/DAST/manual review | Authz, signed URLs, secrets and deletion |
+| Layer         | Tools                                    | Focus                                                        |
+| ------------- | ---------------------------------------- | ------------------------------------------------------------ |
+| Static        | TypeScript, lint, dependency/secret scan | Types, policy and supply-chain hygiene                       |
+| Unit          | Vitest                                   | State machine, manifests, validators, provider normalization |
+| Property/fuzz | fast-check where useful                  | Chunk ordering, idempotency and timestamp invariants         |
+| Integration   | Vitest + Testcontainers                  | PostgreSQL, Redis, S3, jobs and migrations                   |
+| Contract      | OpenAPI/provider fixtures                | Client/API and adapter compatibility                         |
+| Desktop E2E   | Playwright                               | Setup, recording controls, recovery, editor/export           |
+| Mobile E2E    | Maestro                                  | Permissions, setup, recording lifecycle, recovery            |
+| Resilience    | Fault injection                          | Network/provider/storage/process failures                    |
+| Performance   | Duration/load harnesses                  | Two-hour capture and worker throughput                       |
+| Security      | SAST/DAST/manual review                  | Authz, signed URLs, secrets and deletion                     |
 
 ## Critical scenario matrix
 
@@ -67,3 +67,41 @@ Highest severity risks are silent audio loss, corrupt ordering, transcript evide
 ## Production verification
 
 Use synthetic canary meetings. Monitor safe metadata: start/finalize success, missing chunks, job latency/error code, provider availability and export success. Never use real transcript/audio in automated production assertions.
+
+## P01 command reference
+
+| Command                 | Layer       | Target                                                            |
+| ----------------------- | ----------- | ----------------------------------------------------------------- |
+| `pnpm format:check`     | Static      | Prettier formatting                                               |
+| `pnpm lint`             | Static      | ESLint rules                                                      |
+| `pnpm typecheck`        | Static      | TypeScript compilation                                            |
+| `pnpm test:unit`        | Unit        | Per-package Vitest suites                                         |
+| `pnpm test:integration` | Integration | Real PostgreSQL/Redis/MinIO via Testcontainers                    |
+| `pnpm test:contract`    | Contract    | OpenAPI/provider fixtures                                         |
+| `pnpm test:e2e:desktop` | Desktop E2E | Playwright                                                        |
+| `pnpm test:e2e:mobile`  | Mobile E2E  | Maestro                                                           |
+| `pnpm test:security`    | Security    | Secret/dependency/license scans                                   |
+| `pnpm test:resilience`  | Resilience  | Fault injection                                                   |
+| `pnpm test:performance` | Performance | Duration/load harnesses                                           |
+| `pnpm verify`           | Fast gate   | format + lint + typecheck + unit + integration + contract + build |
+| `pnpm verify:release`   | Full gate   | verify + E2E + security + resilience + performance                |
+
+## P01 synthetic fixture policy
+
+All test data must be synthetic or explicitly consented. `@kms/test-support` provides
+deterministic Vietnamese-language fixtures. Never use production meeting content in tests.
+
+## Local-first speech qualification
+
+The critical matrix additionally proves:
+
+1. New meetings default to cloud live off and desktop local final; legacy speech mode never grants cloud consent.
+2. Identical manifest/policy/engine/planner inputs produce identical 300-second windows with 2-second overlaps.
+3. A failed final-transcript window resumes without rerunning completed windows.
+4. Overlap reconciliation loses no boundary speech, emits no duplicate canonical speech and retains ambiguous alternatives.
+5. Cloud final uses a full-meeting batch when limits permit; fallback windows retain provider, consent and audio scope.
+6. Local failure, missing model or unavailable desktop creates no cloud request.
+7. Cloud check runs only after local completion and exact range/full-meeting approval and cannot silently change the projection.
+8. Run comparison preserves both lineages and seeks material disagreements to exact source audio.
+
+The frozen synthetic/consented vi/en corpus covers clean online calls, noisy rooms, accents, silence, overlap, names, dates, numbers, currencies, boundary speech and two-hour timing. Thresholds are fixed before tuning: clean/online WER ≤ 18%, noisy-room WER ≤ 30%, timestamp p95 ≤ 1.5 seconds, desktop local RTF ≤ 1.0 on the minimum Windows profile, cancellation acknowledgement ≤ 2 seconds and 100% canonical-range-or-gap accounting. Local final also passes with network disabled after model installation, and local-only fixtures contact no cloud speech endpoint.

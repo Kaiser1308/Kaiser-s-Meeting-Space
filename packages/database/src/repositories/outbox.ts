@@ -3,7 +3,7 @@ import type { Connection } from '../client.js';
 import { outboxEvents } from '../schema/index.js';
 import { type Envelope } from '@kms/domain';
 import { type OwnerContext } from './types.js';
-import { toDomain, mapDbError } from './base.js';
+import { mapDbError } from './base.js';
 
 export interface OutboxEvent {
   id: string;
@@ -31,23 +31,16 @@ export interface OutboxEvent {
 }
 
 export class OutboxRepository {
-  async saveEvent(
-    ctx: OwnerContext,
-    conn: Connection,
-    envelope: Envelope
-  ): Promise<void> {
+  async saveEvent(ctx: OwnerContext, conn: Connection, envelope: Envelope): Promise<void> {
     try {
       // Monotonic sequence generation per meeting:
       const [seqRow] = await conn
         .select({
-          maxSeq: sql<number>`COALESCE(MAX(${outboxEvents.meetingEventSequence}), 0) + 1`
+          maxSeq: sql<number>`COALESCE(MAX(${outboxEvents.meetingEventSequence}), 0) + 1`,
         })
         .from(outboxEvents)
         .where(
-          and(
-            eq(outboxEvents.entityId, envelope.entityId),
-            eq(outboxEvents.ownerId, ctx.ownerId)
-          )
+          and(eq(outboxEvents.entityId, envelope.entityId), eq(outboxEvents.ownerId, ctx.ownerId)),
         );
 
       const meetingEventSequence = seqRow?.maxSeq ?? 1;
@@ -60,7 +53,8 @@ export class OutboxRepository {
         entityType: envelope.entityType,
         entityId: envelope.entityId,
         eventType: 'commandType' in envelope ? envelope.commandType : envelope.eventType,
-        eventVersion: 'commandVersion' in envelope ? envelope.commandVersion : envelope.eventVersion,
+        eventVersion:
+          'commandVersion' in envelope ? envelope.commandVersion : envelope.eventVersion,
         actorId: envelope.actorId,
         idempotencyKey: 'idempotencyKey' in envelope ? envelope.idempotencyKey : '',
         payload: 'payload' in envelope ? envelope.payload : envelope.data,
@@ -77,11 +71,11 @@ export class OutboxRepository {
     conn: Connection,
     leaseOwner: string,
     limit: number,
-    leaseDurationMs = 30000
+    leaseDurationMs = 30000,
   ): Promise<OutboxEvent[]> {
     try {
       const leaseDurationSec = leaseDurationMs / 1000;
-      
+
       const rows: any[] = await conn.execute(sql`
         WITH targets AS (
           SELECT id FROM ${outboxEvents}
@@ -101,7 +95,7 @@ export class OutboxRepository {
         RETURNING *
       `);
 
-      return rows.map(row => this.toOutboxEvent(row));
+      return rows.map((row) => this.toOutboxEvent(row));
     } catch (e: unknown) {
       throw mapDbError(e);
     }
@@ -110,7 +104,7 @@ export class OutboxRepository {
   async acknowledgePublish(
     conn: Connection,
     messageId: string,
-    leaseOwner: string
+    leaseOwner: string,
   ): Promise<boolean> {
     try {
       const result = await conn
@@ -125,8 +119,8 @@ export class OutboxRepository {
           and(
             eq(outboxEvents.messageId, messageId),
             eq(outboxEvents.leaseOwner, leaseOwner),
-            eq(outboxEvents.state, 'pending')
-          )
+            eq(outboxEvents.state, 'pending'),
+          ),
         )
         .returning({ id: outboxEvents.id });
 
@@ -143,7 +137,7 @@ export class OutboxRepository {
     errorCode: string,
     errorMessage: string,
     nextAttemptAt: Date | null,
-    isPermanent = false
+    isPermanent = false,
   ): Promise<boolean> {
     try {
       const result = await conn
@@ -156,12 +150,7 @@ export class OutboxRepository {
           leasedUntil: null,
           leaseOwner: null,
         })
-        .where(
-          and(
-            eq(outboxEvents.messageId, messageId),
-            eq(outboxEvents.leaseOwner, leaseOwner)
-          )
-        )
+        .where(and(eq(outboxEvents.messageId, messageId), eq(outboxEvents.leaseOwner, leaseOwner)))
         .returning({ id: outboxEvents.id });
 
       return result.length > 0;
@@ -186,14 +175,29 @@ export class OutboxRepository {
       payload: row.payload,
       state: row.state,
       leaseOwner: row.lease_owner,
-      leasedUntil: row.leased_until instanceof Date ? row.leased_until : row.leased_until ? new Date(row.leased_until) : null,
+      leasedUntil:
+        row.leased_until instanceof Date
+          ? row.leased_until
+          : row.leased_until
+            ? new Date(row.leased_until)
+            : null,
       attempts: row.attempts,
       lastErrorCode: row.last_error_code,
       lastErrorMessage: row.last_error_message,
-      nextAttemptAt: row.next_attempt_at instanceof Date ? row.next_attempt_at : row.next_attempt_at ? new Date(row.next_attempt_at) : null,
+      nextAttemptAt:
+        row.next_attempt_at instanceof Date
+          ? row.next_attempt_at
+          : row.next_attempt_at
+            ? new Date(row.next_attempt_at)
+            : null,
       meetingEventSequence: row.meeting_event_sequence,
       createdAt: row.created_at instanceof Date ? row.created_at : new Date(row.created_at),
-      publishedAt: row.published_at instanceof Date ? row.published_at : row.published_at ? new Date(row.published_at) : null,
+      publishedAt:
+        row.published_at instanceof Date
+          ? row.published_at
+          : row.published_at
+            ? new Date(row.published_at)
+            : null,
     };
   }
 }

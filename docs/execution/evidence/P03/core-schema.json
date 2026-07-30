@@ -1,0 +1,175 @@
+{
+  "task": "P03-T01",
+  "title": "Identity, meeting, capture, and audio metadata schema",
+  "result": "PASS",
+  "verifiedAt": "2026-07-22T21:41:30Z",
+  "status": "real PostgreSQL Testcontainers — green (no mocks)",
+  "environment": {
+    "os": "win32",
+    "node": "v24.18.0",
+    "pnpm": "10.14.0",
+    "docker": { "serverVersion": "29.6.2" },
+    "postgresImage": "postgres:17-alpine",
+    "deps": {
+      "drizzle-orm": "0.45.2",
+      "drizzle-kit": "0.31.10",
+      "postgres": "3.4.9",
+      "testcontainers": "10.28.0",
+      "@testcontainers/postgresql": "10.28.0",
+      "typescript": "5.9.x",
+      "vitest": "4.1.10"
+    }
+  },
+  "commands": [
+    {
+      "cmd": "pnpm install (repo root)",
+      "exit": 0,
+      "note": "workspace linked; lockfile updated at pnpm-lock.yaml; no peer conflicts for @kms/database"
+    },
+    {
+      "cmd": "pnpm --filter @kms/database exec drizzle-kit generate",
+      "exit": 0,
+      "note": "9 tables detected; emitted drizzle/0000_*.sql + meta/"
+    },
+    { "cmd": "pnpm --filter @kms/database run typecheck", "exit": 0 },
+    {
+      "cmd": "pnpm --filter @kms/database test:unit",
+      "exit": 0,
+      "note": "32/32 passed; 1 real Testcontainers Postgres per file, migrated once in beforeAll"
+    }
+  ],
+  "tests": { "intended": 32, "executed": 32, "passed": 32, "failed": 0 },
+  "tddCycle": {
+    "red": "pre-migration run failed with 'Can\\'t find meta/_journal.json file' (missing migration) — correct pre-implementation signal; container started fine",
+    "green": "after generating migration 0000 + appending trigger DDL, all 32 assertions pass"
+  },
+  "schemaInventory": {
+    "tables": [
+      "users",
+      "external_identities",
+      "meetings",
+      "meeting_capture_sources",
+      "capture_intervals",
+      "timeline_markers",
+      "audio_chunks",
+      "audio_manifests",
+      "audio_assets"
+    ],
+    "enums": {
+      "meeting_language": ["vi", "en"],
+      "meeting_mode": ["meeting_only", "meeting_translate"],
+      "meeting_state": [
+        "draft",
+        "checking",
+        "recording",
+        "paused",
+        "finalizing",
+        "processing",
+        "ready",
+        "recovery_required",
+        "partial_ready",
+        "deleted"
+      ],
+      "audio_source": ["mic", "system", "derived_mix"],
+      "speech_mode": ["api", "local"],
+      "upload_status": ["pending", "uploading", "completed", "failed"],
+      "timeline_marker_type": ["pause", "gap"],
+      "audio_gap_description": ["source_disconnect", "buffer_overflow", "crash_recovery"]
+    },
+    "enumSourceOfTruth": "every pgEnum built from a P02 import (MeetingLanguageSchema.options, MeetingModeSchema.options, AudioSourceSchema.options, SpeechModeSchema.removeDefault().options, UploadStatusSchema.options, MEETING_STATES const array, PauseInterval/GapMarker literals+description.options) — zero duplicated enum literals",
+    "indexes": [
+      "external_identities_issuer_subject_unique",
+      "external_identities_user_id_idx",
+      "meetings_owner_created_idx",
+      "meetings_owner_state_idx",
+      "meetings_id_owner_idx",
+      "capture_intervals_meeting_source_started_idx",
+      "capture_intervals_owner_idx",
+      "timeline_markers_unique_event_idx",
+      "timeline_markers_owner_idx",
+      "audio_chunks_meeting_source_index_unique",
+      "audio_chunks_meeting_finalized_idx",
+      "audio_chunks_owner_idx",
+      "audio_manifests_meeting_source_unique",
+      "audio_manifests_owner_idx",
+      "audio_assets_owner_idx"
+    ],
+    "checksCount": 29,
+    "foreignKeys": [
+      "external_identities.user_id -> users.id ON DELETE cascade",
+      "meeting_capture_sources.meeting_id -> meetings.id ON DELETE cascade",
+      "meetings.owner_id -> users.id",
+      "capture_intervals.meeting_id -> meetings.id ON DELETE cascade",
+      "timeline_markers.meeting_id -> meetings.id ON DELETE cascade",
+      "audio_assets.meeting_id -> meetings.id ON DELETE cascade",
+      "audio_chunks.meeting_id -> meetings.id ON DELETE cascade",
+      "audio_manifests.meeting_id -> meetings.id ON DELETE cascade"
+    ]
+  },
+  "integrityTriggers": {
+    "sqlstate": "P0311 (= immutable_violation, classified distinctly from generic 23514)",
+    "migrationInclusion": "trigger DDL appended into the SAME migration file 0000 (custom SQL after drizzle-kit generation, separated by statement-breakpoints); migrator applies tables + triggers in one transaction. drizzle-kit 0.31 journal stores no per-file hash; migrator hashes the file content at apply time so appended trigger SQL is consistent.",
+    "triggers": [
+      {
+        "name": "trg_audio_chunks_immutable",
+        "function": "fn_audio_chunks_immutable",
+        "table": "audio_chunks",
+        "event": "BEFORE UPDATE OR DELETE",
+        "rule": "raise P0311 when OLD.finalized_at IS NOT NULL; allows the NULL->set finalize mutation"
+      },
+      {
+        "name": "trg_meeting_language_mode_lock",
+        "function": "fn_meeting_language_mode_lock",
+        "table": "meetings",
+        "event": "BEFORE UPDATE",
+        "rule": "raise P0311 when (language or mode changes) AND OLD.state NOT IN ('draft','checking')"
+      },
+      {
+        "name": "trg_meeting_capture_sources_lock",
+        "function": "fn_meeting_capture_sources_lock",
+        "table": "meeting_capture_sources",
+        "event": "BEFORE INSERT OR DELETE",
+        "rule": "raise P0311 when parent meeting state NOT IN ('draft','checking')"
+      }
+    ]
+  },
+  "constraintBehaviorObserved": {
+    "duplicateChunkIdentity": "23505 (unique (meeting_id, source, chunk_index)) — same for same-sha256 and different-sha256; idempotent-vs-conflict disambiguation is a repository (T05) concern",
+    "checkViolations": "23514 (ended_at<started_at, version<=0, bad sha256 hex64, sample_rate!=48000, channels!=1, wall_clock_end<wall_clock_start, monotonic_end<monotonic_start)",
+    "invalidEnumValue": "22P02 (invalid_text_representation for enum 'fr'/'bogus') — rejected; assertion is rejection-not-null rather than a hardcoded code to stay robust",
+    "immutabilityViolations": "P0311 for all three T01 triggers"
+  },
+  "generatedMigrations": [
+    "drizzle/0000_init_identity_meeting_capture_audio.sql",
+    "drizzle/meta/_journal.json",
+    "drizzle/meta/0000_snapshot.json"
+  ],
+  "deviationsFromDesign": [
+    {
+      "item": "drizzle-orm / drizzle-kit bumped to latest matched pair (0.45.2 / 0.31.10)",
+      "justification": "DESIGN floor was ^0.36.0 / ^0.28.0; the floor pair drizzle-kit 0.28.x loads the schema via CJS require and cannot resolve ESM .js->.ts relative imports, failing generation. drizzle-kit 0.30+ bundles the schema with esbuild (resolves .js->.ts). DESIGN §1.1 explicitly permits bumping the matched pair. API surface used (pgTable/pgEnum/check/index/uuid/bigint/timestamp/jsonb, postgres-js client + migrator, PostgresJsDatabase) is stable across 0.36->0.45. No contract change."
+    },
+    {
+      "item": "package name @testcontainers/postgresql (not @testcontainers/postgres)",
+      "justification": "DESIGN §1.1 lists '@testcontainers/postgres', but that name 404s on the npm registry (verified against https://registry.npmjs.org). The real published package is '@testcontainers/postgresql' (v10.28.0). Import API (PostgreSqlContainer.getConnectionUri) matches DESIGN intent exactly. No contract change."
+    },
+    {
+      "item": "uniqueDbName implemented locally in test/harness.ts instead of re-exporting @kms/test-support",
+      "justification": "DESIGN §1.1/§8 dependency list for @kms/database does not include @kms/test-support; adding an undeclared workspace dep would contradict the explicit dep set. The local helper mirrors the uniqueNamespace algorithm (counter+timestamp, Postgres-safe). Behavior identical; handoff item if a shared helper is later required."
+    },
+    {
+      "item": "owner_id single-column index added to user-data tables without an owner-leading DESIGN index (capture_intervals, timeline_markers, audio_chunks, audio_manifests, audio_assets)",
+      "justification": "DESIGN §4 convention mandates an owner_id index on every user-data table; per-table index lists did not all include one. Added a minimal (owner_id) index per table to honor the convention. All DESIGN-listed indexes are also present exactly as specified."
+    }
+  ],
+  "safety": {
+    "contentFree": "true — fixtures are synthetic (no real meeting text/audio/credentials); passing run emits no SQL text or content (errors only surface on failure); evidence contains no secrets",
+    "testIsolation": "per-test transaction rollback via withRollbackTx; one container per file migrated once in beforeAll; Ryuk enabled, withStartupTimeout(60s)"
+  },
+  "acceptanceCoverage": {
+    "P03-A01": "migration applies empty->current deterministically (startPostgres runs runMigrations on a fresh container every file run)",
+    "P03-A02": "all T01 tables/enums/indexes/CHECKs asserted present via information_schema/pg_enum/pg_indexes/pg_constraint",
+    "P03-A04": "audio_chunk immutability + meeting language/mode lock + capture-source lock enforced by DB triggers (P0311)",
+    "P03-A06": "test asserts on SQLSTATE codes only; never reads/leaks message/detail; passing run emits no query text"
+  }
+}

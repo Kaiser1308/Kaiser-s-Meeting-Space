@@ -1,0 +1,31 @@
+{
+  "task": "P01-T03",
+  "description": "Typed runtime configuration",
+  "result": "PASS",
+  "timestamp": "2026-07-21T23:36:25+07:00",
+  "test": {
+    "command": "pnpm --filter @kms/config test:unit",
+    "exitCode": 0,
+    "intendedTests": 14,
+    "executedTests": 14,
+    "passedTests": 14,
+    "failedTests": 0
+  },
+  "schemas": {
+    "envSchema": "Zod schema with .strict() — 30+ fields covering base, DB, Redis, S3, OIDC, AI, speech, translation, limits, observability, release",
+    "validateConfig": "Parses raw env vars, returns typed AppConfig or safe error messages (values never in errors)",
+    "redactConfig": "Redacts S3_ACCESS_KEY, S3_SECRET_KEY, OIDC_CLIENT_SECRET, AI_API_KEY, DEEPGRAM_API_KEY, SENTRY_DSN",
+    "clientSafeConfig": "Returns only NODE_ENV, OIDC_ISSUER_URL, OIDC_CLIENT_ID, OIDC_REDIRECT_URI, AI_PROVIDER, SPEECH_PROVIDER, RELEASE_TAG, LOG_LEVEL"
+  },
+  "testCoverage": {
+    "missingFields": "Rejected",
+    "invalidPort": "Rejected",
+    "invalidNodeEnv": "Rejected",
+    "unknownFields": "Rejected (strict mode)",
+    "secretRedaction": "Verified — secret values replaced with [REDACTED]",
+    "clientServerSeparation": "Verified — DATABASE_URL, REDIS_URL, S3 secrets excluded from client config",
+    "environmentDefaults": "Verified — NODE_ENV defaults to development, API_PORT defaults to 4310",
+    "safeErrorMessages": "Verified — error messages reference field names, never input values"
+  },
+  "envExample": "Updated with 40+ documented variables organized by category"
+}

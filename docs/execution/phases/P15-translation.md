@@ -1,7 +1,7 @@
 ---
 phase: P15
 title: Versioned Vietnamese-English translation pipeline
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P14]
 requirements: [FR-3, ADR-003, ADR-004]
 risk: high
@@ -21,6 +21,12 @@ Read PRD FR-1/FR-3, User Flows live/completion, AI/Speech Providers translation 
 
 P14 is `VERIFIED`; P00-approved first production translation provider, region/retention disclosure, server secret, budget, and fixed synthetic vi/en evaluation corpus are available. If provider approval/key is absent, mock/conformance work may complete but live quality acceptance remains blocked.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P14        | Verified outputs and invariants consumed by this packet. | `../evidence/P14/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** `packages/translation/`, translation jobs/adapter/persistence/API, mobile/desktop source+translation display, evaluation fixtures/reports.
@@ -39,13 +45,13 @@ P14 is `VERIFIED`; P00-approved first production translation provider, region/re
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/translation/src/core/` | capability/input/output/errors/conformance | Contract |
-| provider adapter directory | production provider isolation | Adapter |
-| worker/API/persistence translation modules | jobs/versioned storage/current projection | Pipeline |
-| mobile/desktop translation views | ephemeral/final/source separation | Client |
-| translation evaluation tests | bilingual fixed corpus/fault/cost/latency | Independent reviewer |
+| Path                                       | Responsibility                             | Owner                |
+| ------------------------------------------ | ------------------------------------------ | -------------------- |
+| `packages/translation/src/core/`           | capability/input/output/errors/conformance | Contract             |
+| provider adapter directory                 | production provider isolation              | Adapter              |
+| worker/API/persistence translation modules | jobs/versioned storage/current projection  | Pipeline             |
+| mobile/desktop translation views           | ephemeral/final/source separation          | Client               |
+| translation evaluation tests               | bilingual fixed corpus/fault/cost/latency  | Independent reviewer |
 
 # Ordered task packets
 
@@ -75,25 +81,29 @@ Freeze thresholds before tuning for terminology, names, numbers, negation, omiss
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Contract/adapter | T01,T03 | translation core/adapter | P14 | provider/secret review |
-| Policy/persistence | T02,T04 | worker/API/DB | T01 | auth/lineage review |
-| Client/evaluation | T05,T06 | views/tests/evidence | T02-T04 | bilingual/UX review |
+| Package            | Tasks   | Exclusive paths          | Depends on | Review gate            |
+| ------------------ | ------- | ------------------------ | ---------- | ---------------------- |
+| Contract/adapter   | T01,T03 | translation core/adapter | P14        | provider/secret review |
+| Policy/persistence | T02,T04 | worker/API/DB            | T01        | auth/lineage review    |
+| Client/evaluation  | T05,T06 | views/tests/evidence     | T02-T04    | bilingual/UX review    |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Provider fails | provider | Source continues; delayed/retry/cancel visible | outage test |
-| Source revised | state | Old translation retained; new version eligible/current | lineage test |
-| Wrong language/mode | contract | Reject before provider | policy matrix |
-| Names/numbers/negation altered | provider | Evaluation gate fails or visible review status | corpus regression |
-| Cross-provider retry | security | Explicit new job/version/disclosure only | policy test |
+| Failure                        | Classification | Expected behavior                                      | Recovery/regression |
+| ------------------------------ | -------------- | ------------------------------------------------------ | ------------------- |
+| Provider fails                 | provider       | Source continues; delayed/retry/cancel visible         | outage test         |
+| Source revised                 | state          | Old translation retained; new version eligible/current | lineage test        |
+| Wrong language/mode            | contract       | Reject before provider                                 | policy matrix       |
+| Names/numbers/negation altered | provider       | Evaluation gate fails or visible review status         | corpus regression   |
+| Cross-provider retry           | security       | Explicit new job/version/disclosure only               | policy test         |
 
 # Integrated verification
 
 Run translation contract/adapter, policy/auth, persistence lineage, worker retry/cancel, client UI/a11y, fixed bilingual mock/live evaluation, secret/content scans, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P15/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -111,6 +121,10 @@ Enable by account/provider allowlist and budget. Rollback stops new translation 
 # Required documentation updates
 
 Provider capabilities/disclosure, Data Model/API translation versioning, User Flows states, Status/Traceability/Progress, and P15 evidence.
+
+# Conversation boundary
+
+Translation only for explicit meeting_translate mode. Do not implement mixed-language detection, arbitrary pairs, minutes, source replacement, client keys, or implicit provider fallback. Stop before P16.
 
 # Handoff record
 

@@ -1,7 +1,7 @@
 ---
 phase: P01
 title: Engineering and quality foundation
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P00]
 requirements: [NFR-Reliability, NFR-Security, NFR-Observability]
 risk: high
@@ -21,6 +21,12 @@ Read Development Guide, Test Strategy, Tech Stack, Security/Privacy, Deployment 
 
 P00 is `VERIFIED`; approved Node/pnpm/OS/container versions are available. CI repository administration or external scan credentials may block hosted-CI evidence but not local config/tests. Do not implement business behavior.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P00        | Verified outputs and invariants consumed by this packet. | `../evidence/P00/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** root tooling/config/scripts, workspace package test config, `.github/workflows/`, `docker-compose.yml`, `packages/config/`, `packages/test-support/`, synthetic fixtures, and engineering docs.
@@ -39,14 +45,14 @@ P00 is `VERIFIED`; approved Node/pnpm/OS/container versions are available. CI re
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| root manifests/Turbo/format/lint/Vitest configs | deterministic task graph and policy | Tooling |
-| `packages/config/` | typed environment schemas | Config |
-| `packages/test-support/` | containers, fixtures, cleanup, zero-test inventory | Test infrastructure |
-| `docker-compose.yml` and test overrides | local PostgreSQL/Redis/MinIO | Test infrastructure |
-| `.github/workflows/` and scan config | mandatory CI/security/artifacts | CI/security |
-| engineering docs | exact setup, versions, diagnostics, coverage | Main agent |
+| Path                                            | Responsibility                                     | Owner               |
+| ----------------------------------------------- | -------------------------------------------------- | ------------------- |
+| root manifests/Turbo/format/lint/Vitest configs | deterministic task graph and policy                | Tooling             |
+| `packages/config/`                              | typed environment schemas                          | Config              |
+| `packages/test-support/`                        | containers, fixtures, cleanup, zero-test inventory | Test infrastructure |
+| `docker-compose.yml` and test overrides         | local PostgreSQL/Redis/MinIO                       | Test infrastructure |
+| `.github/workflows/` and scan config            | mandatory CI/security/artifacts                    | CI/security         |
+| engineering docs                                | exact setup, versions, diagnostics, coverage       | Main agent          |
 
 # Ordered task packets
 
@@ -80,26 +86,30 @@ Pin exact versions/installation sources, document clean setup and each command, 
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Tooling/config | T01-T03 | root config + `packages/config` | P00 | cross-platform/secret review |
-| Test services | T04,T05 | compose + `packages/test-support` | T01 | isolation/cleanup review |
-| CI/docs | T06,T07 | workflows + engineering docs | T01-T05 | permissions/false-green review |
-| Independent reviewer | all | tests/evidence only | implementation | intentional-break proof |
+| Package              | Tasks   | Exclusive paths                   | Depends on     | Review gate                    |
+| -------------------- | ------- | --------------------------------- | -------------- | ------------------------------ |
+| Tooling/config       | T01-T03 | root config + `packages/config`   | P00            | cross-platform/secret review   |
+| Test services        | T04,T05 | compose + `packages/test-support` | T01            | isolation/cleanup review       |
+| CI/docs              | T06,T07 | workflows + engineering docs      | T01-T05        | permissions/false-green review |
+| Independent reviewer | all     | tests/evidence only               | implementation | intentional-break proof        |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Command executes zero tests | contract | Non-zero exit naming project | zero-test fixture |
-| Port collision | environment | Random Testcontainers port; compose action documented | parallel smoke test |
-| Secret scanner hits fixture | security | Replace fixture; no broad suppression | scan regression |
-| Windows path/shell mismatch | platform | Cross-platform Node tooling or explicit wrapper | Windows clean run |
-| Hosted CI unavailable | environment | Preserve local validation; affected hosted acceptance remains blocked | exact owner action |
+| Failure                     | Classification | Expected behavior                                                     | Recovery/regression |
+| --------------------------- | -------------- | --------------------------------------------------------------------- | ------------------- |
+| Command executes zero tests | contract       | Non-zero exit naming project                                          | zero-test fixture   |
+| Port collision              | environment    | Random Testcontainers port; compose action documented                 | parallel smoke test |
+| Secret scanner hits fixture | security       | Replace fixture; no broad suppression                                 | scan regression     |
+| Windows path/shell mismatch | platform       | Cross-platform Node tooling or explicit wrapper                       | Windows clean run   |
+| Hosted CI unavailable       | environment    | Preserve local validation; affected hosted acceptance remains blocked | exact owner action  |
 
 # Integrated verification
 
 Run frozen install, format, lint, typecheck, unit, contract, integration smoke, build, security scan, `verify`, and intentional-break tests. Run `verify:release` only after all required release projects are registered to fail truthfully rather than silently skip. Record exit codes and non-zero test counts.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P01/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -117,6 +127,10 @@ Tooling is additive. Pin upgrades and revert each config/toolchain unit coherent
 # Required documentation updates
 
 Development Guide, Test Strategy command table, `.env.example`, root README, `STATUS.md`, `TRACEABILITY.md`, `PROGRESS.md`, and P01 evidence.
+
+# Conversation boundary
+
+Engineering foundation only. Do not implement domain, persistence, authentication, recording, provider, or product UI behavior. Stop before P02.
 
 # Handoff record
 

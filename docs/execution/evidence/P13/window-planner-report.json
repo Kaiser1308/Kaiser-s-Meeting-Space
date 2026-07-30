@@ -1,0 +1,142 @@
+{
+  "task": "P13-T02",
+  "evidenceDate": "2026-07-27",
+  "version": "stt-window-v1",
+  "summary": "Deterministic stt-window-v1 window planner in new @kms/speech package. Pure function: splits a monotonic [0, durationMs) timeline into 300s windows with 2s overlap between consecutive full windows; gaps become backfill_required ranges and are never spanned by a window. Stable SHA-256 plan hash over canonical (sorted-key) JSON. Capture-chunk independent: validates gaps against strict GapEntrySchema, drops reason before hashing, never reads chunkId/chunkIndex.",
+  "constants": {
+    "windowMs": 300000,
+    "overlapMs": 2000,
+    "versionTag": "stt-window-v1"
+  },
+  "location": "packages/speech/src/core/window-planner.ts",
+  "package": {
+    "name": "@kms/speech",
+    "private": true,
+    "type": "module",
+    "exports": [
+      "planWindowsV1",
+      "canonicalStringify",
+      "InvalidDurationError",
+      "STT_WINDOW_V1",
+      "WINDOW_MS",
+      "OVERLAP_MS",
+      "WindowPlanSchema",
+      "WindowPlanItemSchema",
+      "BackfillRangeSchema",
+      "WindowPlan",
+      "WindowPlanItem",
+      "BackfillRange"
+    ]
+  },
+  "tests": {
+    "files": 1,
+    "filesList": ["packages/speech/src/core/window-planner.test.ts"],
+    "tests": 41,
+    "pass": true,
+    "exitCode": 0,
+    "command": "pnpm --filter @kms/speech test:unit"
+  },
+  "typecheck": {
+    "status": "clean",
+    "command": "pnpm --filter @kms/speech typecheck (tsc --noEmit)",
+    "exitCode": 0
+  },
+  "coverage": {
+    "command": "pnpm --filter @kms/speech exec vitest run --coverage",
+    "statements": "100% (86/86)",
+    "branches": "100% (47/47)",
+    "functions": "100% (14/14)",
+    "lines": "100% (74/74)",
+    "thresholdsEnforced": "vitest.config.ts sets lines/branches/functions/statements = 100"
+  },
+  "propertiesVerified": [
+    "short",
+    "exact_multiple",
+    "two_hour",
+    "single_full_plus_remainder",
+    "pause_or_gap",
+    "gap_at_end",
+    "gap_at_start",
+    "overlapping_gaps_merged",
+    "repeatability",
+    "stable_hash",
+    "monotonic_only",
+    "reject_zero_duration",
+    "reject_negative_duration",
+    "hash_format",
+    "index_monotonic",
+    "overlap_only_between_full_windows"
+  ],
+  "additionalTests": [
+    "canonicalStringify: null/string-escaping/number/boolean/empty-array/nested-array/empty-object/nested-sorted-keys/function-symbol-undefined-to-null/key-order-independence",
+    "zero-width gap ignored (startMs === endMs produces no backfill range; plan equals no-gap reference)",
+    "gap entirely past durationMs ignored",
+    "negative startMs rejected by GapEntrySchema (input contract enforced)",
+    "contained second gap merged into first (reason-independent merge)",
+    "adjacent (touching) gaps merged into one continuous range",
+    "same-startMs gaps merged deterministically (tiebreak by endMs)",
+    "gap straddling the end after a full window: overlapMs=0 (next segment is a backfill range, not an overlapping window)",
+    "non-integer durationMs rejected with INVALID_DURATION",
+    "InvalidDurationError class: name/code/message contract"
+  ],
+  "captureChunkIndependence": {
+    "claim": "planner operates exclusively on durationMs + monotonic GapEntry ranges; never reads chunkId/chunkIndex",
+    "mechanisms": [
+      "Input gaps validated through GapEntrySchema.parse() (.strict()) — unknown fields such as chunkIndex are rejected (monotonic_only test asserts this)",
+      "normalizeGaps drops the reason field before planning and before hashing — only {startMs, endMs} ranges influence the plan and the hash",
+      "planHash = sha256(canonicalJSON({version, durationMs, gap-ranges, windows, backfillRanges})) — no identity/chunk fields in the hash input",
+      "Algorithm advances purely on the monotonic timeline cursor t; never references chunk boundaries"
+    ]
+  },
+  "hashDeterminism": {
+    "algorithm": "SHA-256 over canonicalStringify({version, durationMs, gaps, windows, backfillRanges})",
+    "canonicalJsonRules": "recursive alphabetical key sort at every object depth; arrays preserve order; primitives via String() / JSON.stringify(); whitespace-free; functions/symbols/undefined map to null",
+    "exportedForRecompute": "canonicalStringify is exported so P14 reconciliation can recompute a plan hash independently and verify TranscriptRunPart lineage",
+    "stabilityTests": [
+      "identical input -> identical planHash",
+      "durationMs+1 -> different hash",
+      "added gap -> different hash"
+    ]
+  },
+  "overlapSemantics": {
+    "rule": "overlapMs = OVERLAP_MS (2000) iff (endMs - startMs === WINDOW_MS) AND (endMs < durationMs) AND (endMs does not fall inside/at-start of a gap); otherwise 0",
+    "metadataOnly": "overlap does not extend coverage — two_hour test asserts sum of unique window coverage === durationMs",
+    "lastWindow": "never has overlap (verified by overlap_only_between_full_windows test)",
+    "gapFollowed": "when a gap begins at a full window's end, overlap is 0 because the next segment is a backfill range, not an overlapping window (verified by gap-straddling-end test)"
+  },
+  "algorithmNotes": [
+    "Three-case loop: (1) t inside a gap -> backfill range, advance past gap; (2) gap starts within prospective window -> shrink window to gap start, emit backfill; (3) no gap -> full/clipped window with optional overlap.",
+    "Dead-code guards removed: gapEnd > t and gapEnd > end are provably always true given the find() predicates and normalizeGaps zero-width filtering, so the conditionals were removed for branch-coverage honesty.",
+    "Final WindowPlanSchema.parse(plan) is defense-in-depth — the plan is constructed to satisfy the schema by construction."
+  ],
+  "consumedInterfaces": {
+    "domain": "@kms/domain (workspace:*) — GapEntrySchema + GapEntry from packages/domain/src/transcript/schemas.ts (pre-existing P02 contract, unchanged by T01/T02)",
+    "node": "node:crypto createHash (sha256)"
+  },
+  "noProviderSdkImports": "grep over packages/speech/src confirms only node:crypto, zod, @kms/domain imports — no Deepgram/whisper/SDK types in the planner",
+  "filesChanged": {
+    "created": [
+      "packages/speech/package.json",
+      "packages/speech/tsconfig.json",
+      "packages/speech/vitest.config.ts",
+      "packages/speech/src/index.ts",
+      "packages/speech/src/core/index.ts",
+      "packages/speech/src/core/window-planner.ts",
+      "packages/speech/src/core/window-planner.test.ts",
+      "docs/execution/evidence/P13/window-planner-report.json"
+    ],
+    "modified": [
+      "vitest.workspace.ts (appended 'packages/speech' after 'packages/storage')",
+      "pnpm-lock.yaml (additive packages/speech section + @types/node hoist; remainder of diff is pre-existing baseline churn outside T02 ownership)"
+    ]
+  },
+  "concerns": [
+    "pnpm-lock.yaml carries pre-existing baseline churn (many @vitest/coverage-v8 additions across packages unrelated to T02); only the trailing 'packages/speech:' section is T02's responsibility. The pre-existing churn is outside T02 file ownership and was already present before T02 started."
+  ],
+  "selfReview": {
+    "onlyDurationAndGapsAffectPlan": true,
+    "hashIsDeterministic": true,
+    "overlapIsMetadataOnly": true,
+    "captureChunkIndependent": true
+  }
+}

@@ -1,7 +1,7 @@
 ---
 phase: P17
 title: Capability-based generative AI platform and validation boundary
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P06, P14, P16]
 requirements: [FR-5, ADR-003, NFR-Security, NFR-Privacy]
 risk: critical
@@ -21,6 +21,14 @@ Read AI/Speech Providers generative/routing/validation/evaluation/privacy, Secur
 
 P06/P14/P16 are `VERIFIED`; P00-approved first generative provider, secret/region/retention/training policy, model allowlist, cost/concurrency caps, and synthetic structured-output fixtures are available. Live provider acceptance requires authorized access.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P06        | Verified outputs and invariants consumed by this packet. | `../evidence/P06/EVIDENCE.md` | VERIFIED          |
+| P14        | Verified outputs and invariants consumed by this packet. | `../evidence/P14/EVIDENCE.md` | VERIFIED          |
+| P16        | Verified outputs and invariants consumed by this packet. | `../evidence/P16/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** rewrite `packages/ai/` into core/provider adapters, provider registry/config, AI workers/API, schema/repair/citation validation, prompt registry, usage policy, conformance/security/fault tests.
@@ -39,14 +47,14 @@ P06/P14/P16 are `VERIFIED`; P00-approved first generative provider, secret/regio
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/ai/src/core/` | capabilities/registry/request/result/conformance | AI core |
-| provider adapter directory | SDK/secret/request/response isolation | Adapter |
-| `packages/ai/src/validation/` | parse/repair/schema/citation | Validation |
-| AI worker/API/provider modules | durable job/policy/usage/version | Orchestration |
-| prompt/schema/config registry | immutable artifacts/hashes | Validation |
-| AI security/conformance tests | fuzz/fault/secret/IDOR/live | Independent reviewer |
+| Path                           | Responsibility                                   | Owner                |
+| ------------------------------ | ------------------------------------------------ | -------------------- |
+| `packages/ai/src/core/`        | capabilities/registry/request/result/conformance | AI core              |
+| provider adapter directory     | SDK/secret/request/response isolation            | Adapter              |
+| `packages/ai/src/validation/`  | parse/repair/schema/citation                     | Validation           |
+| AI worker/API/provider modules | durable job/policy/usage/version                 | Orchestration        |
+| prompt/schema/config registry  | immutable artifacts/hashes                       | Validation           |
+| AI security/conformance tests  | fuzz/fault/secret/IDOR/live                      | Independent reviewer |
 
 # Ordered task packets
 
@@ -84,26 +92,30 @@ Implement explicit retry-with-provider as new job/version with disclosure/budget
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Core/adapter | T01-T03 | AI core/provider | P06 | capability/secret review |
-| Orchestration | T04,T08 API/job | worker/API | T01-T03 | auth/idempotency/budget review |
-| Validation/registry | T05-T07 | validation/prompts/schemas | P14,P16 | injection/citation/provenance review |
-| Independent security/live | T08 tests | tests/evidence | all | red-team/provider review |
+| Package                   | Tasks           | Exclusive paths            | Depends on | Review gate                          |
+| ------------------------- | --------------- | -------------------------- | ---------- | ------------------------------------ |
+| Core/adapter              | T01-T03         | AI core/provider           | P06        | capability/secret review             |
+| Orchestration             | T04,T08 API/job | worker/API                 | T01-T03    | auth/idempotency/budget review       |
+| Validation/registry       | T05-T07         | validation/prompts/schemas | P14,P16    | injection/citation/provenance review |
+| Independent security/live | T08 tests       | tests/evidence             | all        | red-team/provider review             |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Malformed output | provider | Validation failure; never publish | fuzz/live fixture |
-| Provider outage/rate | provider | Bounded retry/delayed; source unaffected | fault test |
-| Invalid citation | security | Reject or typed needs-confirmation only per downstream schema | property test |
-| Provider switch | state | New explicit version/job/disclosure; old remains | switch test |
-| Budget exceeded | state | Stop before call or safely cancel; no hidden spend | budget test |
+| Failure              | Classification | Expected behavior                                             | Recovery/regression |
+| -------------------- | -------------- | ------------------------------------------------------------- | ------------------- |
+| Malformed output     | provider       | Validation failure; never publish                             | fuzz/live fixture   |
+| Provider outage/rate | provider       | Bounded retry/delayed; source unaffected                      | fault test          |
+| Invalid citation     | security       | Reject or typed needs-confirmation only per downstream schema | property test       |
+| Provider switch      | state          | New explicit version/job/disclosure; old remains              | switch test         |
+| Budget exceeded      | state          | Stop before call or safely cancel; no hidden spend            | budget test         |
 
 # Integrated verification
 
 Run registry/conformance/mock/live adapter, durable job retry/cancel/crash/auth, structured parser fuzz, citation property/security, registry provenance, secret/content/bundle/log scan, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P17/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -121,6 +133,10 @@ Mock in CI; one allowlisted staging provider. Kill switch stops new calls/jobs a
 # Required documentation updates
 
 AI/provider architecture, API provider/job contracts, Security processor registry, Operations budgets/kill switch, Status/Traceability/Progress, and P17 evidence.
+
+# Conversation boundary
+
+AI platform only. Do not implement the five minutes templates/editor/export, client keys, autonomous tools/actions, source mutation, or unvalidated publication. Stop before P18.
 
 # Handoff record
 

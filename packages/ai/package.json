@@ -4,7 +4,14 @@
   "private": true,
   "type": "module",
   "exports": "./src/index.ts",
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "dependencies": { "@kms/domain": "workspace:*" },
-  "devDependencies": { "typescript": "^5.9.2" }
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@kms/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
 }

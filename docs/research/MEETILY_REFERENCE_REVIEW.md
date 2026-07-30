@@ -139,18 +139,18 @@ KMS adaptation:
 
 ## Explicitly rejected patterns
 
-| Pattern | Evidence | Reason rejected |
-|---|---|---|
-| Store only a premixed recording | `audio/incremental_saver.rs` stores mixed audio | Loses independent source evidence and makes later recovery/diarization harder |
-| Hide filler words in transcript UI | `VirtualizedTranscriptView.tsx` and `TranscriptView.tsx` call `cleanStopWords` | Violates complete transcript and evidence fidelity |
-| Plaintext provider keys in local settings/database | Settings repositories and initial migrations include `apiKey` | KMS uses server secret manager or OS keychain references; renderer never receives stored secrets unnecessarily |
-| Unbounded audio/work queues | Multiple Rust audio/transcription modules use `unbounded_channel` | Sustained overload can exhaust memory; KMS requires bounded buffers and measured overflow behavior |
-| Time-based sleeps as lifecycle synchronization | Recording start/stop paths include fixed sleeps | KMS requires acknowledgements/state transitions with timeouts, not timing assumptions |
-| Delete checkpoints immediately after merge | Incremental saver removes checkpoints after FFmpeg merge | KMS retains source chunks until final object checksum/duration and retention policy are verified |
-| Broad desktop permissions | Tauri config grants broad filesystem/process permissions | KMS IPC and local capabilities are allowlisted per command/path |
-| Treat `audio_v2` as production reference | `audio_v2/lib.rs`, `sync.rs`, `limiter.rs`, `resampler.rs` contain core TODOs | Marketing names and placeholders are not implementation evidence |
-| Provider enum/central match as extensibility | Summary/provider code branches centrally per vendor | KMS uses capability-based adapters and conformance tests |
-| PR workflow without mandatory quality gates | Reference validation workflow is manual | KMS requires automatic lint/type/test/security/build gates on every PR |
+| Pattern                                            | Evidence                                                                       | Reason rejected                                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Store only a premixed recording                    | `audio/incremental_saver.rs` stores mixed audio                                | Loses independent source evidence and makes later recovery/diarization harder                                  |
+| Hide filler words in transcript UI                 | `VirtualizedTranscriptView.tsx` and `TranscriptView.tsx` call `cleanStopWords` | Violates complete transcript and evidence fidelity                                                             |
+| Plaintext provider keys in local settings/database | Settings repositories and initial migrations include `apiKey`                  | KMS uses server secret manager or OS keychain references; renderer never receives stored secrets unnecessarily |
+| Unbounded audio/work queues                        | Multiple Rust audio/transcription modules use `unbounded_channel`              | Sustained overload can exhaust memory; KMS requires bounded buffers and measured overflow behavior             |
+| Time-based sleeps as lifecycle synchronization     | Recording start/stop paths include fixed sleeps                                | KMS requires acknowledgements/state transitions with timeouts, not timing assumptions                          |
+| Delete checkpoints immediately after merge         | Incremental saver removes checkpoints after FFmpeg merge                       | KMS retains source chunks until final object checksum/duration and retention policy are verified               |
+| Broad desktop permissions                          | Tauri config grants broad filesystem/process permissions                       | KMS IPC and local capabilities are allowlisted per command/path                                                |
+| Treat `audio_v2` as production reference           | `audio_v2/lib.rs`, `sync.rs`, `limiter.rs`, `resampler.rs` contain core TODOs  | Marketing names and placeholders are not implementation evidence                                               |
+| Provider enum/central match as extensibility       | Summary/provider code branches centrally per vendor                            | KMS uses capability-based adapters and conformance tests                                                       |
+| PR workflow without mandatory quality gates        | Reference validation workflow is manual                                        | KMS requires automatic lint/type/test/security/build gates on every PR                                         |
 
 ## Technology comparison outcome
 

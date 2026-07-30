@@ -6,7 +6,23 @@
 
 Run this checklist after any phase packet, dependency, requirement, or execution-framework change. Store the completed result in the planning change or P00 evidence; this checklist does not prove a product phase.
 
+The executable source of truth for every binary item below is:
+
+```powershell
+pnpm execution:check
+```
+
+Do not substitute ad-hoc `rg` counts for this command. The validator checks the
+normalized graph and generated prompt bytes, so duplicate/missing blocks cannot
+cancel each other into a false green.
+
 ## Catalog and dependency integrity
+
+Validator codes: `PACKET_COUNT`, `PACKET_STATUS`, `DEPENDENCY_UNKNOWN`,
+`DEPENDENCY_CYCLE`, `DEPENDENCY_GATE_MISSING`,
+`DEPENDENCY_LIFECYCLE_INVALID`, `DEPENDENCY_EVIDENCE_MISSING`,
+`DEPENDENCY_MASTER_MISMATCH`, `DEPENDENCY_PROGRESS_MISMATCH`,
+`PROGRESS_PHASE_MISSING`, `MASTER_PHASE_MISSING`, `TASK_TOTAL_MISMATCH`.
 
 - [ ] Exactly 29 packets exist for P00-P28 and filenames match `MASTER_PLAN.md` links.
 - [ ] Every packet frontmatter phase ID matches its filename and is unique.
@@ -24,6 +40,9 @@ rg -n '^## P[0-9]{2}-T[0-9]{2} ' docs/execution/phases
 
 ## Packet completeness
 
+Validator codes: `SECTION_MISSING`, `COMMAND_CONTRACT_EMPTY`,
+`LIFECYCLE_DUPLICATED`.
+
 - [ ] Every packet contains Outcome, Authoritative context, Preconditions/external prerequisites, Scope firewall, Contracts/invariants, File/ownership map, Ordered task packets, Subagent work packages, Failure/debugging matrix, Integrated verification, Acceptance gate, Migration/rollout/rollback, Required documentation updates, and Handoff.
 - [ ] Every task describes behavior, target paths/owner, consumed/produced boundary, failure/recovery tests, narrow or named verification, and evidence destination directly or through its packet's maps/contracts.
 - [ ] Work packages have non-overlapping ownership and explicit dependency/review gates.
@@ -32,6 +51,8 @@ rg -n '^## P[0-9]{2}-T[0-9]{2} ' docs/execution/phases
 
 ## IDs, traceability, and evidence
 
+Validator codes: `TASK_ID_DUPLICATE`, `ACCEPTANCE_ID_DUPLICATE`.
+
 - [ ] `Pxx-Tnn` and `Pxx-Ann` IDs are unique, ordered, and use their packet phase prefix.
 - [ ] Every PRD FR/NFR, accepted ADR, release criterion, and Test Strategy critical scenario appears in `TRACEABILITY.md` with implementation, verification, and evidence target.
 - [ ] P27 re-verifies every production release criterion; only P27 may set `RELEASED`.
@@ -39,6 +60,9 @@ rg -n '^## P[0-9]{2}-T[0-9]{2} ' docs/execution/phases
 - [ ] Evidence filenames contain no real meeting content, credential, raw audio/transcript/minutes, or signed URL.
 
 ## Language and ambiguity scan
+
+The validator checks active planning documents. Historical run/evidence records
+remain immutable and are excluded from marker-term rejection.
 
 - [ ] Execution documentation is English.
 - [ ] No `TBD`, `TODO`, `implement later`, `fill in`, "similar to", vague "appropriate handling", or unsupported future-pass claim remains outside templates/design examples that explicitly prohibit them.
@@ -53,6 +77,8 @@ rg -n 'mixed|record_translate|streaming-only|client.*provider.*key' docs/executi
 ```
 
 ## Links and repository truth
+
+Validator codes: `LINK_BROKEN`, `PROMPT_STALE`.
 
 - [ ] Every relative Markdown link resolves with exact filename/case.
 - [ ] All authoritative documents named by a packet exist and remain maintained/accepted/draft as represented.

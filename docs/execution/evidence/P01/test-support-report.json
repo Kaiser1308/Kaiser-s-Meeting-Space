@@ -1,0 +1,31 @@
+{
+  "task": "P01-T05",
+  "description": "Testcontainers and synthetic fixtures",
+  "result": "PASS",
+  "timestamp": "2026-07-21T23:41:03+07:00",
+  "test": {
+    "command": "pnpm --filter @kms/test-support test:unit",
+    "exitCode": 0,
+    "intendedTests": 21,
+    "executedTests": 21,
+    "passedTests": 21,
+    "failedTests": 0
+  },
+  "features": {
+    "deterministicIds": "UUID-format deterministic IDs from prefix+index (djb2 hash)",
+    "deterministicNow": "Fixed epoch at 2026-07-21T12:00:00.000Z",
+    "fakeClockFixture": "Vitest fake timers starting at deterministic epoch; advance() for time skipping",
+    "createMeetingFixture": "Synthetic meeting with deterministic ID, Vietnamese title, configurable overrides",
+    "createTranscriptFixture": "Synthetic transcript segments with sequential ordering, 6 rotation texts in Vietnamese",
+    "normalizePath": "Backslash-to-forward-slash conversion for Windows cross-platform safety",
+    "uniqueNamespace": "Unique namespace generator with prefix + counter + timestamp",
+    "resetCounters": "Counter reset for test isolation between suites"
+  },
+  "syntheticData": {
+    "language": "Vietnamese (vi) — 6 synthetic meeting texts",
+    "speakers": "3 synthetic speaker labels",
+    "noRealContent": "All fixture data is synthetic; no meeting content or realistic patterns"
+  },
+  "windowsSafety": "Path normalization converts backslashes; all paths use forward slashes internally",
+  "testIsolationProof": "Counters auto-increment; uniqueNamespace includes timestamp; resetCounters() available for explicit isolation"
+}

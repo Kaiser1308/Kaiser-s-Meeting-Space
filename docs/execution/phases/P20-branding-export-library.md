@@ -1,7 +1,7 @@
 ---
 phase: P20
 title: Branding, reproducible exports, and complete meeting library
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P10, P19]
 requirements: [FR-6, FR-7, NFR-Security, NFR-Accessibility]
 risk: high
@@ -21,6 +21,13 @@ Read PRD FR-6/FR-7, User Flows library/export, Data Model brand/export, API minu
 
 P10/P19 are `VERIFIED`; P06/P05 are transitively available, approved fonts/licenses/rendering dependencies and Office/PDF readers are available. Visual/manual cross-platform reader evidence is required.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P10        | Verified outputs and invariants consumed by this packet. | `../evidence/P10/EVIDENCE.md` | VERIFIED          |
+| P19        | Verified outputs and invariants consumed by this packet. | `../evidence/P19/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** brand schemas/assets/UI, export manifest/jobs/renderers/sandbox/history/download, desktop/mobile library/detail/search/filter, golden/visual/security/performance/a11y tests.
@@ -39,13 +46,13 @@ P10/P19 are `VERIFIED`; P06/P05 are transitively available, approved fonts/licen
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| domain brand/export schemas | preset/request/manifest/artifact | Export core |
-| API/worker export modules | auth/jobs/history/storage/download | Export core |
-| renderer packages/workers | MD/TXT/JSON/audio/DOCX/PDF | Renderers |
-| desktop/mobile library/brand/export UI | search/detail/preset/request/history | Library UI |
-| export golden/visual/security tests | file readers/malicious input/large docs | Independent reviewer |
+| Path                                   | Responsibility                          | Owner                |
+| -------------------------------------- | --------------------------------------- | -------------------- |
+| domain brand/export schemas            | preset/request/manifest/artifact        | Export core          |
+| API/worker export modules              | auth/jobs/history/storage/download      | Export core          |
+| renderer packages/workers              | MD/TXT/JSON/audio/DOCX/PDF              | Renderers            |
+| desktop/mobile library/brand/export UI | search/detail/preset/request/history    | Library UI           |
+| export golden/visual/security tests    | file readers/malicious input/large docs | Independent reviewer |
 
 # Ordered task packets
 
@@ -83,26 +90,30 @@ Run fixed vi/en complex/large documents through every format, inspect/reopen in 
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Export core | T01-T03,T06 | domain/API/jobs/simple formats | P19,P05,P06 | manifest/auth/idempotency review |
-| Renderers | T04,T05 | isolated renderer workers | T02 | sandbox/visual review |
-| Library UI | T07 | desktop/mobile library | P10,P19 | search/a11y review |
-| Independent qualification | T08 | tests/evidence | all | reader/security/perf review |
+| Package                   | Tasks       | Exclusive paths                | Depends on  | Review gate                      |
+| ------------------------- | ----------- | ------------------------------ | ----------- | -------------------------------- |
+| Export core               | T01-T03,T06 | domain/API/jobs/simple formats | P19,P05,P06 | manifest/auth/idempotency review |
+| Renderers                 | T04,T05     | isolated renderer workers      | T02         | sandbox/visual review            |
+| Library UI                | T07         | desktop/mobile library         | P10,P19     | search/a11y review               |
+| Independent qualification | T08         | tests/evidence                 | all         | reader/security/perf review      |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Renderer crashes/hangs | platform | Bounded fail/retry; prior/source unaffected | kill/timeout test |
-| Malicious logo/document | security | Reject/sandbox; no fetch/code/path access | adversarial corpus |
-| Minutes edited mid-export | concurrency | Artifact remains pinned to requested version | race test |
-| URL leaked/expired | security | Scope/expiry deny; refresh requires owner | two-user/time test |
-| Missing glyph | contract | Golden failure and approved embedded fallback | vi/en glyph test |
+| Failure                   | Classification | Expected behavior                             | Recovery/regression |
+| ------------------------- | -------------- | --------------------------------------------- | ------------------- |
+| Renderer crashes/hangs    | platform       | Bounded fail/retry; prior/source unaffected   | kill/timeout test   |
+| Malicious logo/document   | security       | Reject/sandbox; no fetch/code/path access     | adversarial corpus  |
+| Minutes edited mid-export | concurrency    | Artifact remains pinned to requested version  | race test           |
+| URL leaked/expired        | security       | Scope/expiry deny; refresh requires owner     | two-user/time test  |
+| Missing glyph             | contract       | Golden failure and approved embedded fallback | vi/en glyph test    |
 
 # Integrated verification
 
 Run brand/export contracts, job/storage/auth integration, renderer sandbox/security, DOCX/PDF golden/visual/extraction/reader smoke, simple format snapshots, library search/performance/E2E, download expiry/two-user, a11y/localization, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P20/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -120,6 +131,10 @@ Enable simple formats first, then DOCX/PDF after approval. Renderer version rema
 # Required documentation updates
 
 API/Data Model export/library, User Flows, Security renderer boundary, Operations export runbook, Status/Traceability/Progress, and P20 evidence.
+
+# Conversation boundary
+
+Do not implement permanent deletion policy, public/team sharing, mutable-version exports, arbitrary renderer network/filesystem access, or new search infrastructure. Stop before P21.
 
 # Handoff record
 

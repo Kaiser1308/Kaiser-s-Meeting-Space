@@ -89,15 +89,15 @@ AI rewrite opens a proposal/diff. Rejecting it leaves the document unchanged. Re
 
 ## 6. Failure and recovery
 
-| Situation | User experience | Data behavior |
-|---|---|---|
-| Network lost while recording | Persistent offline banner; recording remains active | Local chunks queue for upload |
-| Speech provider unavailable | Transcript marked delayed | Audio continues; backfill job is created |
-| Low storage | Early warning with estimated remaining time | Finalize current chunk before capture must stop |
-| App terminated | Recovery screen on next launch | Manifest identifies finalized and open chunks |
-| Upload checksum mismatch | Chunk marked retry required | Server rejects corrupt/duplicate content |
-| AI output invalid | Minutes job fails with retry/change-provider action | Transcript and earlier minutes remain unchanged |
-| Export fails | Export job can be retried | Selected minutes version remains intact |
+| Situation                    | User experience                                     | Data behavior                                   |
+| ---------------------------- | --------------------------------------------------- | ----------------------------------------------- |
+| Network lost while recording | Persistent offline banner; recording remains active | Local chunks queue for upload                   |
+| Speech provider unavailable  | Transcript marked delayed                           | Audio continues; backfill job is created        |
+| Low storage                  | Early warning with estimated remaining time         | Finalize current chunk before capture must stop |
+| App terminated               | Recovery screen on next launch                      | Manifest identifies finalized and open chunks   |
+| Upload checksum mismatch     | Chunk marked retry required                         | Server rejects corrupt/duplicate content        |
+| AI output invalid            | Minutes job fails with retry/change-provider action | Transcript and earlier minutes remain unchanged |
+| Export fails                 | Export job can be retried                           | Selected minutes version remains intact         |
 
 ## 7. Destructive actions
 
@@ -105,3 +105,17 @@ AI rewrite opens a proposal/diff. Rejecting it leaves the document unchanged. Re
 - Delete meeting first moves it to Recently Deleted.
 - Permanent delete clearly lists audio, transcript, minutes and exports affected.
 - Changing provider warns when meeting content will be sent to a new third party.
+
+## 8. Local-first transcription choices
+
+The processing step uses independent live and final choices:
+
+1. Live is off by default. Enabling cloud live names the provider and requests consent before streaming derived audio.
+2. Final defaults to **Create transcript on this computer after the meeting**.
+3. **Create transcript with cloud after the meeting** is a mutually exclusive primary final choice.
+4. **Create locally, then check approved difficult parts with cloud** completes local first, presents suggested or manually selected ranges, provider and estimated usage, then requests exact approval.
+5. **Record only** finalizes audio without creating a transcript run.
+
+A missing desktop/model produces `waiting_for_desktop` or `waiting_for_model`; recording remains available. Local final resumes deterministic overlapped processing windows independently. Cloud final prefers a full-meeting batch when provider limits permit and otherwise uses equivalent windows without changing provider or approved scope.
+
+Transcript review shows local/cloud provenance, preserves every raw alternative, highlights material disagreements and seeks each alternative to the exact audio range. Confirming local, cloud or a manual correction creates a versioned projection decision and never overwrites raw runs.

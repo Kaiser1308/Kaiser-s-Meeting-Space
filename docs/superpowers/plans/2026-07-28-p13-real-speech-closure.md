@@ -321,16 +321,18 @@ git commit -m "feat(speech): run bounded cancellable local STT windows"
 - [ ] **Step 1: Add failing corpus/report tests**
 
 ```ts
-expect(() => FrozenCorpusEntrySchema.parse({
-  id: 'clean-vi-01',
-  language: 'vi',
-  condition: 'clean',
-  audioPath: 'audio/clean-vi-01.wav',
-  audioSha256: 'a'.repeat(64),
-  provenance: 'synthetic',
-  referenceTranscript: 'Xin chào mọi người',
-  audioDurationMs: 5_000,
-})).not.toThrow();
+expect(() =>
+  FrozenCorpusEntrySchema.parse({
+    id: 'clean-vi-01',
+    language: 'vi',
+    condition: 'clean',
+    audioPath: 'audio/clean-vi-01.wav',
+    audioSha256: 'a'.repeat(64),
+    provenance: 'synthetic',
+    referenceTranscript: 'Xin chào mọi người',
+    audioDurationMs: 5_000,
+  }),
+).not.toThrow();
 ```
 
 Test that missing audio/hash/provenance fails and that a simulated native result
@@ -505,4 +507,3 @@ Remove the inaccurate claim that P28 owns the first real local engine.
 git add -- docs/architecture/AI_AND_SPEECH_PROVIDERS.md docs/operations/DEPLOYMENT_AND_RUNBOOK.md docs/STATUS.md docs/execution/TRACEABILITY.md docs/execution/PROGRESS.md docs/execution/evidence/P13
 git commit -m "docs(speech): record P13 real speech closure evidence"
 ```
-

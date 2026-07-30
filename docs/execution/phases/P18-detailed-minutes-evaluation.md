@@ -1,7 +1,7 @@
 ---
 phase: P18
 title: Detailed evidence-linked minutes and fixed evaluation gates
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P17]
 requirements: [FR-5, NFR-Reliability, NFR-Privacy]
 risk: critical
@@ -21,6 +21,12 @@ Read PRD FR-5 and five personal templates, User Flows Create Minutes, AI/Speech 
 
 P17 is `VERIFIED`; approved provider/model access, fixed synthetic/consented vi/en corpus, human evaluation rubric/reviewer, and budget are available. Thresholds must be recorded before tuning. Missing real provider or reviewer blocks live quality acceptance.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P17        | Verified outputs and invariants consumed by this packet. | `../evidence/P17/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** `packages/minutes/` template/output/context/evaluation modules, immutable draft lifecycle/API/jobs, prompt/schema artifacts under P17 registry, synthetic corpus/scorecards.
@@ -39,13 +45,13 @@ P17 is `VERIFIED`; approved provider/model access, fixed synthetic/consented vi/
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/minutes/src/templates/` | five schemas/configs/rubrics | Templates |
-| `packages/minutes/src/context/` | projection assembly/chunk-map-reconcile | Pipeline |
-| `packages/minutes/src/evaluation/` | deterministic metrics/scorecards | Evaluation |
-| API/worker minutes modules | request/job/draft versions/provenance | Pipeline |
-| `tests/fixtures/minutes-eval/` | frozen vi/en corpus/expected facts | Evaluation |
+| Path                               | Responsibility                          | Owner      |
+| ---------------------------------- | --------------------------------------- | ---------- |
+| `packages/minutes/src/templates/`  | five schemas/configs/rubrics            | Templates  |
+| `packages/minutes/src/context/`    | projection assembly/chunk-map-reconcile | Pipeline   |
+| `packages/minutes/src/evaluation/` | deterministic metrics/scorecards        | Evaluation |
+| API/worker minutes modules         | request/job/draft versions/provenance   | Pipeline   |
+| `tests/fixtures/minutes-eval/`     | frozen vi/en corpus/expected facts      | Evaluation |
 
 # Ordered task packets
 
@@ -83,26 +89,30 @@ Run fixed corpus/holdout across approved configurations, record quality/coverage
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Templates/schema | T01,T02 | templates/output | P17 | requirement/schema review |
-| Corpus/evaluation | T03,T06,T07 | fixtures/evaluator | T01,T02 | independent rubric/factuality review |
-| Pipeline | T04,T05 | context/API/worker | T01,T02,P17 | coverage/idempotency review |
-| Baseline review | T08 | tests/evidence only | all | holdout/human review |
+| Package           | Tasks       | Exclusive paths     | Depends on  | Review gate                          |
+| ----------------- | ----------- | ------------------- | ----------- | ------------------------------------ |
+| Templates/schema  | T01,T02     | templates/output    | P17         | requirement/schema review            |
+| Corpus/evaluation | T03,T06,T07 | fixtures/evaluator  | T01,T02     | independent rubric/factuality review |
+| Pipeline          | T04,T05     | context/API/worker  | T01,T02,P17 | coverage/idempotency review          |
+| Baseline review   | T08         | tests/evidence only | all         | holdout/human review                 |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Transcript incomplete | state | Block or prominently partial by policy/version | incomplete corpus |
-| Context exceeds limit | provider | Deterministic map/reconcile with coverage ledger | limit boundary test |
-| Unsupported claim/citation | security | Validation/evaluation fails; no activation | adversarial fixture |
-| Missing owner/date | contract | Unknown/needs_confirmation, never guess | rubric case |
-| Provider regression | provider | Config gate fails; prior version remains active | holdout regression |
+| Failure                    | Classification | Expected behavior                                | Recovery/regression |
+| -------------------------- | -------------- | ------------------------------------------------ | ------------------- |
+| Transcript incomplete      | state          | Block or prominently partial by policy/version   | incomplete corpus   |
+| Context exceeds limit      | provider       | Deterministic map/reconcile with coverage ledger | limit boundary test |
+| Unsupported claim/citation | security       | Validation/evaluation fails; no activation       | adversarial fixture |
+| Missing owner/date         | contract       | Unknown/needs_confirmation, never guess          | rubric case         |
+| Provider regression        | provider       | Config gate fails; prior version remains active  | holdout regression  |
 
 # Integrated verification
 
 Run template/output contracts, context property/fault, draft auth/job, evaluator unit/golden, fixed vi/en mock/live provider corpus, human holdout review, secret/content telemetry scan, cost/latency report, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P18/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -120,6 +130,10 @@ Activate one template/language/provider config at a time behind allowlist. Human
 # Required documentation updates
 
 PRD template details, Data Model/API draft/evaluation, AI evaluation governance, Status/Traceability/Progress, and P18 evidence.
+
+# Conversation boundary
+
+Do not implement rich editing, branding/export, automatic publication, real meeting corpus, guessed facts, or tune against release holdout answers. Stop before P19.
 
 # Handoff record
 

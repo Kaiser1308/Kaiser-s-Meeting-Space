@@ -6,12 +6,12 @@
 
 ## Environments
 
-| Environment | Data | Purpose | Access |
-|---|---|---|---|
-| Local | Synthetic/consented dev data | Development and unit/integration work | Developer machine |
-| CI | Ephemeral synthetic data | Automated verification | CI service account |
-| Staging | Synthetic and approved test accounts | Production-like validation | Restricted team |
-| Production | Real user data | Released product | Least privilege/on-call only |
+| Environment | Data                                 | Purpose                               | Access                       |
+| ----------- | ------------------------------------ | ------------------------------------- | ---------------------------- |
+| Local       | Synthetic/consented dev data         | Development and unit/integration work | Developer machine            |
+| CI          | Ephemeral synthetic data             | Automated verification                | CI service account           |
+| Staging     | Synthetic and approved test accounts | Production-like validation            | Restricted team              |
+| Production  | Real user data                       | Released product                      | Least privilege/on-call only |
 
 Never copy production audio/transcripts into local, CI or staging.
 
@@ -44,14 +44,14 @@ Never copy production audio/transcripts into local, CI or staging.
 
 ## Service objectives for beta
 
-| Indicator | Objective |
-|---|---|
-| API availability excluding planned maintenance | 99.9% monthly |
-| Accepted chunk durability | 100%; no silent loss |
-| Meeting finalization success | ≥ 99.5% |
-| Processing job success after allowed retries | ≥ 99% |
-| P95 API metadata latency | < 500 ms |
-| P95 realtime transcript latency under supported conditions | < 3 s |
+| Indicator                                                  | Objective            |
+| ---------------------------------------------------------- | -------------------- |
+| API availability excluding planned maintenance             | 99.9% monthly        |
+| Accepted chunk durability                                  | 100%; no silent loss |
+| Meeting finalization success                               | ≥ 99.5%              |
+| Processing job success after allowed retries               | ≥ 99%                |
+| P95 API metadata latency                                   | < 500 ms             |
+| P95 realtime transcript latency under supported conditions | < 3 s                |
 
 Objectives are provisional until load/beta measurements establish baselines.
 

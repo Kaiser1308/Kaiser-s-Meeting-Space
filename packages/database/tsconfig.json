@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src", "test", "drizzle.config.ts", "vitest.config.ts"],
+  "exclude": ["test/p04-identity-integration.test.ts", "test/p04-idor-matrix.test.ts"]
+}

@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["AudioRecorderModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.audiorecorder.AudioRecorderModule"]
+  }
+}

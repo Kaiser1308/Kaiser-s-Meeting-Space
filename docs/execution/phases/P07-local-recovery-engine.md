@@ -1,7 +1,7 @@
 ---
 phase: P07
 title: Shared local manifest, upload queue, and recovery engine
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P02, P05]
 requirements: [FR-2, FR-4, ADR-001, ADR-002]
 risk: critical
@@ -21,6 +21,13 @@ Read User Flows recording/recovery, Data Model, P00 capture profile, ADR-001/002
 
 P02/P05 are `VERIFIED`; fake/in-memory fault filesystem plus real temporary filesystem/SQLite and MinIO/API harness are available. No microphone/WASAPI/device is required.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P02        | Verified outputs and invariants consumed by this packet. | `../evidence/P02/EVIDENCE.md` | VERIFIED          |
+| P05        | Verified outputs and invariants consumed by this packet. | `../evidence/P05/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** `packages/local-recovery/`, manifest migrations/store/reducer, filesystem/clock/checksum/upload interfaces, reference/fake adapters, queue/reconciler/recovery/cleanup policy, and conformance/fault tests.
@@ -39,13 +46,13 @@ P02/P05 are `VERIFIED`; fake/in-memory fault filesystem plus real temporary file
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/local-recovery/src/contracts/` | filesystem/store/clock/checksum/transport interfaces | Manifest |
-| `packages/local-recovery/src/manifest/` | schema/migrations/reducer/store | Manifest |
-| `packages/local-recovery/src/upload/` | queue/reconcile/backoff | Upload |
-| `packages/local-recovery/src/recovery/` | discovery/repair/actions/cleanup | Recovery |
-| `packages/local-recovery/test/` | reference adapters/conformance/crash matrix | Independent reviewer |
+| Path                                     | Responsibility                                       | Owner                |
+| ---------------------------------------- | ---------------------------------------------------- | -------------------- |
+| `packages/local-recovery/src/contracts/` | filesystem/store/clock/checksum/transport interfaces | Manifest             |
+| `packages/local-recovery/src/manifest/`  | schema/migrations/reducer/store                      | Manifest             |
+| `packages/local-recovery/src/upload/`    | queue/reconcile/backoff                              | Upload               |
+| `packages/local-recovery/src/recovery/`  | discovery/repair/actions/cleanup                     | Recovery             |
+| `packages/local-recovery/test/`          | reference adapters/conformance/crash matrix          | Independent reviewer |
 
 # Ordered task packets
 
@@ -79,26 +86,30 @@ Run fake/reference filesystem and SQLite, P05 real protocol, property sequences,
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Manifest/state | T01,T02 | contracts/manifest | P02 | durability/migration review |
-| Upload/reconcile | T03,T04 | upload modules | T01,P05 | bounded/idempotency review |
-| Recovery/cleanup | T05,T06 | recovery modules | T02-T04 | destructive-action/GC review |
-| Independent fault review | T07 | tests/evidence | all | crash/data-loss review |
+| Package                  | Tasks   | Exclusive paths    | Depends on | Review gate                  |
+| ------------------------ | ------- | ------------------ | ---------- | ---------------------------- |
+| Manifest/state           | T01,T02 | contracts/manifest | P02        | durability/migration review  |
+| Upload/reconcile         | T03,T04 | upload modules     | T01,P05    | bounded/idempotency review   |
+| Recovery/cleanup         | T05,T06 | recovery modules   | T02-T04    | destructive-action/GC review |
+| Independent fault review | T07     | tests/evidence     | all        | crash/data-loss review       |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Crash after file/before manifest | timing | Orphan discovered; repair/quarantine, never acknowledged | boundary test |
-| Manifest references non-durable file | persistence | Corrupt/recovery state; never claim saved | injected fsync failure |
-| Disk full | environment | Preserve last valid chunk, truthful stop/recovery | quota test |
-| Server checksum conflict | security | Preserve local source, stop retry, action required | conflict test |
-| Schema upgrade fails | persistence | Retain old DB/files and open read-only recovery | migration fault test |
+| Failure                              | Classification | Expected behavior                                        | Recovery/regression    |
+| ------------------------------------ | -------------- | -------------------------------------------------------- | ---------------------- |
+| Crash after file/before manifest     | timing         | Orphan discovered; repair/quarantine, never acknowledged | boundary test          |
+| Manifest references non-durable file | persistence    | Corrupt/recovery state; never claim saved                | injected fsync failure |
+| Disk full                            | environment    | Preserve last valid chunk, truthful stop/recovery        | quota test             |
+| Server checksum conflict             | security       | Preserve local source, stop retry, action required       | conflict test          |
+| Schema upgrade fails                 | persistence    | Retain old DB/files and open read-only recovery          | migration fault test   |
 
 # Integrated verification
 
 Run local-recovery unit/property/conformance tests, real filesystem/SQLite fault suite, P05 reconciliation integration, queue resilience, cleanup negative matrix, typecheck, and `pnpm verify`. Directly inspect hashes/files/manifests after restart.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P07/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -116,6 +127,10 @@ Reference adapters only. Manifest migrations copy/verify before activation and r
 # Required documentation updates
 
 Data Model local manifest, User Flows recovery, Development adapter guide, Status/Traceability/Progress, and P07 evidence.
+
+# Conversation boundary
+
+Reference/fake adapters only. Do not implement microphone/WASAPI capture, app UI styling, speech, minutes, or automatic source deletion. Stop before P08/P11.
 
 # Handoff record
 

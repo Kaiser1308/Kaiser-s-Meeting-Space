@@ -1,12 +1,12 @@
 # Documentation Hub
 
-| Metadata | Value |
-|---|---|
-| Product | Kaiser’s Meeting Space |
-| Lifecycle | Pre-alpha |
-| Documentation owner | Repository owner |
-| Last review | 2026-07-21 |
-| Review cadence | At every milestone or material architecture change |
+| Metadata            | Value                                              |
+| ------------------- | -------------------------------------------------- |
+| Product             | Kaiser’s Meeting Space                             |
+| Lifecycle           | Pre-alpha                                          |
+| Documentation owner | Repository owner                                   |
+| Last review         | 2026-07-21                                         |
+| Review cadence      | At every milestone or material architecture change |
 
 This directory is the source of truth for product and engineering decisions. Documents describe either **Current**, **Target**, or **Decision** state. Target behavior is not assumed to exist until it appears in [STATUS.md](STATUS.md) as implemented and verified.
 

@@ -1,0 +1,127 @@
+{
+  "task": "P13-T01",
+  "evidenceDate": "2026-07-27",
+  "summary": "Provider-neutral speech contracts (runs/events/capability) in @kms/domain and the speech-runs persistence schema + additive 0007 migration in @kms/database. No provider SDK types in domain/database.",
+  "domainTests": {
+    "files": 3,
+    "tests": 110,
+    "pass": true,
+    "filesList": [
+      "packages/domain/src/transcript/runs.test.ts",
+      "packages/domain/src/transcript/events.test.ts",
+      "packages/domain/src/transcript/capability.test.ts"
+    ],
+    "coverage": {
+      "statements": "100% (187/187)",
+      "branches": "100% (75/75)",
+      "functions": "100% (48/48)",
+      "lines": "100% (182/182)"
+    }
+  },
+  "databaseTests": {
+    "files": 1,
+    "tests": 19,
+    "pass": true,
+    "integrationSkipped": "Docker/integration tests are OUT OF SCOPE for T01 (unit tests only); pre-existing integration failures in test/t07 and test/t08 are unrelated to T01 and outside its file ownership.",
+    "filesList": ["packages/database/src/schema/speech-runs.test.ts"]
+  },
+  "typecheck": {
+    "domain": "clean (tsc --noEmit)",
+    "database": "clean (tsc --noEmit)"
+  },
+  "contracts": {
+    "runs": [
+      "RunKindSchema",
+      "RunLocalitySchema",
+      "RunProviderSchema",
+      "RunLifecycleStateSchema",
+      "TranscriptRunSchema",
+      "TranscriptRunPartSchema",
+      "TranscriptRunSegmentSchema"
+    ],
+    "events": [
+      "SpeechEventKindSchema",
+      "SpeechSessionStateSchema",
+      "SpeechSafeErrorCategorySchema",
+      "SpeechSafeErrorSchema",
+      "InterimSegmentEventSchema",
+      "FinalSegmentEventSchema",
+      "SpeakerUpdateEventSchema",
+      "UsageEventSchema",
+      "SessionStateEventSchema",
+      "SpeechEventSchema (discriminatedUnion on kind)"
+    ],
+    "capability": [
+      "SpeechProviderNameSchema",
+      "SpeechCapabilitiesSchema",
+      "ReadinessSchema",
+      "SessionRequestSchema",
+      "FileRequestSchema",
+      "UsageReportSchema",
+      "HealthReportSchema",
+      "CancelSchema"
+    ]
+  },
+  "persistence": {
+    "schemaFile": "packages/database/src/schema/speech-runs.ts",
+    "tables": ["transcript_runs", "transcript_run_parts", "transcript_raw_events"],
+    "migration": "packages/database/drizzle/0007_speech_runs.sql (additive; statement-breakpoint style; no DROP/ALTER on existing tables)",
+    "pgEnumsSourcedFromDomain": [
+      "run_kind <- RunKindSchema",
+      "run_locality <- RunLocalitySchema",
+      "run_provider <- RunProviderSchema",
+      "run_lifecycle_state <- RunLifecycleStateSchema",
+      "speech_event_kind <- SpeechEventKindSchema"
+    ],
+    "idempotencyUniqueIndex": "transcript_raw_events_idempotency_unique ON (run_id, part_id, provider, provider_event_id, event_type, sequence_in_part) WHERE part_id/provider_event_id/sequence_in_part IS NOT NULL"
+  },
+  "invariantsVerified": [
+    "policy version locked (TranscriptionPolicyV1Schema version: z.literal(1); run.policySnapshot rejects version != 1)",
+    "language vi|en only (MeetingLanguageSchema enforced on run/part-segment/session/file/capabilities)",
+    "owner-scoped (ownerId required min 1 on run/part/segment/event envelope; owner+meeting indexes)",
+    "immutability triggers (BEFORE UPDATE OR DELETE on transcript_runs and transcript_run_parts; BEFORE UPDATE + BEFORE DELETE on transcript_raw_events; SQLSTATE P0311)",
+    "raw SDK leakage absent (grep: only zod + internal imports; deepgram/local-whisper appear solely as enum string literals)",
+    "duplicates/out-of-order handled (partial unique idempotency index on dedupe key; sequenceInPart enables read-time ordering; conflict-on-content-hash is T05)",
+    "content-free safe errors (SpeechSafeErrorSchema .strict() with only code/message/category/retryable; rejects content/key/path fields)"
+  ],
+  "dependencyNote": {
+    "acyclicModuleGraph": "capability.ts (leaf, defines SpeechProviderNameSchema) <- events.ts (imports SpeechProviderNameSchema; defines SpeechSafeErrorSchema) <- runs.ts (imports both; RunProviderSchema aliases SpeechProviderNameSchema). This breaks the otherwise-cyclic runs<->events reference that the spec's literal 'import from each other' would create (ESM live-binding TDZ). Intent preserved: single source of truth for the provider allowlist.",
+    "migrationJournal": "meta/_journal.json was intentionally NOT modified (outside T01 file ownership). The 0007 SQL is a self-contained, additive artifact; a subsequent drizzle-kit generate/journal update is the responsibility of the integration step (T05). Pre-existing t07 journal-count assertion (expects 6, journal already has 7 from 0000-0006) is unrelated to T01."
+  },
+  "concerns": [
+    "Pre-existing integration test failures (packages/database/test/t07-migration-restore.test.ts: 3 failures; test/t08-outbox-repo.test.ts: describe-level with 2 skipped) exist on the baseline BEFORE any T01 change and are outside T01's file ownership. T01 does not modify the drizzle migration journal or any file under test/.",
+    "drizzle migration journal (meta/_journal.json) and a 0007 snapshot were not authored (not in T01 ownership); the migrator will not apply 0007 until the journal is updated by a later step. The migration SQL itself is complete and unit-inspected."
+  ],
+  "fixesApplied": [
+    {
+      "id": "I-1",
+      "severity": "Important",
+      "summary": "transcript_raw_events.event_type now uses speechEventKindEnum (was text).",
+      "filesChanged": [
+        "packages/database/src/schema/speech-runs.ts",
+        "packages/database/drizzle/0007_speech_runs.sql",
+        "packages/database/src/schema/speech-runs.test.ts"
+      ],
+      "change": "Column changed from text('event_type').notNull() to speechEventKindEnum('event_type').notNull(); migration emits \"event_type\" \"speech_event_kind\" NOT NULL (CREATE TYPE for speech_event_kind was already present and unchanged). Defense-in-depth: a raw row with event_type='bogus' is now rejected at the DB layer. Additive only — no DROP/ALTER introduced.",
+      "regressionTest": "src/schema/speech-runs.test.ts > '0007_speech_runs.sql migration' > 'I-1 regression: transcript_raw_events.event_type uses speech_event_kind enum (not text)' (string-inspection over the migration SQL)."
+    },
+    {
+      "id": "I-2",
+      "severity": "Important",
+      "summary": "UsageEventSchema.provider now uses SpeechProviderNameSchema (was z.string().min(1)).",
+      "filesChanged": [
+        "packages/domain/src/transcript/events.ts",
+        "packages/domain/src/transcript/events.test.ts"
+      ],
+      "change": "provider field switched from z.string().min(1) to SpeechProviderNameSchema (already imported at events.ts:3). Aligns with the SpeechEventSchema envelope and UsageReportSchema.provider. Eliminates the ambiguous-audit-trail case where payload.provider could disagree with the envelope provider.",
+      "regressionTests": [
+        "src/transcript/events.test.ts > UsageEvent > 'I-2 regression: accepts payload.provider from SpeechProviderNameSchema (deepgram)'",
+        "src/transcript/events.test.ts > UsageEvent > 'I-2 regression: rejects payload.provider outside SpeechProviderNameSchema (azure)'"
+      ]
+    }
+  ],
+  "postFixVerification": {
+    "domain": "356 tests pass (354 + 2 new); coverage holds at 100% (187/187 stmts, 75/75 branches, 48/48 funcs, 182/182 lines); tsc --noEmit clean.",
+    "database": "20 tests pass (19 + 1 new) in src/schema/speech-runs.test.ts; tsc --noEmit clean."
+  }
+}

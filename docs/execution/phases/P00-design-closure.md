@@ -1,7 +1,7 @@
 ---
 phase: P00
 title: Design closure and repository baseline
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: []
 requirements: [FR-1..7, NFR-All, PRD-Release-Acceptance, ADR-001..006]
 risk: high
@@ -23,6 +23,12 @@ Read every maintained file under `docs/`, root governance files, package manifes
 - No cloud account, paid provider, credential, device, or production data is required.
 - Product/legal decisions may use conservative provisional engineering defaults only when the owner, approval needed, and beta deadline are explicit.
 - If the owner rejects a required default and provides no alternative, finish `BLOCKED` at the affected decision ID; do not invent approval.
+
+# Dependency gate
+
+| Dependency | Required capability                               | Required evidence | Minimum lifecycle |
+| ---------- | ------------------------------------------------- | ----------------- | ----------------- |
+| None       | Root phase; no dependency capability is consumed. | Not applicable    | VERIFIED          |
 
 # Scope firewall
 
@@ -49,13 +55,13 @@ Read every maintained file under `docs/`, root governance files, package manifes
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `docs/product/`, `docs/ROADMAP.md` | Product scope, flows, approvals, release outcomes | Product audit |
-| `docs/architecture/`, `docs/decisions/` | Technical defaults, capture profile, boundaries, review triggers | Architecture/audio audit |
-| `docs/security/`, `docs/operations/` | Consent, retention, provider, secret, environment, recovery policy | Security/operations audit |
-| `docs/execution/` and `docs/STATUS.md` | Phase alignment, traceability, repository truth | Main agent |
-| root governance/manifests | Baseline/license/tooling inventory only | Repository audit |
+| Path                                    | Responsibility                                                     | Owner                     |
+| --------------------------------------- | ------------------------------------------------------------------ | ------------------------- |
+| `docs/product/`, `docs/ROADMAP.md`      | Product scope, flows, approvals, release outcomes                  | Product audit             |
+| `docs/architecture/`, `docs/decisions/` | Technical defaults, capture profile, boundaries, review triggers   | Architecture/audio audit  |
+| `docs/security/`, `docs/operations/`    | Consent, retention, provider, secret, environment, recovery policy | Security/operations audit |
+| `docs/execution/` and `docs/STATUS.md`  | Phase alignment, traceability, repository truth                    | Main agent                |
+| root governance/manifests               | Baseline/license/tooling inventory only                            | Repository audit          |
 
 # Ordered task packets
 
@@ -85,22 +91,22 @@ Update all affected docs/ADRs/roadmap/status/traceability/phase metadata atomica
 
 # Subagent work packages
 
-| Package | Task IDs | Exclusive paths | Review gate | Output |
-|---|---|---|---|---|
-| Repository/product audit | T01,T02 | product/roadmap/status evidence | completeness review | repository/support reports |
-| Architecture/audio audit | T03 | architecture/ADR evidence | realtime/data-loss review | capture profile |
-| Security/operations audit | T04,T05 | security/operations evidence | privacy/secret/provider review | approval registers |
-| Main integration | T06 | shared docs/governance/Git | independent diff/link review | accepted baseline |
+| Package                   | Task IDs | Exclusive paths                 | Review gate                    | Output                     |
+| ------------------------- | -------- | ------------------------------- | ------------------------------ | -------------------------- |
+| Repository/product audit  | T01,T02  | product/roadmap/status evidence | completeness review            | repository/support reports |
+| Architecture/audio audit  | T03      | architecture/ADR evidence       | realtime/data-loss review      | capture profile            |
+| Security/operations audit | T04,T05  | security/operations evidence    | privacy/secret/provider review | approval registers         |
+| Main integration          | T06      | shared docs/governance/Git      | independent diff/link review   | accepted baseline          |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Diagnostics/recovery |
-|---|---|---|---|
-| Maintained docs conflict | contract | Resolve by precedence and ADR; never silently choose | cite both locations and decision |
-| Required approval absent | environment | Conservative provisional default only with owner/deadline, else `BLOCKED` | approval register |
-| User changes overlap | state | Preserve and separate current edits; no reset | dirty-file inventory/diff |
-| Initial commit would omit files | persistence | Stop and reconcile full reviewed baseline | staged-vs-inventory check |
-| Link/encoding validator fails | contract | Locate source and fix maintained doc | exact file/line/report |
+| Failure                         | Classification | Expected behavior                                                         | Diagnostics/recovery             |
+| ------------------------------- | -------------- | ------------------------------------------------------------------------- | -------------------------------- |
+| Maintained docs conflict        | contract       | Resolve by precedence and ADR; never silently choose                      | cite both locations and decision |
+| Required approval absent        | environment    | Conservative provisional default only with owner/deadline, else `BLOCKED` | approval register                |
+| User changes overlap            | state          | Preserve and separate current edits; no reset                             | dirty-file inventory/diff        |
+| Initial commit would omit files | persistence    | Stop and reconcile full reviewed baseline                                 | staged-vs-inventory check        |
+| Link/encoding validator fails   | contract       | Locate source and fix maintained doc                                      | exact file/line/report           |
 
 # Integrated verification
 
@@ -108,6 +114,10 @@ Update all affected docs/ADRs/roadmap/status/traceability/phase metadata atomica
 - Run the repository's link/UTF-8/phase-metadata validator; expected zero broken links, replacement characters, duplicate IDs, missing phase files, or dependency mismatches.
 - Search maintained docs for conflicting `mixed` language, source mutation, streaming-only recording, client provider keys, Electron-only native capture, and skipped production-hardening claims.
 - Independent manual map of every PRD open approval to a safe default, owner, required approval, and deadline.
+
+| Gate                  | Command                                              | Intended signal                                                                 | Evidence                   |
+| --------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `node scripts/execution/validate-execution-plan.mjs` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P00/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -123,6 +133,10 @@ Documentation changes revert by focused commit. Accepted decisions are supersede
 # Required documentation updates
 
 All changed authoritative docs, `STATUS.md`, `TRACEABILITY.md`, `PROGRESS.md`, and `evidence/P00/`.
+
+# Conversation boundary
+
+Documentation/governance only. Do not implement product code, install or upgrade dependencies, provision paid resources, or create a partial baseline commit. Stop before P01.
 
 # Handoff record
 

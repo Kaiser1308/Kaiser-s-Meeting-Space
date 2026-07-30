@@ -1,0 +1,28 @@
+{
+  "name": "@kms/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src",
+    "test:integration": "vitest run test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@kms/domain": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.4",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^10.14.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "drizzle-kit": "^0.31.10",
+    "testcontainers": "^10.14.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
+  }
+}
