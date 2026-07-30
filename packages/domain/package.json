@@ -6,7 +6,8 @@
   "exports": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "test:contract": "vitest run src"
   },
   "devDependencies": {
     "typescript": "^5.9.2"

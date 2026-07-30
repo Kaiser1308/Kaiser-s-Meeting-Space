@@ -1,0 +1,6 @@
+{
+  "qpchAlignment": true,
+  "driftSamplesTracked": true,
+  "gapDetectionPaddedWithZeros": true,
+  "thresholdMs": 100
+}

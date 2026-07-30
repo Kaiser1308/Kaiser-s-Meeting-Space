@@ -1,0 +1,25 @@
+{
+  "task": "P13-T04",
+  "evidenceDate": "2026-07-27",
+  "adapter": {
+    "type": "mock",
+    "provider": "deepgram",
+    "events": ["interim", "final_segment", "speaker_update"]
+  },
+  "broker": {
+    "route": "POST /v1/meetings/:id/speech-sessions",
+    "auth": "bearer/owner-scoped",
+    "credentialTtl": 300000
+  },
+  "tests": {
+    "adapterTests": 19,
+    "brokerTests": 7,
+    "pass": true
+  },
+  "typecheck": "clean",
+  "secretHandling": "DEEPGRAM_API_KEY in server env only; never in response/token/log",
+  "a04status": {
+    "mockConformance": "VERIFIED",
+    "realDeepgram": "BLOCKED on DEEPGRAM_API_KEY not available"
+  }
+}

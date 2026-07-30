@@ -14,18 +14,18 @@ Trust boundaries exist between client/API, API/object storage, workers/providers
 
 ## Threat model
 
-| Threat | Primary controls |
-|---|---|
-| Unauthorized meeting access | Owner-scoped authorization, opaque IDs, access tests |
-| Leaked object URL | Short expiry, narrow method/object scope, revocation strategy |
-| Provider credential exposure | Server secret manager, redaction, client bundle scans |
-| Malicious/compromised provider output | Runtime schemas, evidence validation, escaped rendering |
-| Audio/transcript tampering | Checksums, immutable records, revision history |
-| Replay/duplicate requests | Idempotency keys, event deduplication, nonce/session expiry |
-| Local device compromise | OS secure storage, least-privilege files, optional app lock |
-| Destructive user error | Soft deletion, clear confirmation, recovery window |
-| Sensitive logging/telemetry | Content exclusion, structured allowlist logging |
-| Dependency compromise | Lockfile, scanning, reviewed updates and minimal native code |
+| Threat                                | Primary controls                                              |
+| ------------------------------------- | ------------------------------------------------------------- |
+| Unauthorized meeting access           | Owner-scoped authorization, opaque IDs, access tests          |
+| Leaked object URL                     | Short expiry, narrow method/object scope, revocation strategy |
+| Provider credential exposure          | Server secret manager, redaction, client bundle scans         |
+| Malicious/compromised provider output | Runtime schemas, evidence validation, escaped rendering       |
+| Audio/transcript tampering            | Checksums, immutable records, revision history                |
+| Replay/duplicate requests             | Idempotency keys, event deduplication, nonce/session expiry   |
+| Local device compromise               | OS secure storage, least-privilege files, optional app lock   |
+| Destructive user error                | Soft deletion, clear confirmation, recovery window            |
+| Sensitive logging/telemetry           | Content exclusion, structured allowlist logging               |
+| Dependency compromise                 | Lockfile, scanning, reviewed updates and minimal native code  |
 
 ## Identity and authorization
 
@@ -71,3 +71,14 @@ Trust boundaries exist between client/API, API/object storage, workers/providers
 6. Complete blameless review with tracked corrective actions.
 
 Security contact and response expectations are in the repository [Security Policy](../../SECURITY.md).
+
+## Transcription locality and model controls
+
+- Cloud live, cloud final and cloud check each require a versioned meeting policy, named-provider disclosure, exact approved audio scope and explicit consent.
+- Cloud speech consent never authorizes cloud minutes AI, and generative-AI consent never authorizes cloud speech.
+- Local-to-cloud speech fallback is never automatic. A new cloud run requires explicit user action even after local failure.
+- Cloud check sends only approved uncertain ranges or the explicitly approved full meeting and cannot mutate the current projection without a versioned review decision.
+- Local STT does not itself disable encrypted account synchronization; local-only storage is a separate policy.
+- Local model files are data-only, app-private, non-executable, allowlisted and checked for license/provenance, size, SHA-256, language and runtime compatibility before activation.
+- Capture has resource priority over local transcription. Cancellation is bounded and committed run parts remain recoverable.
+- Logs and telemetry may contain run/part IDs, ranges, durations and safe status but never audio, transcript text, provider payloads, credentials or model file contents.

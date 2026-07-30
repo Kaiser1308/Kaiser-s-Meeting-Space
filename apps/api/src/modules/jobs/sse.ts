@@ -5,7 +5,7 @@ import { and, eq, gt } from 'drizzle-orm';
 export async function handleMeetingSse(
   request: FastifyRequest<{ Params: { meetingId: string }; Headers: { 'last-event-id'?: string } }>,
   reply: FastifyReply,
-  db: Db
+  db: Db,
 ) {
   const meetingId = request.params.meetingId;
   const ownerCtx = request.authenticatedOwnerContext;
@@ -33,8 +33,8 @@ export async function handleMeetingSse(
       .where(
         and(
           eq(schema.outboxEvents.entityId, meetingId),
-          eq(schema.outboxEvents.ownerId, ownerCtx.ownerId)
-        )
+          eq(schema.outboxEvents.ownerId, ownerCtx.ownerId),
+        ),
       )
       .orderBy(schema.outboxEvents.meetingEventSequence)
       .limit(1);
@@ -43,7 +43,8 @@ export async function handleMeetingSse(
       return reply.code(400).send({
         error: {
           code: 'EVENT_CURSOR_EXPIRED',
-          message: 'Event stream cursor has expired or a gap was detected. Please reload from the current snapshot.',
+          message:
+            'Event stream cursor has expired or a gap was detected. Please reload from the current snapshot.',
           requestId: request.id,
           details: { recovery: 'RELOAD_SNAPSHOT' },
         },
@@ -55,7 +56,7 @@ export async function handleMeetingSse(
   reply.raw.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
+    Connection: 'keep-alive',
   });
 
   const heartbeat = setInterval(() => {
@@ -76,15 +77,15 @@ export async function handleMeetingSse(
           and(
             eq(schema.outboxEvents.entityId, meetingId),
             eq(schema.outboxEvents.ownerId, ownerCtx.ownerId),
-            gt(schema.outboxEvents.meetingEventSequence, sequence)
-          )
+            gt(schema.outboxEvents.meetingEventSequence, sequence),
+          ),
         )
         .orderBy(schema.outboxEvents.meetingEventSequence);
 
       for (const event of events) {
         const payload = JSON.stringify(event.payload);
         const data = `id: ${event.meetingEventSequence}\nevent: ${event.eventType}\ndata: ${payload}\n\n`;
-        
+
         const canWrite = reply.raw.write(data);
         if (!canWrite) {
           reply.raw.end();

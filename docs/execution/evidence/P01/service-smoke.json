@@ -1,0 +1,45 @@
+{
+  "task": "P01-T04",
+  "description": "Local service harness — real Docker compose smoke",
+  "result": "VERIFIED",
+  "timestamp": "2026-07-22T20:37:00+07:00",
+  "environment": {
+    "docker": "Docker 29.6.2 (Engine 29.6.2), Docker Compose v5.3.1, Windows 11",
+    "node": "v24.18.0",
+    "pnpm": "10.14.0"
+  },
+  "files": {
+    "docker-compose.yml": "PostgreSQL 17-alpine, Redis 7-alpine, MinIO latest — health checks, volumes, dev credentials (kms/kms_dev/kms)",
+    "docker-compose.test.yml": "Test override: isolated ports (5433/6380/9002-9003), test credentials (kms_test/kms_test/kms_test)"
+  },
+  "services": {
+    "postgres": {
+      "image": "postgres:17-alpine",
+      "port": "5432 (dev) / 5433 (test)",
+      "user": "kms (dev) / kms_test (test)",
+      "healthcheck": "pg_isready every 2s",
+      "smokeResult": "PASS — healthcheck healthy; real psql connection as kms_test succeeded; PostgreSQL 17.10 confirmed; CREATE/INSERT/SELECT/DROP round-trip succeeded"
+    },
+    "redis": {
+      "image": "redis:7-alpine",
+      "port": "6379 (dev) / 6380 (test)",
+      "healthcheck": "redis-cli ping every 2s",
+      "smokeResult": "PASS — healthcheck healthy; redis-cli ping returned PONG"
+    },
+    "minio": {
+      "image": "minio/minio:latest",
+      "port": "9000-9001 (dev) / 9002-9003 (test)",
+      "user": "minioadmin/minioadmin",
+      "healthcheck": "mc ready local every 2s",
+      "smokeResult": "PASS — healthcheck healthy; 'mc ready local' returned 'The cluster local is ready'"
+    }
+  },
+  "smokeTestStatus": "PASS — all three services healthy on first probe; teardown clean (volumes + network removed)",
+  "commands": {
+    "start": "docker compose up -d",
+    "startTest": "docker compose -f docker-compose.yml -f docker-compose.test.yml up -d",
+    "stopTest": "docker compose -f docker-compose.yml -f docker-compose.test.yml down -v",
+    "smoke": "docker exec <pg> pg_isready -U kms_test -d kms_test && docker exec <redis> redis-cli ping && docker exec <minio> mc ready local"
+  },
+  "caveat": "POSTGRES_USER/DB only initialize on an EMPTY data directory. A pre-existing pgdata volume initialized with dev user 'kms' caused the test override (kms_test) to be ignored until 'down -v' reset the volume. Run 'down -v' when switching credential sets."
+}

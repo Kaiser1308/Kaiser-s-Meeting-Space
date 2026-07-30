@@ -15,9 +15,9 @@ interface SpeechProvider {
   capabilities(): SpeechCapabilities;
   startSession(input: {
     meetingId: string;
-    language: "vi" | "en";
+    language: 'vi' | 'en';
     diarization: boolean;
-    translationTarget?: "vi" | "en";
+    translationTarget?: 'vi' | 'en';
   }): Promise<SpeechSession>;
   transcribeFile(input: FileTranscriptionInput): Promise<TranscriptionResult>;
   healthcheck(): Promise<ProviderHealth>;
@@ -27,7 +27,7 @@ interface SpeechProvider {
 Events normalize to interim segment, final segment, speaker update, usage and safe error. Provider payloads stay inside adapters.
 
 - Deepgram is the API realtime/diarization default.
-- A Whisper-compatible local engine is optional after API capture stabilizes.
+- A whisper.cpp-compatible Windows local engine is the default final-STT path after capture stabilizes.
 - Unsupported local diarization is declared, never silently approximated.
 
 ## 3. Generative contract
@@ -82,3 +82,17 @@ Invalid output can be repaired/retried within a fixed limit. Parsing alone is no
 - Local providers never fall back to cloud unless enabled.
 - Estimate tokens/cost before optional work; enforce concurrency and budget limits.
 - Usage records contain units/provider/model/job IDs, not transcript content.
+
+## 8. Local-first final speech profile
+
+- Deepgram is the opt-in cloud realtime/diarization default.
+- A whisper.cpp-compatible Windows Rust adapter is the default final-transcription engine after End, using one verified allowlisted vi or en model at a time.
+- Local final plans deterministic 300-second windows with 2-second boundary overlap under `stt-window-v1`; retries and recovery checkpoint each window independently.
+- Cloud final prefers one full-meeting batch when declared provider limits permit. A deterministic overlapped-window fallback remains within the same named provider, consent and approved audio scope.
+- Local-plus-cloud-check is sequential: local completes first, then the user approves uncertain ranges or the full meeting before a distinct cloud run is created.
+- Every live, final and cloud-check attempt remains a separate immutable run. No adapter automatically changes locality or provider.
+- Unsupported local diarization is declared and never silently approximated.
+
+Local STT means speech recognition runs on the user's Windows computer; it does not itself disable encrypted account synchronization. Local-only meeting storage, cloud-synchronized local STT, cloud STT and cloud minutes AI are distinct policy and consent boundaries.
+
+Speech qualification freezes a synthetic/consented bilingual corpus before tuning. Initial gates are clean/online WER ≤ 18%, noisy-room WER ≤ 30%, timestamp p95 ≤ 1.5 seconds, desktop local RTF ≤ 1.0, cancellation acknowledgement ≤ 2 seconds, deterministic plans, per-window resume, no duplicate/out-of-order canonical segments and complete range-or-gap accounting.

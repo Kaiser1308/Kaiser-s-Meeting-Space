@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import Fastify from 'fastify';
 import { jobRoutes } from './routes.js';
 import { bearerAuth } from '../../plugins/bearer-auth.js';
@@ -8,10 +8,10 @@ describe('Resumable SSE Endpoint (Isolation)', () => {
     select: () => ({
       from: () => ({
         where: () => ({
-          orderBy: () => []
-        })
-      })
-    })
+          orderBy: () => [],
+        }),
+      }),
+    }),
   } as any;
 
   it('should return 400 EVENT_CURSOR_EXPIRED if the Last-Event-ID header is invalid', async () => {

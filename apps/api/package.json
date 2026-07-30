@@ -3,12 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "tsx watch src/server.ts", "typecheck": "tsc --noEmit" },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run --exclude src/modules/audio/routes.test.ts",
+    "test:integration": "vitest run src/modules/audio/routes.test.ts",
+    "test:contract": "vitest run src/modules/jobs src/modules/meetings src/modules/speech"
+  },
   "dependencies": {
     "@fastify/cors": "^10.1.0",
     "@kms/ai": "workspace:*",
+    "@kms/auth": "workspace:*",
+    "@kms/database": "workspace:*",
     "@kms/domain": "workspace:*",
-    "fastify": "^5.5.0"
+    "@kms/storage": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.5.0",
+    "fastify-plugin": "^5.0.0",
+    "zod": "3.25.76"
   },
-  "devDependencies": { "@types/node": "^24.3.0", "tsx": "^4.20.5", "typescript": "^5.9.2" }
+  "devDependencies": {
+    "@testcontainers/postgresql": "10.14.0",
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
 }

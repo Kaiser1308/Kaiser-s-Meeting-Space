@@ -1,7 +1,7 @@
 ---
 phase: P05
 title: Object storage and idempotent audio chunk protocol
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P03, P04]
 requirements: [FR-2, FR-7, ADR-001, ADR-002]
 risk: critical
@@ -19,7 +19,18 @@ Read API Contracts audio section, Data Model AudioAsset, Security signed-URL con
 
 # Preconditions and external prerequisites
 
-P03/P04 are `VERIFIED`; MinIO Testcontainer/local service and two synthetic owners are available. Production S3/R2 is not required and no capture client exists yet.
+P03 is `VERIFIED`. P04 satisfies the capability-scoped `IMPLEMENTED` gate below;
+its full-route and OS-keychain/device acceptance remain open and are not consumed
+by this server-side phase. MinIO Testcontainer/local service and two synthetic
+owners are available. Production S3/R2 is not required and no capture client
+exists yet.
+
+# Dependency gate
+
+| Dependency | Required capability                                                                                                                                                                                         | Required evidence                                                      | Minimum lifecycle |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------- |
+| P03        | Verified outputs and invariants consumed by this packet.                                                                                                                                                    | `../evidence/P03/EVIDENCE.md`                                          | VERIFIED          |
+| P04        | JWT verification, authenticated owner context, owner-isolation policy, and safe API conventions. P04-A04 full-route coverage and P04-A05 OS-keychain/device evidence are orthogonal and remain unsatisfied. | [P04 acceptance ledger](../evidence/P04/EVIDENCE.md#acceptance-ledger) | IMPLEMENTED       |
 
 # Scope firewall
 
@@ -39,13 +50,13 @@ P03/P04 are `VERIFIED`; MinIO Testcontainer/local service and two synthetic owne
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/storage/src/object-store.ts` | provider-neutral put/head/get/delete/sign contract | Storage adapter |
-| `packages/storage/src/s3/` | S3-compatible implementation | Storage adapter |
-| `apps/api/src/modules/audio/` | register/complete/manifest/download routes/services | Manifest API |
-| DB manifest repositories/migration additions | object/chunk state and orphan records | Manifest API |
-| `tests/integration/object-storage/` | real MinIO protocol/security/fault matrix | Independent reviewer |
+| Path                                         | Responsibility                                      | Owner                |
+| -------------------------------------------- | --------------------------------------------------- | -------------------- |
+| `packages/storage/src/object-store.ts`       | provider-neutral put/head/get/delete/sign contract  | Storage adapter      |
+| `packages/storage/src/s3/`                   | S3-compatible implementation                        | Storage adapter      |
+| `apps/api/src/modules/audio/`                | register/complete/manifest/download routes/services | Manifest API         |
+| DB manifest repositories/migration additions | object/chunk state and orphan records               | Manifest API         |
+| `tests/integration/object-storage/`          | real MinIO protocol/security/fault matrix           | Independent reviewer |
 
 # Ordered task packets
 
@@ -79,25 +90,29 @@ Against real MinIO run duplicate/out-of-order/missing/corrupt/expired/cross-user
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Storage adapter | T01,T02 | storage package | P03/P04 | URL/key/credential review |
-| Manifest API | T03-T06 | API audio + DB additions | T01,T02 | transaction/auth review |
-| Adversarial reviewer | T07 | integration/security tests | all | independent integrity review |
+| Package              | Tasks   | Exclusive paths            | Depends on | Review gate                  |
+| -------------------- | ------- | -------------------------- | ---------- | ---------------------------- |
+| Storage adapter      | T01,T02 | storage package            | P03/P04    | URL/key/credential review    |
+| Manifest API         | T03-T06 | API audio + DB additions   | T01,T02    | transaction/auth review      |
+| Adversarial reviewer | T07     | integration/security tests | all        | independent integrity review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Same ID/same checksum | state | Same canonical response; no duplicate | replay/concurrency test |
-| Same ID/different checksum | security | 409, immutable original | conflict test |
-| Upload succeeds/call lost | timing | Retry HEAD/completion safely | crash-boundary test |
-| Missing/wrong object | persistence | Pending/corrupt actionable state, no finalize | object fault test |
-| URL stolen/expired | security | Only scoped action before expiry, otherwise deny | two-owner/time test |
+| Failure                    | Classification | Expected behavior                                | Recovery/regression     |
+| -------------------------- | -------------- | ------------------------------------------------ | ----------------------- |
+| Same ID/same checksum      | state          | Same canonical response; no duplicate            | replay/concurrency test |
+| Same ID/different checksum | security       | 409, immutable original                          | conflict test           |
+| Upload succeeds/call lost  | timing         | Retry HEAD/completion safely                     | crash-boundary test     |
+| Missing/wrong object       | persistence    | Pending/corrupt actionable state, no finalize    | object fault test       |
+| URL stolen/expired         | security       | Only scoped action before expiry, otherwise deny | two-owner/time test     |
 
 # Integrated verification
 
 Run storage contract tests, real MinIO integration/fault suite, API contract/authorization/rate tests, source mutation negatives, repository typecheck, and `pnpm verify`. Inspect objects and DB state after every injected failure.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P05/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -114,6 +129,10 @@ MinIO local/CI first; production vendor config is P25. Do not GC source objects 
 # Required documentation updates
 
 API audio contract, Data Model storage mapping, `.env.example`, Status/Traceability/Progress, and P05 evidence.
+
+# Conversation boundary
+
+Object-storage protocol only. Do not implement capture, transcription, finalization/backfill, local cleanup, or permanent deletion. Stop before P07.
 
 # Handoff record
 

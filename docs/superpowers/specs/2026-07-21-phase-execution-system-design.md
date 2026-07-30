@@ -53,16 +53,16 @@ This record may adapt paths and commands to the implementation produced by earli
 
 The coordination documents have non-overlapping responsibilities:
 
-| Document | Responsibility |
-|---|---|
-| `docs/execution/EXECUTION_PROTOCOL.md` | Mandatory workflow, debugging discipline, state rules, and global invariants |
-| `docs/execution/MASTER_PLAN.md` | Canonical phase catalog, direct dependency graph, release boundary, and phase links |
-| `docs/execution/PROGRESS.md` | Current state plus append-only execution history |
-| `docs/execution/TRACEABILITY.md` | Requirement and invariant mapping to implementation, verification, and evidence |
-| `docs/execution/AGENT_PROMPT.md` | Copy-paste instruction for assigning exactly one phase |
-| `docs/execution/phases/Pxx-*.md` | Authoritative scope and executable packet for a phase |
-| `docs/execution/evidence/Pxx/` | Run-specific facts and direct verification artifacts |
-| `docs/STATUS.md` | Current implemented capability state, never target intent |
+| Document                               | Responsibility                                                                      |
+| -------------------------------------- | ----------------------------------------------------------------------------------- |
+| `docs/execution/EXECUTION_PROTOCOL.md` | Mandatory workflow, debugging discipline, state rules, and global invariants        |
+| `docs/execution/MASTER_PLAN.md`        | Canonical phase catalog, direct dependency graph, release boundary, and phase links |
+| `docs/execution/PROGRESS.md`           | Current state plus append-only execution history                                    |
+| `docs/execution/TRACEABILITY.md`       | Requirement and invariant mapping to implementation, verification, and evidence     |
+| `docs/execution/AGENT_PROMPT.md`       | Copy-paste instruction for assigning exactly one phase                              |
+| `docs/execution/phases/Pxx-*.md`       | Authoritative scope and executable packet for a phase                               |
+| `docs/execution/evidence/Pxx/`         | Run-specific facts and direct verification artifacts                                |
+| `docs/STATUS.md`                       | Current implemented capability state, never target intent                           |
 
 Conflict precedence remains:
 
@@ -186,15 +186,15 @@ Every applicable task and every phase gate rechecks these properties:
 
 The execution catalog contains 29 phases:
 
-| Train | Phases | Outcome |
-|---|---|---|
-| Decision closure | P00 | Accepted defaults, reconciled documentation, and traceable baseline |
-| Trusted foundation | P01-P07 | Quality system, contracts, persistence, identity, storage, durable jobs, and local recovery |
-| Reliable capture clients | P08-P12 | Mobile capture/sync and Electron-Rust Windows capture |
-| Evidence pipeline | P13-P16 | Speech, finalization, translation, and transcript review |
-| Derived intelligence | P17-P20 | Provider platform, evaluated minutes, editor, branding, export, and library |
+| Train                    | Phases  | Outcome                                                                                             |
+| ------------------------ | ------- | --------------------------------------------------------------------------------------------------- |
+| Decision closure         | P00     | Accepted defaults, reconciled documentation, and traceable baseline                                 |
+| Trusted foundation       | P01-P07 | Quality system, contracts, persistence, identity, storage, durable jobs, and local recovery         |
+| Reliable capture clients | P08-P12 | Mobile capture/sync and Electron-Rust Windows capture                                               |
+| Evidence pipeline        | P13-P16 | Speech, finalization, translation, and transcript review                                            |
+| Derived intelligence     | P17-P20 | Provider platform, evaluated minutes, editor, branding, export, and library                         |
 | Production qualification | P21-P27 | Security, privacy, observability, resilience, deployment, signed distribution, and release evidence |
-| Optional extension | P28 | Local AI and immutable audio import |
+| Optional extension       | P28     | Local AI and immutable audio import                                                                 |
 
 P20 is feature-complete, not production-ready. P27 is the only phase that may mark the personal release `RELEASED`. P28 is optional and cannot delay or weaken P27.
 

@@ -1,7 +1,7 @@
 ---
 phase: P03
 title: PostgreSQL schema, migrations, and integrity-preserving repositories
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P02]
 requirements: [FR-3, FR-5, FR-7, NFR-Reliability, ADR-002, ADR-005]
 risk: critical
@@ -21,6 +21,12 @@ Read Data Model, System Architecture storage/state sections, API Contracts, ADR-
 
 P02 is `VERIFIED`; real PostgreSQL Testcontainers run locally/CI. No auth provider, object storage bytes, Redis, UI, or provider is required.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P02        | Verified outputs and invariants consumed by this packet. | `../evidence/P02/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** new `packages/database/`, Drizzle config/schema/migrations/repositories, database test helpers/fixtures, and focused model/migration docs.
@@ -39,13 +45,13 @@ P02 is `VERIFIED`; real PostgreSQL Testcontainers run locally/CI. No auth provid
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/database/src/schema/` | focused Drizzle tables/constraints/relations | Schema |
-| `packages/database/drizzle/` | ordered SQL migrations and metadata | Schema |
-| `packages/database/src/repositories/` | owner-ready transactional interfaces | Repository |
-| `packages/database/src/client.ts` | connection/transaction boundary | Repository |
-| `packages/database/test/` | real PostgreSQL migration/integrity/concurrency tests | Integrity reviewer |
+| Path                                  | Responsibility                                        | Owner              |
+| ------------------------------------- | ----------------------------------------------------- | ------------------ |
+| `packages/database/src/schema/`       | focused Drizzle tables/constraints/relations          | Schema             |
+| `packages/database/drizzle/`          | ordered SQL migrations and metadata                   | Schema             |
+| `packages/database/src/repositories/` | owner-ready transactional interfaces                  | Repository         |
+| `packages/database/src/client.ts`     | connection/transaction boundary                       | Repository         |
+| `packages/database/test/`             | real PostgreSQL migration/integrity/concurrency tests | Integrity reviewer |
 
 # Ordered task packets
 
@@ -79,26 +85,30 @@ Test empty-to-current migration twice, N-1-to-current expand/contract compatibil
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Core/transcript schema | T01,T02 | corresponding schema/migrations | P02 | data-model/immutability review |
-| Derived/operational schema | T03,T04 | corresponding schema/migrations | P02 | provenance/content-free review |
-| Repositories | T05 | repository files | schema tasks | owner/transaction review |
-| Integrity qualification | T06,T07 | DB tests/evidence | all | independent migration/data-loss review |
+| Package                    | Tasks   | Exclusive paths                 | Depends on   | Review gate                            |
+| -------------------------- | ------- | ------------------------------- | ------------ | -------------------------------------- |
+| Core/transcript schema     | T01,T02 | corresponding schema/migrations | P02          | data-model/immutability review         |
+| Derived/operational schema | T03,T04 | corresponding schema/migrations | P02          | provenance/content-free review         |
+| Repositories               | T05     | repository files                | schema tasks | owner/transaction review               |
+| Integrity qualification    | T06,T07 | DB tests/evidence               | all          | independent migration/data-loss review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Migration interrupted | persistence | Transaction rollback or resumable explicit step | boundary migration test |
-| Stale optimistic version | concurrency | Conflict and unchanged row | concurrent update test |
-| Source mutation/delete | security | DB/repository reject; transaction unchanged | raw SQL negative test |
-| Duplicate provider/chunk event | state | Unique/dedupe maps to canonical idempotent read | concurrent insert test |
-| Restore count passes but constraints fail | persistence | Restore fails qualification | post-restore constraint suite |
+| Failure                                   | Classification | Expected behavior                               | Recovery/regression           |
+| ----------------------------------------- | -------------- | ----------------------------------------------- | ----------------------------- |
+| Migration interrupted                     | persistence    | Transaction rollback or resumable explicit step | boundary migration test       |
+| Stale optimistic version                  | concurrency    | Conflict and unchanged row                      | concurrent update test        |
+| Source mutation/delete                    | security       | DB/repository reject; transaction unchanged     | raw SQL negative test         |
+| Duplicate provider/chunk event            | state          | Unique/dedupe maps to canonical idempotent read | concurrent insert test        |
+| Restore count passes but constraints fail | persistence    | Restore fails qualification                     | post-restore constraint suite |
 
 # Integrated verification
 
 Run database unit/contract tests, real PostgreSQL integration project, migration empty/N-1/restore commands, concurrency/property suite, schema drift snapshot, repository owner matrix, repository typecheck, and `pnpm verify`. Mocks cannot satisfy database acceptance.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P03/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -116,6 +126,10 @@ Use expand/migrate/contract. Never rely on destructive down migration in product
 # Required documentation updates
 
 Data Model physical mapping, Development migration commands, Status, Traceability, Progress, and P03 evidence.
+
+# Conversation boundary
+
+Persistence only. Do not implement HTTP authentication, S3 bytes, Redis workers, clients, providers, or source mutation APIs. Stop before P04.
 
 # Handoff record
 

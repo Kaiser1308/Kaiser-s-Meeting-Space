@@ -1,0 +1,8 @@
+{
+  "rmsCalculated": true,
+  "peakCalculated": true,
+  "clippingFlagged": true,
+  "softKneeLimiterActive": true,
+  "limiterCeiling": 0.95,
+  "limiterCoefficient": 20.0
+}

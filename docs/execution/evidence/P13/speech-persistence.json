@@ -1,0 +1,17 @@
+{
+  "task": "P13-T05",
+  "evidenceDate": "2026-07-27",
+  "persistence": {
+    "interface": "SpeechEventPersistence (async, Promise-based)",
+    "implementation": "InMemorySpeechEventPersistence (unit tests; real PostgreSQL integration BLOCKED on Docker)",
+    "dedupeKey": "(runId, partId, provider, providerEventId, eventType, sequenceInPart)",
+    "idempotency": "replay returns 'duplicate'; out-of-order accepted; sorted on read",
+    "ownerIsolation": "getByRun/getByRunAndPart filtered by ownerId"
+  },
+  "tests": { "files": 1, "tests": 6, "pass": true },
+  "typecheck": "clean (speech)",
+  "persistenceStatus": {
+    "inMemoryUnit": "VERIFIED",
+    "postgresqlIntegration": "BLOCKED on Docker offline"
+  }
+}

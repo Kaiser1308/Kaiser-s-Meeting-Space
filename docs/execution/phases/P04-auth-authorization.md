@@ -1,7 +1,7 @@
 ---
 phase: P04
 title: Personal authentication, authorization, and API conventions
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P03]
 requirements: [FR-7, NFR-Security]
 risk: critical
@@ -20,6 +20,12 @@ Read API Contracts, Security/Privacy identity and authorization sections, System
 # Preconditions and external prerequisites
 
 P03 is `VERIFIED`. A local OIDC test issuer/JWKS fixture is required; production IdP provisioning is deferred to P25. Platform keychain adapters may require development builds/devices for final external evidence.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P03        | Verified outputs and invariants consumed by this packet. | `../evidence/P03/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
@@ -40,13 +46,13 @@ P03 is `VERIFIED`. A local OIDC test issuer/JWKS fixture is required; production
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| `packages/auth/src/` | JWT/OIDC/PKCE/owner contracts and verification | Auth core |
-| `apps/api/src/plugins/` | auth, request ID, errors, version, limits | API boundary |
-| `apps/api/src/modules/identity/` | issuer+subject mapping and disabled state | API boundary |
-| mobile/desktop auth adapters | PKCE, callback, refresh/logout, secure storage | Client auth |
-| `tests/security/authorization/` | token and two-user matrices | Independent reviewer |
+| Path                             | Responsibility                                 | Owner                |
+| -------------------------------- | ---------------------------------------------- | -------------------- |
+| `packages/auth/src/`             | JWT/OIDC/PKCE/owner contracts and verification | Auth core            |
+| `apps/api/src/plugins/`          | auth, request ID, errors, version, limits      | API boundary         |
+| `apps/api/src/modules/identity/` | issuer+subject mapping and disabled state      | API boundary         |
+| mobile/desktop auth adapters     | PKCE, callback, refresh/logout, secure storage | Client auth          |
+| `tests/security/authorization/`  | token and two-user matrices                    | Independent reviewer |
 
 # Ordered task packets
 
@@ -80,25 +86,29 @@ Run every protected resource with owner A, owner B, nonexistent ID, stale token,
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| JWT/API | T01,T02,T05,T06 | auth core/API plugins | P03 | cryptographic/error review |
-| Client auth | T04 | mobile/desktop auth | T01 | PKCE/secure-storage review |
-| Authorization | T03,T07 | policies/security tests | T02 | independent IDOR/secret review |
+| Package       | Tasks           | Exclusive paths         | Depends on | Review gate                    |
+| ------------- | --------------- | ----------------------- | ---------- | ------------------------------ |
+| JWT/API       | T01,T02,T05,T06 | auth core/API plugins   | P03        | cryptographic/error review     |
+| Client auth   | T04             | mobile/desktop auth     | T01        | PKCE/secure-storage review     |
+| Authorization | T03,T07         | policies/security tests | T02        | independent IDOR/secret review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| JWKS unavailable | provider | Use bounded valid cache, else fail closed safely | outage/rotation test |
-| Expired/wrong token | security | 401 and no resource query | token matrix |
-| Authenticated non-owner | security | approved 404/deny with no metadata | two-user matrix |
-| Refresh revoked/offline | state | Clear/re-auth while local evidence remains recoverable | client session E2E |
-| Secure-store unavailable | platform | No plaintext fallback; actionable blocked login/sync | adapter failure test |
+| Failure                  | Classification | Expected behavior                                      | Recovery/regression  |
+| ------------------------ | -------------- | ------------------------------------------------------ | -------------------- |
+| JWKS unavailable         | provider       | Use bounded valid cache, else fail closed safely       | outage/rotation test |
+| Expired/wrong token      | security       | 401 and no resource query                              | token matrix         |
+| Authenticated non-owner  | security       | approved 404/deny with no metadata                     | two-user matrix      |
+| Refresh revoked/offline  | state          | Clear/re-auth while local evidence remains recoverable | client session E2E   |
+| Secure-store unavailable | platform       | No plaintext fallback; actionable blocked login/sync   | adapter failure test |
 
 # Integrated verification
 
 Run auth unit/contract tests, real-DB issuer/identity integration, complete authorization security suite, client auth/secure-storage tests, rate/size/error tests, bundle/log secret scan, repository typecheck, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P04/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -116,6 +126,10 @@ Remote auth remains feature-flagged until P25 IdP config. Rollback disables clou
 # Required documentation updates
 
 API Contracts, Security identity section, client auth flow, `.env.example`, Status/Traceability/Progress, and P04 evidence.
+
+# Conversation boundary
+
+Identity and authorization only. Do not implement team/RBAC, production IdP provisioning, business features beyond protected probes, or provider credentials. Stop before P05/P06.
 
 # Handoff record
 

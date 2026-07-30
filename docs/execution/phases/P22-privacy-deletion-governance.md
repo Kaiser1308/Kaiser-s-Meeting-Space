@@ -1,7 +1,7 @@
 ---
 phase: P22
 title: Privacy, consent, retention, and deletion governance
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P21]
 requirements: [FR-7, NFR-Privacy, NFR-Security]
 risk: critical
@@ -23,6 +23,12 @@ Read `docs/product/PRD.md` sections 4-7, `docs/product/USER_FLOWS.md` sections 1
 - P00 has approved exact soft-delete window, backup-expiry target, consent text owner, privacy jurisdiction, and provider-disclosure policy.
 - Test PostgreSQL/object storage, mobile/desktop private storage, and configured provider deletion/export APIs are available.
 - If legal/product policy approval or a provider's documented deletion capability is unavailable, implement and verify code paths that do not depend on it, then finish `BLOCKED` against the affected acceptance IDs. Never invent legal approval or provider deletion confirmation.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P21        | Verified outputs and invariants consumed by this packet. | `../evidence/P21/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
@@ -57,14 +63,14 @@ Retention policy and external-processor cleanup use versioned capability interfa
 
 # File and ownership map
 
-| Path | Responsibility | Task owner |
-|---|---|---|
-| `packages/domain/src/privacy/` | Policy, consent, inventory, and deletion contracts | Policy package |
-| `packages/database/src/privacy/` and migrations | Tombstones, policy snapshots, and deletion repositories | Persistence package |
-| `apps/api/src/modules/privacy/` | Owner-authorized privacy/export/delete/restore API | API package |
-| `apps/worker/src/deletion/` | Idempotent deletion saga and processor cleanup | Deletion package |
-| `apps/mobile/` and `apps/desktop/` privacy surfaces | Disclosure, Recently Deleted, progress, and local cleanup | Client package |
-| `tests/privacy/` | Cross-store, two-user, retry, and backup-aging matrix | Independent reviewer |
+| Path                                                | Responsibility                                            | Task owner           |
+| --------------------------------------------------- | --------------------------------------------------------- | -------------------- |
+| `packages/domain/src/privacy/`                      | Policy, consent, inventory, and deletion contracts        | Policy package       |
+| `packages/database/src/privacy/` and migrations     | Tombstones, policy snapshots, and deletion repositories   | Persistence package  |
+| `apps/api/src/modules/privacy/`                     | Owner-authorized privacy/export/delete/restore API        | API package          |
+| `apps/worker/src/deletion/`                         | Idempotent deletion saga and processor cleanup            | Deletion package     |
+| `apps/mobile/` and `apps/desktop/` privacy surfaces | Disclosure, Recently Deleted, progress, and local cleanup | Client package       |
+| `tests/privacy/`                                    | Cross-store, two-user, retry, and backup-aging matrix     | Independent reviewer |
 
 # Ordered task packets
 
@@ -102,22 +108,22 @@ Run one synthetic meeting through consent, provider use, data inventory, soft de
 
 # Subagent work packages
 
-| Package | Task IDs | Exclusive paths | Depends on | Review gate | Output |
-|---|---|---|---|---|---|
-| Policy/API | T01-T04 | domain privacy + API privacy | P21 contracts | spec/auth review | contracts/routes/tests |
-| Deletion saga | T05,T07 | worker + DB privacy | T04 | restart/idempotency review | saga/harness |
-| Client cleanup | T03,T06 | mobile/desktop privacy UI | T01,T04 | privacy UX review | UI/local cleanup |
-| Independent drill | T08 | tests/evidence only | all tasks | cross-store/security review | final report |
+| Package           | Task IDs | Exclusive paths              | Depends on    | Review gate                 | Output                 |
+| ----------------- | -------- | ---------------------------- | ------------- | --------------------------- | ---------------------- |
+| Policy/API        | T01-T04  | domain privacy + API privacy | P21 contracts | spec/auth review            | contracts/routes/tests |
+| Deletion saga     | T05,T07  | worker + DB privacy          | T04           | restart/idempotency review  | saga/harness           |
+| Client cleanup    | T03,T06  | mobile/desktop privacy UI    | T01,T04       | privacy UX review           | UI/local cleanup       |
+| Independent drill | T08      | tests/evidence only          | all tasks     | cross-store/security review | final report           |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Content-free diagnostics | Recovery/regression |
-|---|---|---|---|---|
-| Worker dies between object and DB deletion | persistence | Resume from recorded step; no resurrection | deletion ID, step, attempt | crash at every boundary |
-| Provider lacks deletion API | provider | Disclose limitation and track policy; do not claim deletion | provider capability/status | capability contract test |
-| Restore races permanent deletion | concurrency | One version-checked transition wins | tombstone/version IDs | concurrent property test |
-| Offline device retains cache | state | Cleanup on authenticated reconnect; UI remains truthful | device pseudonym, meeting ID | reconnect E2E |
-| Backup deadline missed | environment | Alert and block completion claim | policy version/deadline | aging drill |
+| Failure                                    | Classification | Expected behavior                                           | Content-free diagnostics     | Recovery/regression      |
+| ------------------------------------------ | -------------- | ----------------------------------------------------------- | ---------------------------- | ------------------------ |
+| Worker dies between object and DB deletion | persistence    | Resume from recorded step; no resurrection                  | deletion ID, step, attempt   | crash at every boundary  |
+| Provider lacks deletion API                | provider       | Disclose limitation and track policy; do not claim deletion | provider capability/status   | capability contract test |
+| Restore races permanent deletion           | concurrency    | One version-checked transition wins                         | tombstone/version IDs        | concurrent property test |
+| Offline device retains cache               | state          | Cleanup on authenticated reconnect; UI remains truthful     | device pseudonym, meeting ID | reconnect E2E            |
+| Backup deadline missed                     | environment    | Alert and block completion claim                            | policy version/deadline      | aging drill              |
 
 # Integrated verification
 
@@ -132,6 +138,10 @@ Review consent/disclosure/delete copy in Vietnamese and English on Windows, Andr
 ## Security, privacy, and data-integrity review
 
 Prove recent reauthentication, two-user denial, minimal tombstone data, no content in diagnostics, no source deletion outside the saga, and no undeclared processor transfer.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P22/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -149,6 +159,10 @@ Deploy policy/tombstone schema and read paths before enabling deletion commands.
 # Required documentation updates
 
 Update privacy/security policy, data model, API contracts, user flows, operations retention table, `STATUS.md`, `TRACEABILITY.md`, `PROGRESS.md`, and P22 evidence.
+
+# Conversation boundary
+
+Do not implement enterprise legal hold/admin retention, new providers, production backup infrastructure, or destructive paths outside the authorized deletion workflow. Stop before P23.
 
 # Handoff record
 

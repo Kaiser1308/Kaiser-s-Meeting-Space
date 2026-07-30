@@ -12,6 +12,7 @@ import {
   SafeErrorDetailSchema,
   hasDuplicateCodes,
   getHttpStatus,
+  type ErrorCode,
 } from './catalog.js';
 
 describe('ErrorCode', () => {
@@ -157,5 +158,21 @@ describe('Utility functions', () => {
     expect(getHttpStatus('AUTH_UNAUTHORIZED')).toBe(401);
     expect(getHttpStatus('PROVIDER_TIMEOUT')).toBe(502);
     expect(getHttpStatus('PROVIDER_RATE_LIMITED')).toBe(429);
+  });
+
+  it('defensive defaults apply for an unknown code (fail-safe)', () => {
+    const unknown = '__UNKNOWN_DEFENSIVE__' as ErrorCode;
+    expect(getHttpStatus(unknown)).toBe(500);
+    expect(isRetryableError(unknown)).toBe(false);
+    expect(isUserFacingError(unknown)).toBe(true);
+  });
+
+  it('hasDuplicateCodes reports no duplicates in the catalog', () => {
+    expect(hasDuplicateCodes()).toBe(false);
+  });
+
+  it('hasDuplicateCodes detects a duplicate when injected', () => {
+    const first = ALL_ERROR_CODES[0] as ErrorCode;
+    expect(hasDuplicateCodes([first, first])).toBe(true);
   });
 });

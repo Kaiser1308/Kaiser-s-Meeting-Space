@@ -1,7 +1,7 @@
 ---
 phase: P27
 title: Production qualification, beta rollout, and personal release
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P26]
 requirements: [PRD-Release-Acceptance, NFR-Reliability, NFR-Security, NFR-Privacy]
 risk: critical
@@ -23,6 +23,12 @@ Read the complete PRD, User Flows, Test Strategy, Security/Privacy, Deployment R
 - Approved production account, DNS/TLS, IdP, provider contracts/regions, budgets, privacy/consent text, signing identities, internal/beta distribution access, support owner, and go/no-go authority are available.
 - A fixed release candidate commit and artifact manifest is frozen; no unreviewed change may enter after qualification starts.
 - Missing legal/business/provider/store/production approval yields `BLOCKED`; it cannot be replaced by staging evidence.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P26        | Verified outputs and invariants consumed by this packet. | `../evidence/P26/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
@@ -56,14 +62,14 @@ The release record pins interfaces/configs while allowing later versions through
 
 # File and ownership map
 
-| Path | Responsibility | Task owner |
-|---|---|---|
-| release manifest/config | Frozen RC and production record | Release package |
-| qualification harness/evidence | Full matrix and raw artifact audit | Quality package |
-| deployment/rollout workflows | Promotion, canary, staged release, rollback | Operations package |
-| release/privacy/limitations docs | User and support readiness | Product/support package |
-| affected product paths | Only regression-backed release blockers | Owning implementer |
-| `docs/execution/evidence/P27/` | Final evidence and approvals | Independent reviewer |
+| Path                             | Responsibility                              | Task owner              |
+| -------------------------------- | ------------------------------------------- | ----------------------- |
+| release manifest/config          | Frozen RC and production record             | Release package         |
+| qualification harness/evidence   | Full matrix and raw artifact audit          | Quality package         |
+| deployment/rollout workflows     | Promotion, canary, staged release, rollback | Operations package      |
+| release/privacy/limitations docs | User and support readiness                  | Product/support package |
+| affected product paths           | Only regression-backed release blockers     | Owning implementer      |
+| `docs/execution/evidence/P27/`   | Final evidence and approvals                | Independent reviewer    |
 
 # Ordered task packets
 
@@ -101,26 +107,30 @@ An independent reviewer checks the frozen record against every PRD release crite
 
 # Subagent work packages
 
-| Package | Task IDs | Exclusive paths | Depends on | Review gate | Output |
-|---|---|---|---|---|---|
-| Evidence/release | T01 | release manifest + audit | P26 | independent evidence review | frozen RC |
-| Quality/assurance | T02-T04 | qualification tests/evidence | T01 | full matrix/security review | rehearsal/matrix |
-| Operations/rollout | T05-T07 | production/rollout config | T02-T04 | approval/SLO review | production evidence |
-| Independent go/no-go | T08 | evidence/ledgers only | all | final authority review | release decision |
+| Package              | Task IDs | Exclusive paths              | Depends on | Review gate                 | Output              |
+| -------------------- | -------- | ---------------------------- | ---------- | --------------------------- | ------------------- |
+| Evidence/release     | T01      | release manifest + audit     | P26        | independent evidence review | frozen RC           |
+| Quality/assurance    | T02-T04  | qualification tests/evidence | T01        | full matrix/security review | rehearsal/matrix    |
+| Operations/rollout   | T05-T07  | production/rollout config    | T02-T04    | approval/SLO review         | production evidence |
+| Independent go/no-go | T08      | evidence/ledgers only        | all        | final authority review      | release decision    |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Content-free diagnostics | Recovery/regression |
-|---|---|---|---|---|
-| RC changes after freeze | contract | Invalidate qualification and restart audit | old/new release hashes | immutability check |
-| Production canary/SLO fails | environment/state | Pause rollout and rollback/repair | release/safe error/SLO | canary regression |
-| Critical journey intermittently fails | timing | No release; isolate and fix root cause | scenario/device/timestamps | stress regression |
-| External approval missing | environment | Block exact release gate | approval type/owner | rerun after approval |
-| Critical/high finding | security | No risk acceptance for release; remediate | finding ID/class | full assurance rerun |
+| Failure                               | Classification    | Expected behavior                          | Content-free diagnostics   | Recovery/regression  |
+| ------------------------------------- | ----------------- | ------------------------------------------ | -------------------------- | -------------------- |
+| RC changes after freeze               | contract          | Invalidate qualification and restart audit | old/new release hashes     | immutability check   |
+| Production canary/SLO fails           | environment/state | Pause rollout and rollback/repair          | release/safe error/SLO     | canary regression    |
+| Critical journey intermittently fails | timing            | No release; isolate and fix root cause     | scenario/device/timestamps | stress regression    |
+| External approval missing             | environment       | Block exact release gate                   | approval type/owner        | rerun after approval |
+| Critical/high finding                 | security          | No risk acceptance for release; remediate  | finding ID/class           | full assurance rerun |
 
 # Integrated verification
 
 Run clean `pnpm verify:release`, all static/unit/property/contract/integration/E2E/security/resilience/performance suites, Rust release checks, signed package/update matrix, migration/backup/restore/deletion drills, full manual device/provider/a11y matrix, staging rehearsal, production canary, and rollout monitoring. All artifacts must match the frozen release ID.
+
+| Gate                  | Command               | Intended signal                                                                 | Evidence                   |
+| --------------------- | --------------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify:release` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P27/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -139,6 +149,10 @@ Use the P25 pipeline and P26 channels without rebuilding. Roll out to the smalle
 # Required documentation updates
 
 Update `STATUS.md` to `RELEASED` only on signed go, `PROGRESS.md`, `TRACEABILITY.md`, changelog/release notes, supported versions/known limitations, operations contacts/runbooks, privacy/provider disclosures, and P27 evidence.
+
+# Conversation boundary
+
+No new features, P28, new platform/provider, threshold reduction, test quarantine, mutable rebuild, or release with critical/high findings. Only this phase may mark RELEASED; stop after the release/no-go handoff.
 
 # Handoff record
 

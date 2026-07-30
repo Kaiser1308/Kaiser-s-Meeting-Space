@@ -1,7 +1,7 @@
 ---
 phase: PNN
 title: Replace with a unique outcome title
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: []
 requirements: []
 risk: medium
@@ -20,6 +20,11 @@ List every document and accepted ADR the agent must read completely. State any p
 - Dependency phases and required evidence links.
 - Exact toolchain/services/platforms/devices/providers/credentials/approvals.
 - Truthful `BLOCKED` condition when a real prerequisite is absent.
+
+# Dependency gate
+
+| Dependency | Required capability | Required evidence | Minimum lifecycle |
+| ---------- | ------------------- | ----------------- | ----------------- |
 
 # Scope firewall
 
@@ -40,7 +45,7 @@ List exact public names, input/output types, versioning, auth/idempotency, persi
 # File and ownership map
 
 | Path | Responsibility | Task owner | Change type |
-|---|---|---|---|
+| ---- | -------------- | ---------- | ----------- |
 
 # Ordered task packets
 
@@ -70,19 +75,17 @@ List exact public names, input/output types, versioning, auth/idempotency, persi
 # Subagent work packages
 
 | Package | Task IDs | Exclusive paths | Depends on | Review gate | Output |
-|---|---|---|---|---|---|
+| ------- | -------- | --------------- | ---------- | ----------- | ------ |
 
 # Failure and debugging matrix
 
 | Failure | Classification | Expected behavior | Content-free diagnostics | Recovery/regression |
-|---|---|---|---|---|
+| ------- | -------------- | ----------------- | ------------------------ | ------------------- |
 
 # Integrated verification
 
-## Automated commands
-
-| Command | Purpose | Required result | Evidence |
-|---|---|---|---|
+| Gate | Command | Intended signal | Evidence |
+| ---- | ------- | --------------- | -------- |
 
 ## Manual/platform/provider matrix
 
@@ -97,6 +100,10 @@ List exact public names, input/output types, versioning, auth/idempotency, persi
 # Migration, rollout, and rollback
 
 # Required documentation updates
+
+# Conversation boundary
+
+State the phase-specific non-goals and the exact phase that must not begin.
 
 # Handoff record
 

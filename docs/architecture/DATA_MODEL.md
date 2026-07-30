@@ -78,13 +78,13 @@ Fields: `segmentId`, `startMs`, `endMs`, optional `quoteHash`.
 
 ## 3. Data classes
 
-| Class | Examples | Mutability | Retention |
-|---|---|---|---|
-| Source evidence | Finalized audio, source transcript | Append/finalize then immutable | Until user deletion/policy expiry |
-| Corrective history | Transcript revisions, speaker mappings | Append-only | Same as meeting |
-| Derived artifacts | Translation, minutes, exports | Versioned/recreatable | User controlled |
-| Operational metadata | Jobs, upload attempts, safe errors | Mutable state + event history | Shorter operational policy |
-| Secrets | Provider keys, signing keys | Rotatable | Secret manager policy |
+| Class                | Examples                               | Mutability                     | Retention                         |
+| -------------------- | -------------------------------------- | ------------------------------ | --------------------------------- |
+| Source evidence      | Finalized audio, source transcript     | Append/finalize then immutable | Until user deletion/policy expiry |
+| Corrective history   | Transcript revisions, speaker mappings | Append-only                    | Same as meeting                   |
+| Derived artifacts    | Translation, minutes, exports          | Versioned/recreatable          | User controlled                   |
+| Operational metadata | Jobs, upload attempts, safe errors     | Mutable state + event history  | Shorter operational policy        |
+| Secrets              | Provider keys, signing keys            | Rotatable                      | Secret manager policy             |
 
 ## 4. Deletion lifecycle
 
@@ -102,3 +102,19 @@ Fields: `segmentId`, `startMs`, `endMs`, optional `quoteHash`.
 - Backfills are resumable and audited by counts, not content logs.
 - Destructive migrations require backup verification and rollback/restore.
 - Prompt/schema versions remain resolvable for historical minutes.
+
+## 6. Transcription policy, runs and projections
+
+`Meeting.transcriptionPolicy` replaces legacy `speechMode` as the authoritative versioned policy. It independently selects live `off | cloud`, final `none | local | cloud | local_cloud_check`, cloud-check scope and consent state. New meetings default to live off and final local; compatibility reads never infer cloud consent.
+
+`TranscriptRun` represents one immutable live, final or cloud-check attempt. It binds owner/meeting, audio-manifest version, execution locality, engine/provider/model/config version, language, requested ranges, cloud disclosure/consent when applicable, lifecycle, attempts, timestamps, cancellation and safe errors.
+
+`TranscriptRunPart` represents a deterministic bounded window or full-meeting batch. It binds run, ordinal, exact source ranges, overlap-before/after, planner version, attempt, native/provider job identity and immutable raw-result SHA-256.
+
+- Completed parts and raw events are immutable and idempotently deduplicated.
+- Capture chunks remain durability units and never become implicit STT/linguistic boundaries.
+- Window planning is deterministic for the same manifest, policy, engine profile and planner version.
+- Transcript segments add run/part lineage, source-range identity and raw speaker provenance.
+- Current transcript is a versioned projection over immutable run events. Every expected range appears exactly once as canonical text or an explicit gap.
+- Numeric speaker labels from separate windows are not treated as one person without a versioned mapping.
+- Local/cloud comparison decisions and corrections create new projection/revision records; they do not mutate either run.

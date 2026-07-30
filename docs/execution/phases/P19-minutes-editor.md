@@ -1,7 +1,7 @@
 ---
 phase: P19
 title: Structured minutes editor, autosave, version history, and rewrite proposals
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P18]
 requirements: [FR-5, FR-6, NFR-Accessibility]
 risk: high
@@ -21,6 +21,12 @@ Read PRD FR-5/FR-6, User Flows edit/rewrite/export preparation, Data Model Minut
 
 P18 is `VERIFIED`; approved TipTap/ProseMirror versions, fixed complex document fixtures, and desktop accessibility test environment are available.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P18        | Verified outputs and invariants consumed by this packet. | `../evidence/P18/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** minutes document schema/migrations/serialization, API versions/current/autosave/proposal, desktop editor/citations/history/compare/restore/confirmation UI, offline pending state, a11y/conflict/E2E tests.
@@ -39,13 +45,13 @@ P18 is `VERIFIED`; approved TipTap/ProseMirror versions, fixed complex document 
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| domain/editor schema/migrations | document nodes/validation/conversion | Document model |
-| API minutes versions/proposals | auth/save/history/compare/restore | Document model |
-| desktop minutes editor feature | TipTap commands/autosave/citations/history | Editor UI |
-| editor local journal | offline pending/conflict/recovery | Editor UI |
-| editor E2E/a11y/security tests | malformed/conflict/reload/rewrite | Independent reviewer |
+| Path                            | Responsibility                             | Owner                |
+| ------------------------------- | ------------------------------------------ | -------------------- |
+| domain/editor schema/migrations | document nodes/validation/conversion       | Document model       |
+| API minutes versions/proposals  | auth/save/history/compare/restore          | Document model       |
+| desktop minutes editor feature  | TipTap commands/autosave/citations/history | Editor UI            |
+| editor local journal            | offline pending/conflict/recovery          | Editor UI            |
+| editor E2E/a11y/security tests  | malformed/conflict/reload/rewrite          | Independent reviewer |
 
 # Ordered task packets
 
@@ -79,26 +85,30 @@ Run autosave network loss/reload/crash, bounded local journal, concurrent tabs, 
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Model/API | T01,T02,T05 API | domain/API minutes | P18 | schema/auth/version review |
-| Editor UI | T03-T05 UI | desktop editor | T01,T02 | a11y/data-loss review |
-| AI proposal | T06 | rewrite boundary | P17,T01,T02 | validation/diff review |
-| Independent QA | T07 | tests/evidence | all | conflict/a11y/security review |
+| Package        | Tasks           | Exclusive paths    | Depends on  | Review gate                   |
+| -------------- | --------------- | ------------------ | ----------- | ----------------------------- |
+| Model/API      | T01,T02,T05 API | domain/API minutes | P18         | schema/auth/version review    |
+| Editor UI      | T03-T05 UI      | desktop editor     | T01,T02     | a11y/data-loss review         |
+| AI proposal    | T06             | rewrite boundary   | P17,T01,T02 | validation/diff review        |
+| Independent QA | T07             | tests/evidence     | all         | conflict/a11y/security review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Autosave interrupted | timing | Bounded local pending state/retry | reload/crash E2E |
-| Concurrent update | concurrency | Visible conflict, no silent overwrite | multi-tab test |
-| Invalid AI proposal | provider | Reject before mutation | adversarial fixture |
-| Restore old version | state | New version, full history retained | restore test |
-| Broken citation | contract | Visible warning and publish policy; no hidden removal | citation test |
+| Failure              | Classification | Expected behavior                                     | Recovery/regression |
+| -------------------- | -------------- | ----------------------------------------------------- | ------------------- |
+| Autosave interrupted | timing         | Bounded local pending state/retry                     | reload/crash E2E    |
+| Concurrent update    | concurrency    | Visible conflict, no silent overwrite                 | multi-tab test      |
+| Invalid AI proposal  | provider       | Reject before mutation                                | adversarial fixture |
+| Restore old version  | state          | New version, full history retained                    | restore test        |
+| Broken citation      | contract       | Visible warning and publish policy; no hidden removal | citation test       |
 
 # Integrated verification
 
 Run editor schema property/fuzz/migration, API IDOR/concurrency/idempotency, component/clipboard, offline/reload/multi-tab E2E, citation seek, rewrite failure/diff, performance, keyboard/screen-reader/localization, content/secret scan, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P19/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -116,6 +126,10 @@ Internal synthetic meetings first. Schema migration reads old/write new and reta
 # Required documentation updates
 
 Data Model/API editor/version/proposal, User Flows controls, Security untrusted document handling, Status/Traceability/Progress, and P19 evidence.
+
+# Conversation boundary
+
+Do not implement export/branding, real-time collaboration, transcript/source mutation, arbitrary HTML/scripts, silent AI edits, or last-write-wins. Stop before P20.
 
 # Handoff record
 

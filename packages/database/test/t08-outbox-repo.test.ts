@@ -14,7 +14,7 @@ describe('OutboxRepository Integration', () => {
     // Note: This relies on a running Docker daemon. Will throw/skip if offline.
     testDb = await startPostgres();
     outboxRepo = new OutboxRepository();
-  });
+  }, 120_000);
 
   afterAll(async () => {
     if (testDb) {

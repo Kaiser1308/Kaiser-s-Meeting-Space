@@ -30,18 +30,18 @@ Production errors never include provider bodies, credentials, transcript text or
 
 ## 2. Meeting lifecycle
 
-| Method | Path | Purpose | Result |
-|---|---|---|---|
-| `POST` | `/meetings` | Create draft with language and mode | `201 Meeting` |
-| `GET` | `/meetings` | Paginated personal library | `200 MeetingPage` |
-| `GET` | `/meetings/{id}` | Meeting and artifact states | `200 MeetingDetail` |
-| `POST` | `/meetings/{id}/start` | Validate capture/session | `200 MeetingSession` |
-| `POST` | `/meetings/{id}/pause` | Close capture interval | `200 Meeting` |
-| `POST` | `/meetings/{id}/resume` | Open next interval | `200 Meeting` |
-| `POST` | `/meetings/{id}/end` | Finalize and enqueue processing | `202 ProcessingJob` |
-| `DELETE` | `/meetings/{id}` | Soft delete | `204` |
-| `POST` | `/meetings/{id}/restore` | Restore in recovery window | `200 Meeting` |
-| `DELETE` | `/meetings/{id}/permanent` | Enqueue permanent deletion | `202 DeletionJob` |
+| Method   | Path                       | Purpose                             | Result               |
+| -------- | -------------------------- | ----------------------------------- | -------------------- |
+| `POST`   | `/meetings`                | Create draft with language and mode | `201 Meeting`        |
+| `GET`    | `/meetings`                | Paginated personal library          | `200 MeetingPage`    |
+| `GET`    | `/meetings/{id}`           | Meeting and artifact states         | `200 MeetingDetail`  |
+| `POST`   | `/meetings/{id}/start`     | Validate capture/session            | `200 MeetingSession` |
+| `POST`   | `/meetings/{id}/pause`     | Close capture interval              | `200 Meeting`        |
+| `POST`   | `/meetings/{id}/resume`    | Open next interval                  | `200 Meeting`        |
+| `POST`   | `/meetings/{id}/end`       | Finalize and enqueue processing     | `202 ProcessingJob`  |
+| `DELETE` | `/meetings/{id}`           | Soft delete                         | `204`                |
+| `POST`   | `/meetings/{id}/restore`   | Restore in recovery window          | `200 Meeting`        |
+| `DELETE` | `/meetings/{id}/permanent` | Enqueue permanent deletion          | `202 DeletionJob`    |
 
 ```json
 {
@@ -95,3 +95,28 @@ Revision requests include a base revision ID; stale edits return `409 TRANSCRIPT
 - Job IDs do not grant access to their meeting.
 - Additive v1 response fields are compatible; semantic breaking changes require a new version or coordinated rollout.
 - Clients declare their minimum API contract version at startup.
+
+## 8. Versioned transcription policy and runs
+
+`Meeting.transcriptionPolicy` is authoritative:
+
+```json
+{
+  "version": 1,
+  "language": "vi",
+  "live": "off",
+  "final": "local",
+  "cloudCheckScope": "off",
+  "cloudConsent": "not_required"
+}
+```
+
+Legacy `speechMode = api | local` remains readable during migration but cannot infer granted cloud consent.
+
+- `GET /meetings/{id}/transcript-runs` lists owner-scoped immutable run provenance.
+- `GET /meetings/{id}/transcript-runs/{runId}` returns parts, exact ranges, locality, engine/provider/model, lifecycle and safe errors.
+- `POST /meetings/{id}/transcript-runs` explicitly requests a policy-permitted local final, cloud final or cloud check.
+- `POST /meetings/{id}/transcript-comparisons` compares compatible runs from the same audio-manifest lineage.
+- `POST /meetings/{id}/transcript-decisions` creates a versioned projection decision using an optimistic base projection.
+
+Every attempt creates an immutable `TranscriptRun`; each deterministic window or full-meeting batch creates immutable `TranscriptRunPart` records. A cloud request is valid only when meeting policy, named-provider disclosure, consent record and approved ranges match. Cloud final batch fallback retains the same provider and approved scope. Local failure never creates cloud work automatically.

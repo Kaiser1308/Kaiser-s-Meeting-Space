@@ -1,0 +1,7 @@
+{
+  "resamplerType": "Rubato SincFixedIn",
+  "ratesConverted": ["44100 -> 48000", "48000 -> 48000"],
+  "channels": 1,
+  "groupDelayCorrected": true,
+  "latencySamples": 0
+}

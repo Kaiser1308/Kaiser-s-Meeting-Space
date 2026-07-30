@@ -1,0 +1,6 @@
+{
+  "durableSQLiteManifestUpdates": true,
+  "chunkFileSizeMatchesCalculation": true,
+  "atomicWritesConformant": true,
+  "sha256Verification": true
+}

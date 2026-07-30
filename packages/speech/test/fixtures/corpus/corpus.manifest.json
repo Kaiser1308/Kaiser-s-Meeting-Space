@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "frozenAt": "2026-07-27T00:00:00.000Z",
+  "description": "Frozen synthetic bilingual (vi/en) evaluation corpus for P13. These are CONSENTED synthetic fixtures — no real meeting content. DO NOT MODIFY after freeze. Any change invalidates the hash.",
+  "entries": [
+    {
+      "id": "clean-vi-01",
+      "language": "vi",
+      "condition": "clean",
+      "referenceTranscript": "Xin chào mọi người hôm nay chúng ta họp bàn về kế hoạch quý ba",
+      "audioDurationMs": 5000,
+      "description": "Short clean Vietnamese opening statement"
+    },
+    {
+      "id": "clean-vi-02",
+      "language": "vi",
+      "condition": "clean",
+      "referenceTranscript": "Báo cáo tài chính tháng này cho thấy tăng trưởng ổn định ở mức 15 phần trăm",
+      "audioDurationMs": 8000,
+      "description": "Clean Vietnamese financial report statement"
+    },
+    {
+      "id": "clean-vi-03",
+      "language": "vi",
+      "condition": "clean",
+      "referenceTranscript": "Chúng tôi cần tập trung vào việc cải thiện dịch vụ khách hàng trong thời gian tới",
+      "audioDurationMs": 7000,
+      "description": "Clean Vietnamese action item"
+    },
+    {
+      "id": "noisy-vi-01",
+      "language": "vi",
+      "condition": "noisy",
+      "referenceTranscript": "Vấn đề chính hiện nay là làm sao để thu hút thêm khách hàng mới",
+      "audioDurationMs": 6000,
+      "description": "Noisy Vietnamese marketing statement"
+    },
+    {
+      "id": "noisy-vi-02",
+      "language": "vi",
+      "condition": "noisy",
+      "referenceTranscript": "Đội ngũ kỹ thuật đang làm việc để khắc phục lỗi hệ thống đã được báo cáo",
+      "audioDurationMs": 9000,
+      "description": "Noisy Vietnamese engineering update"
+    },
+    {
+      "id": "clean-en-01",
+      "language": "en",
+      "condition": "clean",
+      "referenceTranscript": "Good morning everyone let's review the quarterly results",
+      "audioDurationMs": 4000,
+      "description": "Clean English meeting opening"
+    },
+    {
+      "id": "clean-en-02",
+      "language": "en",
+      "condition": "clean",
+      "referenceTranscript": "The marketing team has reported a twenty percent increase in engagement this month",
+      "audioDurationMs": 7000,
+      "description": "Clean English marketing report"
+    },
+    {
+      "id": "clean-en-03",
+      "language": "en",
+      "condition": "clean",
+      "referenceTranscript": "We need to prioritize the customer onboarding experience for the next sprint",
+      "audioDurationMs": 6000,
+      "description": "Clean English action item"
+    },
+    {
+      "id": "noisy-en-01",
+      "language": "en",
+      "condition": "noisy",
+      "referenceTranscript": "There are some concerns about the budget allocation for the new project",
+      "audioDurationMs": 8000,
+      "description": "Noisy English budget discussion"
+    },
+    {
+      "id": "noisy-en-02",
+      "language": "en",
+      "condition": "noisy",
+      "referenceTranscript": "Can we get an update on the infrastructure migration timeline",
+      "audioDurationMs": 5000,
+      "description": "Noisy English infrastructure question"
+    }
+  ]
+}

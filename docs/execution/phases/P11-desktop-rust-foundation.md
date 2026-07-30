@@ -1,7 +1,7 @@
 ---
 phase: P11
 title: Secure Electron shell and supervised Rust native runtime
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P07]
 requirements: [FR-1, NFR-Security, ADR-006]
 risk: critical
@@ -21,6 +21,12 @@ Read Tech Stack desktop/native guardrails, ADR-006, Security Electron/local-devi
 
 P07 is `VERIFIED`; approved Node/pnpm/Rust stable/Windows SDK/build tools are available. Development packaging may be unsigned; signing is P26 and must remain labeled unavailable.
 
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P07        | Verified outputs and invariants consumed by this packet. | `../evidence/P07/EVIDENCE.md` | VERIFIED          |
+
 # Scope firewall
 
 **Allowed:** Electron main/preload/renderer split, desktop build config, `packages/native-contract/`, `native/kms-native/`, process supervision, Rust private storage/SQLite/checksum adapter, deterministic simulator, desktop setup parity, IPC/security/conformance/package smoke tests.
@@ -39,12 +45,12 @@ P07 is `VERIFIED`; approved Node/pnpm/Rust stable/Windows SDK/build tools are av
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| desktop main/preload/config | secure shell/process/window/policy | Electron |
-| desktop renderer | UI shell/setup/recovery status only | Desktop integration |
-| `packages/native-contract/` | TS schemas/fixtures/client bridge | IPC contract |
-| `native/kms-native/` | Rust protocol/runtime/storage/simulator | Rust runtime |
+| Path                          | Responsibility                             | Owner                |
+| ----------------------------- | ------------------------------------------ | -------------------- |
+| desktop main/preload/config   | secure shell/process/window/policy         | Electron             |
+| desktop renderer              | UI shell/setup/recovery status only        | Desktop integration  |
+| `packages/native-contract/`   | TS schemas/fixtures/client bridge          | IPC contract         |
+| `native/kms-native/`          | Rust protocol/runtime/storage/simulator    | Rust runtime         |
 | desktop/native security tests | IPC/path/process/package adversarial tests | Independent reviewer |
 
 # Ordered task packets
@@ -79,26 +85,30 @@ Implement P08-equivalent desktop setup using native simulator readiness; run IPC
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Electron | T01,T04 | desktop main/preload/config | P07 | privilege/process review |
-| IPC | T03 | native-contract | P02 | version/framing review |
-| Rust | T02,T05,T06 | native workspace | T03,P07 | unsafe/path/durability review |
-| Integration | T07 | renderer/tests/evidence | all | independent package/security review |
+| Package     | Tasks       | Exclusive paths             | Depends on | Review gate                         |
+| ----------- | ----------- | --------------------------- | ---------- | ----------------------------------- |
+| Electron    | T01,T04     | desktop main/preload/config | P07        | privilege/process review            |
+| IPC         | T03         | native-contract             | P02        | version/framing review              |
+| Rust        | T02,T05,T06 | native workspace            | T03,P07    | unsafe/path/durability review       |
+| Integration | T07         | renderer/tests/evidence     | all        | independent package/security review |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Protocol mismatch | contract | Fail closed with upgrade-safe error | version matrix |
-| Rust crash during session | platform | Bound restarts; Recovery Inbox sees commits | crash E2E |
-| Malformed/unknown IPC | security | Reject; safe metadata only | fuzz/allowlist test |
-| Path/process injection | security | Deny before OS operation | adversarial test |
-| Packaged sidecar missing | environment | Actionable unavailable state, no simulator substitution | package smoke |
+| Failure                   | Classification | Expected behavior                                       | Recovery/regression |
+| ------------------------- | -------------- | ------------------------------------------------------- | ------------------- |
+| Protocol mismatch         | contract       | Fail closed with upgrade-safe error                     | version matrix      |
+| Rust crash during session | platform       | Bound restarts; Recovery Inbox sees commits             | crash E2E           |
+| Malformed/unknown IPC     | security       | Reject; safe metadata only                              | fuzz/allowlist test |
+| Path/process injection    | security       | Deny before OS operation                                | adversarial test    |
+| Packaged sidecar missing  | environment    | Actionable unavailable state, no simulator substitution | package smoke       |
 
 # Integrated verification
 
 Run desktop typecheck/unit/E2E, IPC contract/fuzz tests, Rust fmt/clippy `-D warnings`/test, P07 Rust conformance/fault suite, Electron security/secret/bundle scan, packaged-development smoke on Windows, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P11/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -115,6 +125,10 @@ Development package only. Feature flags select simulator/no-native; rollback pre
 # Required documentation updates
 
 Architecture native boundary/IPC version, desktop development/build guide, Security threat model, Status/Traceability/Progress, and P11 evidence.
+
+# Conversation boundary
+
+No real WASAPI, speech/local AI, editor/export, broad native capability, production signing, or updater. Simulator evidence cannot claim real capture. Stop before P12.
 
 # Handoff record
 

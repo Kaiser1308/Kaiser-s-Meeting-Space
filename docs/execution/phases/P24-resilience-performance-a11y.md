@@ -1,7 +1,7 @@
 ---
 phase: P24
 title: Resilience, performance, accessibility, and compatibility qualification
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P23]
 requirements: [NFR-Reliability, NFR-Performance, NFR-Accessibility, NFR-Localization]
 risk: critical
@@ -23,6 +23,12 @@ Read the complete PRD release acceptance, User Flows, Test Strategy critical sce
 - Representative supported physical Android and iOS devices, Windows microphone/system-audio hardware, Zoom/Meet/Teams test environments, network fault controls, constrained-storage devices, and staging providers are available.
 - Fixed synthetic Vietnamese/English audio, transcript, minutes, export, and large-library fixtures are versioned.
 - Missing required physical devices or provider accounts is a truthful blocker for affected acceptance IDs.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P23        | Verified outputs and invariants consumed by this packet. | `../evidence/P23/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
@@ -56,14 +62,14 @@ Device/platform and scenario matrices are data-defined so later OS versions/devi
 
 # File and ownership map
 
-| Path | Responsibility | Task owner |
-|---|---|---|
-| `tests/qualification/fixtures/` | Versioned synthetic datasets and matrix definitions | Harness package |
-| `tests/qualification/resilience/` | Fault injection and long-session scenarios | Resilience package |
-| `tests/qualification/performance/` | Latency/load/memory/storage/drift benchmarks | Performance package |
-| `tests/qualification/accessibility/` | Automated/manual a11y and localization cases | Accessibility package |
-| affected product paths | Bounded root-cause fixes only | Owning implementer |
-| `docs/execution/evidence/P24/` | Raw reports, environment matrix, and sign-off | Independent reviewer |
+| Path                                 | Responsibility                                      | Task owner            |
+| ------------------------------------ | --------------------------------------------------- | --------------------- |
+| `tests/qualification/fixtures/`      | Versioned synthetic datasets and matrix definitions | Harness package       |
+| `tests/qualification/resilience/`    | Fault injection and long-session scenarios          | Resilience package    |
+| `tests/qualification/performance/`   | Latency/load/memory/storage/drift benchmarks        | Performance package   |
+| `tests/qualification/accessibility/` | Automated/manual a11y and localization cases        | Accessibility package |
+| affected product paths               | Bounded root-cause fixes only                       | Owning implementer    |
+| `docs/execution/evidence/P24/`       | Raw reports, environment matrix, and sign-off       | Independent reviewer  |
 
 # Ordered task packets
 
@@ -101,28 +107,32 @@ An independent reviewer checks raw artifacts against the manifest, validates tes
 
 # Subagent work packages
 
-| Package | Task IDs | Exclusive paths | Depends on | Review gate | Output |
-|---|---|---|---|---|---|
-| Harness | T01 | qualification fixtures/config | P23 | coverage review | manifest |
-| Mobile | T02 | mobile tests + bounded fixes | T01 | device/data-loss review | mobile report |
-| Windows | T03 | desktop/native tests + bounded fixes | T01 | audio/data-loss review | Windows report |
-| Services/performance | T04,T05 | service/perf tests + bounded fixes | T01 | reliability/perf review | fault/perf reports |
-| Accessibility | T06 | a11y/l10n tests + bounded fixes | T01 | manual a11y review | accessibility report |
-| Main + independent reviewer | T07,T08 | integration/evidence | all | full qualification | final sign-off |
+| Package                     | Task IDs | Exclusive paths                      | Depends on | Review gate             | Output               |
+| --------------------------- | -------- | ------------------------------------ | ---------- | ----------------------- | -------------------- |
+| Harness                     | T01      | qualification fixtures/config        | P23        | coverage review         | manifest             |
+| Mobile                      | T02      | mobile tests + bounded fixes         | T01        | device/data-loss review | mobile report        |
+| Windows                     | T03      | desktop/native tests + bounded fixes | T01        | audio/data-loss review  | Windows report       |
+| Services/performance        | T04,T05  | service/perf tests + bounded fixes   | T01        | reliability/perf review | fault/perf reports   |
+| Accessibility               | T06      | a11y/l10n tests + bounded fixes      | T01        | manual a11y review      | accessibility report |
+| Main + independent reviewer | T07,T08  | integration/evidence                 | all        | full qualification      | final sign-off       |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Content-free diagnostics | Recovery/regression |
-|---|---|---|---|---|
-| Missing/unavailable device | environment | Mark exact matrix cell blocked | model class/OS only | rerun on required device |
-| Intermittent critical failure | timing | Treat as failure; isolate race | timestamps/counters/state | deterministic stress test |
-| Threshold missed | performance | Profile and fix root cause; do not relax target | aggregates/profile IDs | benchmark regression |
-| Accessibility automation passes but manual flow fails | platform | Manual failure controls gate | screen/element ID | manual + automated regression |
-| Fault loses acknowledged source | persistence | Critical release block; preserve artifacts | chunk/checksum/state | crash-boundary regression |
+| Failure                                               | Classification | Expected behavior                               | Content-free diagnostics  | Recovery/regression           |
+| ----------------------------------------------------- | -------------- | ----------------------------------------------- | ------------------------- | ----------------------------- |
+| Missing/unavailable device                            | environment    | Mark exact matrix cell blocked                  | model class/OS only       | rerun on required device      |
+| Intermittent critical failure                         | timing         | Treat as failure; isolate race                  | timestamps/counters/state | deterministic stress test     |
+| Threshold missed                                      | performance    | Profile and fix root cause; do not relax target | aggregates/profile IDs    | benchmark regression          |
+| Accessibility automation passes but manual flow fails | platform       | Manual failure controls gate                    | screen/element ID         | manual + automated regression |
+| Fault loses acknowledged source                       | persistence    | Critical release block; preserve artifacts      | chunk/checksum/state      | crash-boundary regression     |
 
 # Integrated verification
 
 Run `pnpm verify:release`, complete mobile/desktop E2E, `pnpm test:security`, `pnpm test:resilience`, `pnpm test:performance`, Rust checks/benchmarks, and the full manual platform/provider/accessibility matrix. Record intended/executed counts and raw report hashes.
+
+| Gate                  | Command               | Intended signal                                                                 | Evidence                   |
+| --------------------- | --------------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify:release` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P24/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -140,6 +150,10 @@ This phase does not deploy production. Bounded fixes follow existing migration/f
 # Required documentation updates
 
 Update Test Strategy measured thresholds, supported platform matrix, known limitations, `STATUS.md`, `TRACEABILITY.md`, `PROGRESS.md`, and P24 evidence.
+
+# Conversation boundary
+
+Qualification and regression-backed release-blocker fixes only. Do not add features/platforms, redesign architecture/UI, lower thresholds, quarantine critical tests, or include optional P28. Stop before P25.
 
 # Handoff record
 

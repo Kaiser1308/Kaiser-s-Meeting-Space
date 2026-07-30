@@ -3,8 +3,12 @@
 // Breaking changes from prototype: see docs/execution/evidence/P02/domain-migration-report.md
 
 export * from './meeting/schemas.js';
+export * from './transcription/policy.js';
 export * from './audio/schemas.js';
 export * from './transcript/schemas.js';
+export * from './transcript/runs.js';
+export * from './transcript/events.js';
+export * from './transcript/capability.js';
 export * from './minutes/schemas.js';
 export * from './jobs/schemas.js';
 export * from './jobs/envelopes.js';

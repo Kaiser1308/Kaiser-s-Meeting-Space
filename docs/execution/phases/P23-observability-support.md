@@ -1,7 +1,7 @@
 ---
 phase: P23
 title: Content-free observability, SLOs, support, and incident readiness
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P22]
 requirements: [NFR-Observability, NFR-Privacy, NFR-Reliability]
 risk: high
@@ -23,6 +23,12 @@ Read `docs/operations/DEPLOYMENT_AND_RUNBOOK.md`, `docs/security/SECURITY_AND_PR
 - A local/CI OpenTelemetry collector and production-shaped staging telemetry backend are available.
 - Alert delivery destinations and on-call owner may be provisional locally, but staging alert delivery must be real for `VERIFIED`.
 - Missing staging telemetry or alert-routing access yields `IMPLEMENTED`/`BLOCKED`, never fabricated screenshots.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P22        | Verified outputs and invariants consumed by this packet. | `../evidence/P22/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
@@ -57,14 +63,14 @@ Exporters implement one typed telemetry sink contract so backends can change wit
 
 # File and ownership map
 
-| Path | Responsibility | Task owner |
-|---|---|---|
-| `packages/telemetry/` | Typed schema, redaction, correlation, exporters | Telemetry core |
-| API/worker instrumentation | Server spans/metrics and job linkage | Server package |
-| mobile/desktop/native instrumentation | Crash, capture-health, and recovery metadata | Client package |
-| `ops/observability/` | Dashboards, SLOs, alerts, and synthetic monitors | Operations package |
-| support tooling/docs | Consent-safe bundle and runbooks | Support package |
-| telemetry security tests | Content/secret fuzz and outage tests | Independent reviewer |
+| Path                                  | Responsibility                                   | Task owner           |
+| ------------------------------------- | ------------------------------------------------ | -------------------- |
+| `packages/telemetry/`                 | Typed schema, redaction, correlation, exporters  | Telemetry core       |
+| API/worker instrumentation            | Server spans/metrics and job linkage             | Server package       |
+| mobile/desktop/native instrumentation | Crash, capture-health, and recovery metadata     | Client package       |
+| `ops/observability/`                  | Dashboards, SLOs, alerts, and synthetic monitors | Operations package   |
+| support tooling/docs                  | Consent-safe bundle and runbooks                 | Support package      |
+| telemetry security tests              | Content/secret fuzz and outage tests             | Independent reviewer |
 
 # Ordered task packets
 
@@ -102,26 +108,30 @@ Run a synthetic meeting through capture metadata, upload, finalization, transcri
 
 # Subagent work packages
 
-| Package | Task IDs | Exclusive paths | Depends on | Review gate | Output |
-|---|---|---|---|---|---|
-| Telemetry core/server | T01,T02 | telemetry + server instrumentation | P22 policy | privacy/schema review | library/traces |
-| Client/native | T03,T06 | client/native instrumentation + support | T01 | realtime/privacy review | health/bundle |
-| Operations | T04,T05,T07 | ops dashboards/alerts/runbooks | T02 | SLO/alert review | operations assets |
-| Independent canary | T08 | tests/evidence only | all | end-to-end/privacy review | final report |
+| Package               | Task IDs    | Exclusive paths                         | Depends on | Review gate               | Output            |
+| --------------------- | ----------- | --------------------------------------- | ---------- | ------------------------- | ----------------- |
+| Telemetry core/server | T01,T02     | telemetry + server instrumentation      | P22 policy | privacy/schema review     | library/traces    |
+| Client/native         | T03,T06     | client/native instrumentation + support | T01        | realtime/privacy review   | health/bundle     |
+| Operations            | T04,T05,T07 | ops dashboards/alerts/runbooks          | T02        | SLO/alert review          | operations assets |
+| Independent canary    | T08         | tests/evidence only                     | all        | end-to-end/privacy review | final report      |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Content-free diagnostics | Recovery/regression |
-|---|---|---|---|---|
-| Exporter/collector unavailable | environment | Drop/buffer within bound; product unaffected | dropped-count, exporter state | outage fault test |
-| Content-shaped attribute emitted | security | Reject/redact and fail release test | event type/key only | fuzz regression |
-| Trace context lost on retry | contract | Preserve causal job/request links | IDs/attempt | retry trace test |
-| No-data dashboard looks healthy | state | Display insufficient data, not green | sample count/window | empty-window query test |
-| Alert storms | timing | Dedupe/rate-limit while preserving critical signal | alert key/count | storm exercise |
+| Failure                          | Classification | Expected behavior                                  | Content-free diagnostics      | Recovery/regression     |
+| -------------------------------- | -------------- | -------------------------------------------------- | ----------------------------- | ----------------------- |
+| Exporter/collector unavailable   | environment    | Drop/buffer within bound; product unaffected       | dropped-count, exporter state | outage fault test       |
+| Content-shaped attribute emitted | security       | Reject/redact and fail release test                | event type/key only           | fuzz regression         |
+| Trace context lost on retry      | contract       | Preserve causal job/request links                  | IDs/attempt                   | retry trace test        |
+| No-data dashboard looks healthy  | state          | Display insufficient data, not green               | sample count/window           | empty-window query test |
+| Alert storms                     | timing         | Dedupe/rate-limit while preserving critical signal | alert key/count               | storm exercise          |
 
 # Integrated verification
 
 Run telemetry unit/fuzz tests, `pnpm test:integration -- --project observability`, `pnpm test:security -- --suite telemetry`, `pnpm test:resilience -- --suite telemetry-outage`, staging canary/alert exercise, and `pnpm verify`.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P23/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -139,6 +149,10 @@ Deploy schemas and collectors before enabling exporters. Sample high-volume trac
 # Required documentation updates
 
 Update operations SLO/monitoring/incident sections, security telemetry inventory, development diagnostics, `STATUS.md`, `TRACEABILITY.md`, `PROGRESS.md`, and P23 evidence.
+
+# Conversation boundary
+
+Do not add content analytics, product tracking, new logging vendors, production deployment, or instrumentation that can block recording. Stop before P24.
 
 # Handoff record
 

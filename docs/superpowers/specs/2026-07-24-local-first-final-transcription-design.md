@@ -1,6 +1,6 @@
 # Local-First Final Transcription Design
 
-**Status:** Approved design pending written-spec review
+**Status:** Approved
 **Owner:** Product and Architecture
 **Date:** 2026-07-24
 **Scope:** Desktop-first local final STT, optional cloud live/final/check, and phase-plan integration
@@ -26,18 +26,18 @@ import, and advanced downloadable-model lifecycle remain later P28 extensions.
 
 Final transcription has exactly three mutually exclusive modes:
 
-| Final mode | Primary behavior | Cloud behavior |
-| ---------- | ---------------- | -------------- |
-| `local` | The Windows desktop processes all durable meeting audio after End. | None. |
-| `cloud` | The selected cloud STT provider processes all approved meeting audio after End. | Full approved audio is sent to the named provider. |
-| `local_cloud_check` | The Windows desktop processes all audio first. | After local completion and explicit approval, selected uncertain ranges or the full meeting are checked by cloud STT. |
+| Final mode          | Primary behavior                                                                | Cloud behavior                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `local`             | The Windows desktop processes all durable meeting audio after End.              | None.                                                                                                                 |
+| `cloud`             | The selected cloud STT provider processes all approved meeting audio after End. | Full approved audio is sent to the named provider.                                                                    |
+| `local_cloud_check` | The Windows desktop processes all audio first.                                  | After local completion and explicit approval, selected uncertain ranges or the full meeting are checked by cloud STT. |
 
 Live transcription is an independent option:
 
-| Live mode | Behavior |
-| --------- | -------- |
-| `off` | No transcription runs during recording. |
-| `cloud` | Audio is streamed to the named cloud provider for display-only realtime text. |
+| Live mode | Behavior                                                                      |
+| --------- | ----------------------------------------------------------------------------- |
+| `off`     | No transcription runs during recording.                                       |
+| `cloud`   | Audio is streamed to the named cloud provider for display-only realtime text. |
 
 The default is:
 
@@ -283,16 +283,16 @@ cannot authorize cloud STT.
 
 ## 8. Failure behavior
 
-| Failure | Required outcome |
-| ------- | ---------------- |
-| Model absent | Recording continues; final job waits for verified model installation. |
-| Desktop unavailable for a mobile meeting | Audio remains safe; transcript state is `waiting_for_desktop`. |
-| Local engine crash or resource exhaustion | Preserve audio and committed raw events; retry, choose a lighter approved model, or offer explicit cloud choice. |
-| Cloud consent absent | No cloud request is created. |
-| Cloud provider unavailable | Preserve local/live results and expose retry/change-provider actions. |
-| Local and cloud disagree | Preserve both; mark the difference and seek the exact audio range. |
-| App restarts during local processing | Recover durable job state; never publish a partial run as complete. |
-| Translation/minutes requested before transcript readiness | Queue or block with truthful completeness state. |
+| Failure                                                   | Required outcome                                                                                                 |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Model absent                                              | Recording continues; final job waits for verified model installation.                                            |
+| Desktop unavailable for a mobile meeting                  | Audio remains safe; transcript state is `waiting_for_desktop`.                                                   |
+| Local engine crash or resource exhaustion                 | Preserve audio and committed raw events; retry, choose a lighter approved model, or offer explicit cloud choice. |
+| Cloud consent absent                                      | No cloud request is created.                                                                                     |
+| Cloud provider unavailable                                | Preserve local/live results and expose retry/change-provider actions.                                            |
+| Local and cloud disagree                                  | Preserve both; mark the difference and seek the exact audio range.                                               |
+| App restarts during local processing                      | Recover durable job state; never publish a partial run as complete.                                              |
+| Translation/minutes requested before transcript readiness | Queue or block with truthful completeness state.                                                                 |
 
 ## 9. Quality and performance gates
 

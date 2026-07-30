@@ -10,24 +10,24 @@ All 85+ pre-existing files are preserved. No product code was modified. No depen
 
 ### Evidence files created by P00
 
-| File | Purpose |
-|---|---|
-| `docs/execution/evidence/P00/RUN-20260721-0000.md` | Runtime run record |
-| `docs/execution/evidence/P00/repository-audit.md` | Complete repository inventory and 20 documented contradictions |
-| `docs/execution/evidence/P00/support-matrix.md` | Platform, language, and UX support matrix |
-| `docs/execution/evidence/P00/capture-profile-v1.md` | Audio capture profile specification |
-| `docs/execution/evidence/P00/privacy-approval-register.md` | 16 privacy/consent/retention/telemetry decisions |
-| `docs/execution/evidence/P00/platform-approval-register.md` | 17 infrastructure/identity/provider/cost decisions |
-| `docs/execution/evidence/P00/EVIDENCE.md` | Phase evidence summary |
-| `docs/execution/evidence/P00/baseline-report.md` | This file |
+| File                                                        | Purpose                                                        |
+| ----------------------------------------------------------- | -------------------------------------------------------------- |
+| `docs/execution/evidence/P00/RUN-20260721-0000.md`          | Runtime run record                                             |
+| `docs/execution/evidence/P00/repository-audit.md`           | Complete repository inventory and 20 documented contradictions |
+| `docs/execution/evidence/P00/support-matrix.md`             | Platform, language, and UX support matrix                      |
+| `docs/execution/evidence/P00/capture-profile-v1.md`         | Audio capture profile specification                            |
+| `docs/execution/evidence/P00/privacy-approval-register.md`  | 16 privacy/consent/retention/telemetry decisions               |
+| `docs/execution/evidence/P00/platform-approval-register.md` | 17 infrastructure/identity/provider/cost decisions             |
+| `docs/execution/evidence/P00/EVIDENCE.md`                   | Phase evidence summary                                         |
+| `docs/execution/evidence/P00/baseline-report.md`            | This file                                                      |
 
 ### Docs updated by P00
 
-| File | Change |
-|---|---|
-| `docs/STATUS.md` | Added P00 Verified row |
-| `docs/execution/PROGRESS.md` | Updated phase state, P00 row, and run entry |
-| `docs/execution/TRACEABILITY.md` | Added P00 evidence for RA-7 |
+| File                             | Change                                      |
+| -------------------------------- | ------------------------------------------- |
+| `docs/STATUS.md`                 | Added P00 Verified row                      |
+| `docs/execution/PROGRESS.md`     | Updated phase state, P00 row, and run entry |
+| `docs/execution/TRACEABILITY.md` | Added P00 evidence for RA-7                 |
 
 ### Files preserved (unchanged)
 
@@ -35,18 +35,18 @@ All files under `apps/`, `packages/`, `docs/product/`, `docs/architecture/`, `do
 
 ## Validation gate results
 
-| Check | Result |
-|---|---|
-| All relative markdown links resolve | PASS |
-| No UTF-8 replacement characters | PASS (except intentional search pattern in VALIDATION_CHECKLIST.md) |
-| No `mixed` language in design docs except as explicitly excluded | PASS |
-| No client provider keys in design docs | PASS |
-| No streaming-only recording in design docs | PASS |
-| No fabricated benchmarks in evidence | PASS (capture-profile-v1 documents procedure without results) |
-| No product code edits | PASS (git diff confirms) |
-| No dependency upgrades | PASS |
-| No credentials introduced | PASS |
-| No secrets in evidence files | PASS |
+| Check                                                            | Result                                                              |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| All relative markdown links resolve                              | PASS                                                                |
+| No UTF-8 replacement characters                                  | PASS (except intentional search pattern in VALIDATION_CHECKLIST.md) |
+| No `mixed` language in design docs except as explicitly excluded | PASS                                                                |
+| No client provider keys in design docs                           | PASS                                                                |
+| No streaming-only recording in design docs                       | PASS                                                                |
+| No fabricated benchmarks in evidence                             | PASS (capture-profile-v1 documents procedure without results)       |
+| No product code edits                                            | PASS (git diff confirms)                                            |
+| No dependency upgrades                                           | PASS                                                                |
+| No credentials introduced                                        | PASS                                                                |
+| No secrets in evidence files                                     | PASS                                                                |
 
 ## Commit information
 

@@ -1,0 +1,7 @@
+{
+  "wasapiSharedMode": true,
+  "eventCallbacks": true,
+  "micSourceIsolated": true,
+  "systemLoopbackIsolated": true,
+  "bufferHandoffRealtimeSafe": true
+}

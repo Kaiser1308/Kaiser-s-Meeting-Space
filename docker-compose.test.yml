@@ -1,0 +1,23 @@
+# Test override — isolated ports to avoid collisions with dev services
+version: '3.9'
+
+services:
+  postgres:
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: kms_test
+      POSTGRES_PASSWORD: kms_test
+      POSTGRES_DB: kms_test
+
+  redis:
+    ports:
+      - '6380:6379'
+
+  minio:
+    ports:
+      - '9002:9000'
+      - '9003:9001'
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin

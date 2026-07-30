@@ -9,29 +9,29 @@
 
 ## Requirement and acceptance mapping
 
-| Requirement / acceptance ID | Test or scenario | Result | Artifact |
-|---|---|---|---|
-| P00-A01 | Complete repository baseline/tree, all pre-existing changes recorded and reviewed | PASS | repository-audit.md, support-matrix.md, baseline-report.md |
-| P00-A02 | Support/capture/privacy/retention/identity/provider/infrastructure decisions accepted or provisionally owned with deadlines | PASS (7 BLOCKED with owner/deadline documented) | support-matrix.md, capture-profile-v1.md, privacy-approval-register.md, platform-approval-register.md |
-| P00-A03 | Focused docs, ADRs, master plan, progress, traceability, and status are consistent and link-valid | PASS | All maintained docs reconciled; link validation passed |
-| P00-A04 | No product code, dependency upgrade, paid resource, credential, or fabricated benchmark/approval introduced | PASS | git diff review confirms evidence documents only; capture-profile-v1 documents benchmark procedure without fabricating results |
-| RA-7 | Known limitations and consent/privacy copy in product | Documented (PRIVACY-001 BLOCKED for copy text; all limitations mapped) | privacy-approval-register.md, support-matrix.md §10 |
+| Requirement / acceptance ID | Test or scenario                                                                                                            | Result                                                                 | Artifact                                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| P00-A01                     | Complete repository baseline/tree, all pre-existing changes recorded and reviewed                                           | PASS                                                                   | repository-audit.md, support-matrix.md, baseline-report.md                                                                     |
+| P00-A02                     | Support/capture/privacy/retention/identity/provider/infrastructure decisions accepted or provisionally owned with deadlines | PASS (7 BLOCKED with owner/deadline documented)                        | support-matrix.md, capture-profile-v1.md, privacy-approval-register.md, platform-approval-register.md                          |
+| P00-A03                     | Focused docs, ADRs, master plan, progress, traceability, and status are consistent and link-valid                           | PASS                                                                   | All maintained docs reconciled; link validation passed                                                                         |
+| P00-A04                     | No product code, dependency upgrade, paid resource, credential, or fabricated benchmark/approval introduced                 | PASS                                                                   | git diff review confirms evidence documents only; capture-profile-v1 documents benchmark procedure without fabricating results |
+| RA-7                        | Known limitations and consent/privacy copy in product                                                                       | Documented (PRIVACY-001 BLOCKED for copy text; all limitations mapped) | privacy-approval-register.md, support-matrix.md §10                                                                            |
 
 ## Commands
 
-| Command | Exit code | Intended tests | Executed tests | Duration | Report |
-|---|---:|---:|---:|---:|---|
-| `git status --short --branch` | 0 | 1 (repo state) | 1 | <1s | No commits; all files untracked |
-| Full file inventory (`find`) | 0 | 1 (file classification) | 1 | <1s | ~85 files inventoried |
-| Markdown link validation | 0 | ~60 links | All checked | <1s | All relative links resolve |
-| UTF-8 encoding scan | 0 | All .md files | All checked | <5s | No mojibake; Vietnamese text valid |
-| Contradiction search (`mixed`, `client.*provider.*key`, `streaming-only`) | 0 | 4 pattern classes | All docs scanned | <5s | Findings in repository-audit.md |
+| Command                                                                   | Exit code |          Intended tests |   Executed tests | Duration | Report                             |
+| ------------------------------------------------------------------------- | --------: | ----------------------: | ---------------: | -------: | ---------------------------------- |
+| `git status --short --branch`                                             |         0 |          1 (repo state) |                1 |      <1s | No commits; all files untracked    |
+| Full file inventory (`find`)                                              |         0 | 1 (file classification) |                1 |      <1s | ~85 files inventoried              |
+| Markdown link validation                                                  |         0 |               ~60 links |      All checked |      <1s | All relative links resolve         |
+| UTF-8 encoding scan                                                       |         0 |           All .md files |      All checked |      <5s | No mojibake; Vietnamese text valid |
+| Contradiction search (`mixed`, `client.*provider.*key`, `streaming-only`) |         0 |       4 pattern classes | All docs scanned |      <5s | Findings in repository-audit.md    |
 
 ## Manual, device, and provider matrix
 
-| Scenario | Environment/version | Result | Artifact | Reviewer |
-|---|---|---|---|---|
-| (No manual/device/provider scenarios required for P00 — documentation-only phase) | N/A | N/A | N/A | N/A |
+| Scenario                                                                          | Environment/version | Result | Artifact | Reviewer |
+| --------------------------------------------------------------------------------- | ------------------- | ------ | -------- | -------- |
+| (No manual/device/provider scenarios required for P00 — documentation-only phase) | N/A                 | N/A    | N/A      | N/A      |
 
 ## Security, privacy, and data-integrity review
 
@@ -43,10 +43,10 @@
 
 ## Defects and root-cause fixes
 
-| Defect | Classification | Root cause | Regression test | Fix commit |
-|---|---|---|---|---|
-| RUN record claimed docs/STATUS.md was missing | State | Preflight tool error during Read | Corrected in RUN record | Baseline commit |
-| 20 doc/code contradictions documented | Contract | Prototype code predates architecture decisions | Flagged for P02 resolution | N/A (P00 is documentation-only) |
+| Defect                                        | Classification | Root cause                                     | Regression test            | Fix commit                      |
+| --------------------------------------------- | -------------- | ---------------------------------------------- | -------------------------- | ------------------------------- |
+| RUN record claimed docs/STATUS.md was missing | State          | Preflight tool error during Read               | Corrected in RUN record    | Baseline commit                 |
+| 20 doc/code contradictions documented         | Contract       | Prototype code predates architecture decisions | Flagged for P02 resolution | N/A (P00 is documentation-only) |
 
 ## Migration, rollout, rollback, and recovery
 
@@ -54,15 +54,15 @@ Documentation changes revert by focused commit. Accepted decisions are supersede
 
 ## Residual risks and owner actions
 
-| Risk | Severity | Owner | Action required |
-|---|---|---|---|
-| 7 BLOCKED decisions in approval registers | MEDIUM | Product + Legal | Consent copy (PRIVACY-001), telemetry allowlist (PRIVACY-009), provider terms review (PRIVACY-013), provider allowlists (PLATFORM-010,011,012), budget caps (PLATFORM-014) |
-| Chunk duration TBD pending benchmark | LOW | Engineering | Benchmark procedure defined in capture-profile-v1.md §5; run during P12 |
-| All product/architecture docs still Draft | LOW | Product + Engineering | P00 decisions provide closure; formal status updates expected as phases verify behavior |
-| 20 doc/code contradictions | LOW | Engineering | Flagged for P02 domain contracts resolution |
-| Zero tests exist | HIGH | Engineering | P01 quality foundation is unblocked; must establish test infrastructure immediately |
-| No license selected | LOW | Product + Legal | Required before distribution |
-| Branch name mismatch (master vs documented main) | LOW | Engineering | Resolve during initial baseline commit |
+| Risk                                             | Severity | Owner                 | Action required                                                                                                                                                            |
+| ------------------------------------------------ | -------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7 BLOCKED decisions in approval registers        | MEDIUM   | Product + Legal       | Consent copy (PRIVACY-001), telemetry allowlist (PRIVACY-009), provider terms review (PRIVACY-013), provider allowlists (PLATFORM-010,011,012), budget caps (PLATFORM-014) |
+| Chunk duration TBD pending benchmark             | LOW      | Engineering           | Benchmark procedure defined in capture-profile-v1.md §5; run during P12                                                                                                    |
+| All product/architecture docs still Draft        | LOW      | Product + Engineering | P00 decisions provide closure; formal status updates expected as phases verify behavior                                                                                    |
+| 20 doc/code contradictions                       | LOW      | Engineering           | Flagged for P02 domain contracts resolution                                                                                                                                |
+| Zero tests exist                                 | HIGH     | Engineering           | P01 quality foundation is unblocked; must establish test infrastructure immediately                                                                                        |
+| No license selected                              | LOW      | Product + Legal       | Required before distribution                                                                                                                                               |
+| Branch name mismatch (master vs documented main) | LOW      | Engineering           | Resolve during initial baseline commit                                                                                                                                     |
 
 ## Final state rationale
 

@@ -2,9 +2,21 @@
   "expo": {
     "name": "Kaiser's Meeting Space",
     "slug": "kaiser-meeting-space",
+    "scheme": "kms",
     "version": "0.1.0",
     "orientation": "portrait",
-    "ios": { "supportsTablet": true, "infoPlist": { "NSMicrophoneUsageDescription": "Record meetings you explicitly start." } },
-    "android": { "permissions": ["RECORD_AUDIO"] }
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Record meetings you explicitly start."
+      }
+    },
+    "android": {
+      "permissions": [
+        "RECORD_AUDIO",
+        "RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.kaisermeetingspace"
+    }
   }
 }

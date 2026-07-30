@@ -1,7 +1,7 @@
 ---
 phase: P25
 title: Production deployment, migration, backup, restore, and disaster recovery
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P24]
 requirements: [NFR-Reliability, NFR-Security, NFR-Observability, FR-7]
 risk: critical
@@ -23,6 +23,12 @@ Read `docs/operations/DEPLOYMENT_AND_RUNBOOK.md`, System Architecture, Tech Stac
 - P00 has accepted infrastructure classes, cloud region, identity provider, secret manager, DNS/TLS owner, provider allowlist, budgets, RPO <=15 minutes, and RTO <=4 hours or superseding accepted values.
 - Authorized staging and production-like accounts, restricted service identities, encryption keys, backup vault, DNS/TLS, and deployment approval are available.
 - If production credentials/approval are withheld, staging and local drills continue, then the phase ends `IMPLEMENTED`/`BLOCKED` for production-only acceptance IDs.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P24        | Verified outputs and invariants consumed by this packet. | `../evidence/P24/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
@@ -57,14 +63,14 @@ Deployment environments use typed inputs and provider modules so cloud vendors c
 
 # File and ownership map
 
-| Path | Responsibility | Task owner |
-|---|---|---|
-| `infra/` | Versioned environment resources, identities, network, storage, and monitoring | Infrastructure package |
-| container/deploy workflows | Reproducible builds, provenance, promotion, and approvals | Delivery package |
-| config/secret integration | Typed environment contract and secret references | Security package |
-| migration tooling | Expand/migrate/contract gates and compatibility checks | Database package |
-| `ops/backup/` and `ops/dr/` | Backup, restore, PITR, object recovery, and DR harness | Recovery package |
-| staging synthetic tests/evidence | Smoke, rollback, and independent review | Release reviewer |
+| Path                             | Responsibility                                                                | Task owner             |
+| -------------------------------- | ----------------------------------------------------------------------------- | ---------------------- |
+| `infra/`                         | Versioned environment resources, identities, network, storage, and monitoring | Infrastructure package |
+| container/deploy workflows       | Reproducible builds, provenance, promotion, and approvals                     | Delivery package       |
+| config/secret integration        | Typed environment contract and secret references                              | Security package       |
+| migration tooling                | Expand/migrate/contract gates and compatibility checks                        | Database package       |
+| `ops/backup/` and `ops/dr/`      | Backup, restore, PITR, object recovery, and DR harness                        | Recovery package       |
+| staging synthetic tests/evidence | Smoke, rollback, and independent review                                       | Release reviewer       |
 
 # Ordered task packets
 
@@ -102,26 +108,30 @@ Independently review permissions, public exposure, encryption, secrets, backup a
 
 # Subagent work packages
 
-| Package | Task IDs | Exclusive paths | Depends on | Review gate | Output |
-|---|---|---|---|---|---|
-| Infrastructure | T01,T03 | infra definitions | P24 | architecture/security review | environment stack |
-| Delivery | T02,T04 | images/workflows | T01 | supply-chain/compat review | pipeline |
-| Recovery | T05-T07 | backup/DR tooling | T03,T04 | destructive-target/data-integrity review | drills |
-| Independent release review | T08 | tests/evidence only | all | production-readiness review | final report |
+| Package                    | Task IDs | Exclusive paths     | Depends on | Review gate                              | Output            |
+| -------------------------- | -------- | ------------------- | ---------- | ---------------------------------------- | ----------------- |
+| Infrastructure             | T01,T03  | infra definitions   | P24        | architecture/security review             | environment stack |
+| Delivery                   | T02,T04  | images/workflows    | T01        | supply-chain/compat review               | pipeline          |
+| Recovery                   | T05-T07  | backup/DR tooling   | T03,T04    | destructive-target/data-integrity review | drills            |
+| Independent release review | T08      | tests/evidence only | all        | production-readiness review              | final report      |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Content-free diagnostics | Recovery/regression |
-|---|---|---|---|---|
-| Migration/health gate fails | persistence | Stop promotion; old service remains available | release/migration ID | rehearsal regression |
-| Backup exists but cannot restore | environment | Critical failure; do not count backup green | backup/restore IDs, counts | full restore drill |
-| Redis lost | state | Rebuild dispatchable work from PostgreSQL | queue/outbox counts | loss/rebuild test |
-| Secret appears in image/log | security | Block, rotate, remove, rebuild | detector/path only | scan regression |
-| Wrong environment target | security | Fail before mutation | resolved environment/account ID | target-guard test |
+| Failure                          | Classification | Expected behavior                             | Content-free diagnostics        | Recovery/regression  |
+| -------------------------------- | -------------- | --------------------------------------------- | ------------------------------- | -------------------- |
+| Migration/health gate fails      | persistence    | Stop promotion; old service remains available | release/migration ID            | rehearsal regression |
+| Backup exists but cannot restore | environment    | Critical failure; do not count backup green   | backup/restore IDs, counts      | full restore drill   |
+| Redis lost                       | state          | Rebuild dispatchable work from PostgreSQL     | queue/outbox counts             | loss/rebuild test    |
+| Secret appears in image/log      | security       | Block, rotate, remove, rebuild                | detector/path only              | scan regression      |
+| Wrong environment target         | security       | Fail before mutation                          | resolved environment/account ID | target-guard test    |
 
 # Integrated verification
 
 Run infrastructure validate/plan checks, image/SBOM/secret/vulnerability scans, migration compatibility suite, staging deployment smoke, backup/restore and DR/rollback drills, `pnpm verify:release`, and Rust/release artifact checks. Record approvals and real staging outputs.
+
+| Gate                  | Command               | Intended signal                                                                 | Evidence                   |
+| --------------------- | --------------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify:release` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P25/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -139,6 +149,10 @@ Promote immutable artifacts from CI to staging and later production; never rebui
 # Required documentation updates
 
 Update deployment/runbook with selected environment values and drill results, security boundaries, development release commands, `STATUS.md`, `TRACEABILITY.md`, `PROGRESS.md`, and P25 evidence.
+
+# Conversation boundary
+
+Backend/platform delivery only. Do not implement desktop/mobile distribution, P26 signing/updater, Kubernetes without ADR, product features, or commit secrets. Stop before P26.
 
 # Handoff record
 

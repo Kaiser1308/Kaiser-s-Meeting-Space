@@ -23,14 +23,14 @@ Repository phase state advances only as follows:
 
 `BLOCKED` records a run that cannot proceed because of a concrete external requirement.
 
-| State | Required meaning |
-|---|---|
-| `NOT_STARTED` | No phase task has been accepted as complete. |
-| `IN_PROGRESS` | Preflight passed and at least one phase task is active. |
-| `IMPLEMENTED` | In-scope code and all available development gates pass, but a required external/manual gate remains unverified. |
-| `VERIFIED` | Every binary acceptance criterion has direct evidence from the required environment. |
-| `RELEASED` | P27 rollout and monitoring evidence prove availability to the intended personal user. |
-| `BLOCKED` | A named credential, device, approval, service state, or dependency is unavailable and no truthful in-scope substitute exists. |
+| State         | Required meaning                                                                                                              |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `NOT_STARTED` | No phase task has been accepted as complete.                                                                                  |
+| `IN_PROGRESS` | Preflight passed and at least one phase task is active.                                                                       |
+| `IMPLEMENTED` | In-scope code and all available development gates pass, but a required external/manual gate remains unverified.               |
+| `VERIFIED`    | Every binary acceptance criterion has direct evidence from the required environment.                                          |
+| `RELEASED`    | P27 rollout and monitoring evidence prove availability to the intended personal user.                                         |
+| `BLOCKED`     | A named credential, device, approval, service state, or dependency is unavailable and no truthful in-scope substitute exists. |
 
 Conversation text, code existence, compilation alone, a mock of a required real integration, and another phase's umbrella command are not verification evidence.
 
@@ -41,7 +41,13 @@ Complete these steps before editing product files:
 1. Run `git status --short --branch`, `git diff --stat`, and `git log -5 --oneline`. If the repository has no commit, record that fact instead of inventing a SHA.
 2. Inventory all dirty and untracked files. Attribute files created by the current run separately; preserve every pre-existing user change.
 3. Read `AGENTS.md`, this protocol, `PROGRESS.md`, `MASTER_PLAN.md`, the requested phase packet, and all authoritative documents it names.
-4. Check that every direct dependency is `VERIFIED` and that its evidence file exists. A stale ledger or missing evidence blocks execution.
+4. Evaluate every direct dependency against the requested packet's
+   **Dependency gate**. `VERIFIED` is the default. `IMPLEMENTED` is allowed only
+   when the packet names the exact consumed capability, links direct contract,
+   security, integrity, and regression evidence, and proves every unsatisfied
+   dependency acceptance criterion is orthogonal. Never upgrade or waive the
+   dependency's lifecycle state. A stale ledger, missing evidence, or
+   undocumented exception blocks execution.
 5. Record exact Node, pnpm, Rust, OS, SDK, container, database, provider, browser, application, and device versions required by the packet.
 6. Resolve the packet's intended paths against current repository structure. A compatible path move is recorded in the run record; a contract or boundary change requires an ADR/packet update.
 7. Convert the unchanged task IDs into a runtime checklist. Record task order, exact narrow-test commands, and evidence destinations.
@@ -50,8 +56,22 @@ Complete these steps before editing product files:
 
 The runtime checklist is now locked. It may gain regression cases discovered while debugging, but it may not gain features or weaken gates.
 
+### 3.1 Canonical state and packet state
+
+- `PROGRESS.md` is the only canonical runtime lifecycle source.
+- Phase packet frontmatter uses `packet_status: ACCEPTED`; it never duplicates
+  `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, or `RELEASED`.
+- `MASTER_PLAN.md` owns the stable dependency graph, not the current phase.
+- `STATUS.md` describes capabilities and links to the ledger; it does not select
+  the active phase.
+- Owner approval may provide a missing credential, device, legal decision, or
+  service state. It may not waive an acceptance gate or create an undocumented
+  dependency contract.
+
 ## 4. Subagent allocation and review
 
+- Use the `superpowers:subagent-driven-development` contract as a hard gate whenever the packet has independent work: dispatch a fresh implementer subagent per task, then a separate task-reviewer subagent after that task. Do not treat a single agent's self-review as the required independent review.
+- Every phase also requires a distinct design/architecture subagent before task execution to map contracts, boundaries, risks, and sequencing. If the phase is documentation-only, that subagent records and justifies “no architecture change”; it is still a required role. Finish with a separate whole-phase reviewer. Do not merge design, implementation, and review roles.
 - Give every implementer the phase ID, task IDs, allowed paths, consumed/produced interfaces, tests, and explicit non-goals.
 - Do not give two active agents ownership of the same file, migration sequence, generated artifact, package index, or shared configuration.
 - Serialise packages whose interfaces or migrations depend on each other.
@@ -60,6 +80,7 @@ The runtime checklist is now locked. It may gain regression cases discovered whi
 - Review each completed package in two stages:
   1. Specification compliance: requested behavior, phase boundary, invariants, and tests.
   2. Quality review: correctness, security, failure behavior, maintainability, and unnecessary scope.
+- If a task reviewer reports Critical or Important findings, stop task completion, fix the root cause (dispatch a fresh fix subagent when the fix is independent), rerun the covering narrow/regression tests, and re-review the updated diff. Record the finding, fix, test command/output, and re-review disposition.
 - The main agent inspects the actual diff, resolves integration, and reruns tests. A subagent's success claim is not evidence.
 
 ## 5. Task implementation loop
@@ -112,6 +133,13 @@ Never delete/skip a critical test, lower a threshold, weaken an assertion, add b
 A task is complete only when its behavior, failure paths, narrow tests, related regression, documentation/migrations, and evidence entry are complete. Check off the task ID in the run record and create a focused commit when repository/phase conditions permit. Do not mark phase acceptance yet.
 
 ## 6. Integrated phase gate
+
+Every packet defines an exact command table. A task-specific command whose path
+does not exist until an earlier phase executes is resolved during preflight and
+recorded with its expected failure signature and non-zero intended test count.
+External device, provider, signing, deployment, or production commands name the
+required environment and acceptance signal and remain unverified until run
+there.
 
 After all tasks integrate, run the packet's gate in this order:
 

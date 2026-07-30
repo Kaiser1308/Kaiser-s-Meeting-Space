@@ -36,7 +36,7 @@ flowchart LR
 
 - **Mobile:** microphone capture, local manifest/chunks, offline upload queue, meeting controls, transcript viewer and lightweight edits.
 - **Desktop UI (Electron/React):** window/update lifecycle, full transcript review, TipTap minutes editor, branding and export controls.
-- **Desktop native runtime (Rust):** WASAPI/microphone capture, stable device identity/health, persistent resampling, bounded buffers, local chunk durability and optional local inference.
+- **Desktop native runtime (Rust):** WASAPI/microphone capture, stable device identity/health, persistent resampling, bounded buffers, local chunk durability and the verified default local final-STT engine.
 - Neither client receives third-party provider secrets.
 
 ### API
@@ -129,15 +129,15 @@ Recovery branches: `recording|paused → recovery_required`; recoverable process
 
 ## 8. Technology defaults
 
-| Area | Default | Reason |
-|---|---|---|
-| Mobile | Expo / React Native | Shared TypeScript and broad device reach |
-| Desktop | Electron / React + signed Rust runtime, Windows first | Mature editor UI plus native audio/local-AI performance |
-| API | Fastify / TypeScript | Lightweight typed service aligned with repo |
-| Database | PostgreSQL | Transactions, relational integrity and JSON support |
-| Objects | S3-compatible storage | Large immutable objects and signed access |
-| Queue | Durable Redis-backed or managed queue | Retries, progress and worker separation |
-| Realtime | SSE for server progress; provider socket for speech | Simple reconnect semantics for app state |
+| Area     | Default                                               | Reason                                                  |
+| -------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| Mobile   | Expo / React Native                                   | Shared TypeScript and broad device reach                |
+| Desktop  | Electron / React + signed Rust runtime, Windows first | Mature editor UI plus native audio/local-AI performance |
+| API      | Fastify / TypeScript                                  | Lightweight typed service aligned with repo             |
+| Database | PostgreSQL                                            | Transactions, relational integrity and JSON support     |
+| Objects  | S3-compatible storage                                 | Large immutable objects and signed access               |
+| Queue    | Durable Redis-backed or managed queue                 | Retries, progress and worker separation                 |
+| Realtime | SSE for server progress; provider socket for speech   | Simple reconnect semantics for app state                |
 
 Specific cloud vendors remain deployment decisions; interfaces must not depend on proprietary database behavior.
 
@@ -146,3 +146,17 @@ Specific cloud vendors remain deployment decisions; interfaces must not depend o
 - Personal alpha runs as a modular monolith plus workers.
 - Split services only when independent scaling, ownership or failure isolation is demonstrated.
 - Team/RBAC, calendar integrations and enterprise controls are future bounded contexts, not alpha dependencies.
+
+## 10. Local-first final transcription flow
+
+1. End pins an immutable verified audio-manifest version.
+2. The versioned policy selects exactly one primary final path: none, desktop local or consented cloud. Missing desktop/model produces a truthful waiting state, not cloud fallback.
+3. Local final creates deterministic bounded overlapped windows and durable per-part checkpoints.
+4. Cloud final uses one full-meeting batch when supported or equivalent deterministic windows within the same consented provider and scope.
+5. Immutable raw run events reconcile into a versioned projection; each expected range becomes canonical text or an explicit gap.
+6. Local-plus-cloud-check creates a separate cloud run only after local completion and exact user approval. It cannot replace the projection without a review decision.
+7. Translation and minutes consume a fixed authoritative transcript projection/revision set.
+
+PostgreSQL stores transcription policies, immutable runs/parts/raw events, projections and revisions. The Windows Rust runtime owns the verified default local file-STT engine with bounded resources and capture priority. Mobile audio may remain `waiting_for_desktop` until an authorized desktop processes its durable synchronized manifest.
+
+Local STT, local-only storage, synchronized local STT, cloud speech and cloud minutes AI are separate trust and consent boundaries.

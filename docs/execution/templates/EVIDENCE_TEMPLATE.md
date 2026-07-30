@@ -10,24 +10,29 @@
 ## Requirement and acceptance mapping
 
 | Requirement / acceptance ID | Test or scenario | Result | Artifact |
-|---|---|---|---|
+| --------------------------- | ---------------- | ------ | -------- |
+
+## Dependency-consumption evidence
+
+Record only capabilities this phase exposes to dependents. This section does not
+change the phase lifecycle state or waive unsatisfied acceptance criteria.
 
 ## Commands
 
 | Command | Exit code | Intended tests | Executed tests | Duration | Report |
-|---|---:|---:|---:|---:|---|
+| ------- | --------: | -------------: | -------------: | -------: | ------ |
 
 ## Manual, device, and provider matrix
 
 | Scenario | Environment/version | Result | Artifact | Reviewer |
-|---|---|---|---|---|
+| -------- | ------------------- | ------ | -------- | -------- |
 
 ## Security, privacy, and data-integrity review
 
 ## Defects and root-cause fixes
 
 | Defect | Classification | Root cause | Regression test | Fix commit |
-|---|---|---|---|---|
+| ------ | -------------- | ---------- | --------------- | ---------- |
 
 ## Migration, rollout, rollback, and recovery
 

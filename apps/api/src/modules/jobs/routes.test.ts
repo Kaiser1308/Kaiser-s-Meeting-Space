@@ -12,7 +12,7 @@ describe('Job REST API Routes (Isolation)', () => {
     vi.spyOn(JobsMetadataRepository.prototype, 'get').mockResolvedValue(null);
 
     const app = Fastify();
-    
+
     // Register bearerAuth with a mock verifier/resolver
     await app.register(async (protectedRoutes) => {
       await protectedRoutes.register(bearerAuth, {

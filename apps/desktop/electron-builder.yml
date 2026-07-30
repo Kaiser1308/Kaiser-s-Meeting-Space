@@ -1,0 +1,19 @@
+appId: com.kaiser.meetingspace
+productName: Kaiser's Meeting Space
+directories:
+  output: dist-packaged
+files:
+  - dist-electron/**/*
+  - dist/**/*
+extraResources:
+  - from: ../../native/target/release
+    to: native
+    filter:
+      - kms-native
+      - kms-native.exe
+win:
+  target: dir
+mac:
+  target: dir
+linux:
+  target: dir

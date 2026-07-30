@@ -1,7 +1,7 @@
 ---
 phase: P26
 title: Signed desktop/mobile packaging and controlled updates
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P25]
 requirements: [NFR-Security, NFR-Reliability, ADR-006]
 risk: critical
@@ -23,6 +23,12 @@ Read Tech Stack, ADR-006, Security/Privacy, Deployment Runbook, P11/P12 native e
 - Approved Windows code-signing identity/HSM or managed signing service, Apple Developer/App Store Connect identity, Android Play signing/internal distribution identity, and protected CI environments are available.
 - Exact package IDs, publisher identities, version scheme, update channels, signing owner, rotation/revocation procedure, and supported upgrade floor are approved.
 - Missing signing/store identity is a real external blocker; unsigned local artifacts cannot satisfy signing acceptance.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P25        | Verified outputs and invariants consumed by this packet. | `../evidence/P25/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
@@ -56,13 +62,13 @@ Channel/metadata/signature verification is independent of hosting vendor; future
 
 # File and ownership map
 
-| Path | Responsibility | Task owner |
-|---|---|---|
-| desktop packaging/updater config | Installer, sidecar bundle, permissions, update client | Desktop package |
-| mobile release config | Android/iOS IDs, entitlements, build/update channels | Mobile package |
-| release/signing workflows | Protected signing, provenance, promotion | Delivery package |
-| release manifest/version tooling | Compatibility and artifact metadata | Contract package |
-| packaging/update E2E | install/upgrade/downgrade/tamper/recovery matrix | Independent reviewer |
+| Path                             | Responsibility                                        | Task owner           |
+| -------------------------------- | ----------------------------------------------------- | -------------------- |
+| desktop packaging/updater config | Installer, sidecar bundle, permissions, update client | Desktop package      |
+| mobile release config            | Android/iOS IDs, entitlements, build/update channels  | Mobile package       |
+| release/signing workflows        | Protected signing, provenance, promotion              | Delivery package     |
+| release manifest/version tooling | Compatibility and artifact metadata                   | Contract package     |
+| packaging/update E2E             | install/upgrade/downgrade/tamper/recovery matrix      | Independent reviewer |
 
 # Ordered task packets
 
@@ -100,27 +106,31 @@ On clean supported Windows/Android/iOS environments install the signed artifacts
 
 # Subagent work packages
 
-| Package | Task IDs | Exclusive paths | Depends on | Review gate | Output |
-|---|---|---|---|---|---|
-| Contract/delivery | T01,T07 | version + signing workflows | P25 | supply-chain review | manifest/controls |
-| Windows | T02-T04 | desktop packaging/updater | T01 | native/security review | signed package/update |
-| Android | T05 | Android release config | T01 | permission/signing review | internal build |
-| iOS | T06 | iOS release config | T01 | entitlement/privacy review | internal build |
-| Independent qualification | T08 | tests/evidence only | all | install/update review | final matrix |
+| Package                   | Task IDs | Exclusive paths             | Depends on | Review gate                | Output                |
+| ------------------------- | -------- | --------------------------- | ---------- | -------------------------- | --------------------- |
+| Contract/delivery         | T01,T07  | version + signing workflows | P25        | supply-chain review        | manifest/controls     |
+| Windows                   | T02-T04  | desktop packaging/updater   | T01        | native/security review     | signed package/update |
+| Android                   | T05      | Android release config      | T01        | permission/signing review  | internal build        |
+| iOS                       | T06      | iOS release config          | T01        | entitlement/privacy review | internal build        |
+| Independent qualification | T08      | tests/evidence only         | all        | install/update review      | final matrix          |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Content-free diagnostics | Recovery/regression |
-|---|---|---|---|---|
-| Invalid/tampered artifact | security | Refuse install/launch/update | release ID/hash error | tamper matrix |
-| Update interrupted | platform | Keep old healthy version and local evidence | stage/version/error | interruption E2E |
-| IPC/store incompatible | contract | Fail before mutation; Recovery Inbox/read-only path | version tuple | upgrade compatibility test |
-| Signing identity unavailable | environment | Block signed gate; do not self-sign as substitute | identity/channel only | rerun protected job |
-| Uninstall/upgrade removes evidence unexpectedly | persistence | Critical release block | data-class counts | lifecycle regression |
+| Failure                                         | Classification | Expected behavior                                   | Content-free diagnostics | Recovery/regression        |
+| ----------------------------------------------- | -------------- | --------------------------------------------------- | ------------------------ | -------------------------- |
+| Invalid/tampered artifact                       | security       | Refuse install/launch/update                        | release ID/hash error    | tamper matrix              |
+| Update interrupted                              | platform       | Keep old healthy version and local evidence         | stage/version/error      | interruption E2E           |
+| IPC/store incompatible                          | contract       | Fail before mutation; Recovery Inbox/read-only path | version tuple            | upgrade compatibility test |
+| Signing identity unavailable                    | environment    | Block signed gate; do not self-sign as substitute   | identity/channel only    | rerun protected job        |
+| Uninstall/upgrade removes evidence unexpectedly | persistence    | Critical release block                              | data-class counts        | lifecycle regression       |
 
 # Integrated verification
 
 Run clean release builds, package/bundle/secret/dependency/SBOM scans, signature verification, desktop update matrix, Android/iOS signed install/upgrade E2E, local-recovery conformance after update, `pnpm verify:release`, and Rust release checks.
+
+| Gate                  | Command               | Intended signal                                                                 | Evidence                   |
+| --------------------- | --------------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify:release` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P26/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -138,6 +148,10 @@ Publish to internal channels first, then beta channels only in P27. Keep prior h
 # Required documentation updates
 
 Update deployment runbook release/signing/update sections, security threat model, supported versions, development release commands, `STATUS.md`, `TRACEABILITY.md`, `PROGRESS.md`, and P26 evidence.
+
+# Conversation boundary
+
+Packaging/signing/update only. Do not add features, macOS builds, backend deployment, marketing/store-launch content, expose signing keys, or erase local evidence. Stop before P27.
 
 # Handoff record
 

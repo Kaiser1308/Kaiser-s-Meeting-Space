@@ -16,7 +16,7 @@ const workers: KMSWorker[] = [];
 
 async function bootstrap() {
   console.log('Starting background worker process...');
-  
+
   // Start outbox dispatcher
   await dispatcher.start();
   console.log('Outbox dispatcher started');
@@ -32,13 +32,13 @@ async function bootstrap() {
 
 async function shutdown(signal: string) {
   console.log(`Received ${signal}. Shutting down worker process gracefully...`);
-  
+
   // Stop outbox dispatcher
   await dispatcher.stop().catch(console.error);
-  
+
   // Stop all job workers
   await Promise.all(workers.map((w) => w.stop().catch(console.error)));
-  
+
   console.log('Graceful shutdown completed');
   process.exit(0);
 }

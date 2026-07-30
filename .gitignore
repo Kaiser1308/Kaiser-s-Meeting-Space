@@ -8,3 +8,6 @@ dist/
 *.log
 recordings/
 exports/
+native/models/*.bin
+native/models/*.local.json
+packages/speech/test/fixtures/corpus/audio/*.wav

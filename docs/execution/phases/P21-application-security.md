@@ -1,7 +1,7 @@
 ---
 phase: P21
 title: Application, native-boundary, and supply-chain security hardening
-status: NOT_STARTED
+packet_status: ACCEPTED
 depends_on: [P20]
 requirements: [NFR-Security, NFR-Privacy, ADR-002, ADR-006]
 risk: critical
@@ -20,6 +20,12 @@ Read Security/Privacy, Security Policy, API/Data Model/System Architecture, all 
 # Preconditions and external prerequisites
 
 P20 is `VERIFIED`; security scanning/fuzzing tools, representative packaged development artifacts, two-owner fixtures, dependency registries/advisories, and approved secret/keychain test adapters are available. External penetration review is optional unless P00 marked mandatory; unavailable mandated review blocks acceptance.
+
+# Dependency gate
+
+| Dependency | Required capability                                      | Required evidence             | Minimum lifecycle |
+| ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
+| P20        | Verified outputs and invariants consumed by this packet. | `../evidence/P20/EVIDENCE.md` | VERIFIED          |
 
 # Scope firewall
 
@@ -40,14 +46,14 @@ P20 is `VERIFIED`; security scanning/fuzzing tools, representative packaged deve
 
 # File and ownership map
 
-| Path | Responsibility | Owner |
-|---|---|---|
-| security threat model/inventories | boundaries/control/test/risk mapping | Threat model |
-| API/security tests and bounded fixes | authz/session/URL/rate/parser | API security |
-| Electron/Rust/mobile security | keychain/IPC/privilege/bundle | Client/native security |
-| provider/editor/renderer fuzz tests | untrusted structured/file inputs | Input security |
-| workflows/scanners/SBOM/license | supply chain and artifacts | Supply chain |
-| P21 evidence/risk register | independent findings/remediation | Independent reviewer |
+| Path                                 | Responsibility                       | Owner                  |
+| ------------------------------------ | ------------------------------------ | ---------------------- |
+| security threat model/inventories    | boundaries/control/test/risk mapping | Threat model           |
+| API/security tests and bounded fixes | authz/session/URL/rate/parser        | API security           |
+| Electron/Rust/mobile security        | keychain/IPC/privilege/bundle        | Client/native security |
+| provider/editor/renderer fuzz tests  | untrusted structured/file inputs     | Input security         |
+| workflows/scanners/SBOM/license      | supply chain and artifacts           | Supply chain           |
+| P21 evidence/risk register           | independent findings/remediation     | Independent reviewer   |
 
 # Ordered task packets
 
@@ -85,26 +91,30 @@ Classify with reproduction/impact/owner; remediate root cause and regression, ro
 
 # Subagent work packages
 
-| Package | Tasks | Exclusive paths | Depends on | Review gate |
-|---|---|---|---|---|
-| Threat/API | T01-T03 | threat docs/API/tests | P20 | independent auth/web review |
-| Client/native | T04 client,T05 | client/native/tests | P11/P12 | privilege/keychain review |
-| Inputs/supply chain | T04 server,T06,T07 | fuzz/scans/workflows | P17/P20 | parser/dependency review |
-| Independent remediation | T08 | tests/evidence + bounded fixes coordination | all | final security review |
+| Package                 | Tasks              | Exclusive paths                             | Depends on | Review gate                 |
+| ----------------------- | ------------------ | ------------------------------------------- | ---------- | --------------------------- |
+| Threat/API              | T01-T03            | threat docs/API/tests                       | P20        | independent auth/web review |
+| Client/native           | T04 client,T05     | client/native/tests                         | P11/P12    | privilege/keychain review   |
+| Inputs/supply chain     | T04 server,T06,T07 | fuzz/scans/workflows                        | P17/P20    | parser/dependency review    |
+| Independent remediation | T08                | tests/evidence + bounded fixes coordination | all        | final security review       |
 
 # Failure and debugging matrix
 
-| Failure | Classification | Expected behavior | Recovery/regression |
-|---|---|---|---|
-| Cross-user identifier | security | Uniform deny/no metadata | route matrix |
-| Compromised renderer | security | No Node/secret/broad native capability | adversarial IPC |
-| Malformed/oversized input | security | Bounded rejection before costly work | fuzz regression |
-| Secret scanner hit | security | Block, rotate/remove/rebuild | synthetic detection |
-| Critical/high dependency | security | Upgrade/mitigate or block; no acceptance | scan/SBOM rerun |
+| Failure                   | Classification | Expected behavior                        | Recovery/regression |
+| ------------------------- | -------------- | ---------------------------------------- | ------------------- |
+| Cross-user identifier     | security       | Uniform deny/no metadata                 | route matrix        |
+| Compromised renderer      | security       | No Node/secret/broad native capability   | adversarial IPC     |
+| Malformed/oversized input | security       | Bounded rejection before costly work     | fuzz regression     |
+| Secret scanner hit        | security       | Block, rotate/remove/rebuild             | synthetic detection |
+| Critical/high dependency  | security       | Upgrade/mitigate or block; no acceptance | scan/SBOM rerun     |
 
 # Integrated verification
 
 Run complete authorization/URL/session matrix, secret/source/history/artifact/log scans, Electron/Rust/mobile security assertions, parser/file fuzz/limit suites, SAST/dependency/license/lock/SBOM/provenance, `pnpm verify:release`, Rust checks, and independent diff/threat review.
+
+| Gate                  | Command       | Intended signal                                                                 | Evidence                   |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Integrated phase gate | `pnpm verify` | exit 0 with non-zero intended tests; external gates remain separately evidenced | `evidence/P21/EVIDENCE.md` |
 
 # Acceptance gate
 
@@ -122,6 +132,10 @@ Security fixes follow compatibility/migration rules and feature kill switches. N
 # Required documentation updates
 
 Security threat model/policy, architecture boundaries, API inventory, operations incident/runbook, dependency policy, Status/Traceability/Progress, and P21 evidence/risk register.
+
+# Conversation boundary
+
+Security remediation only. Do not add features/providers/formats, replace architecture broadly, weaken tests, log content, or accept unresolved critical/high findings. Stop before P22.
 
 # Handoff record
 

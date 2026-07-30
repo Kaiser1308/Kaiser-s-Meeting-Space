@@ -1,0 +1,115 @@
+export const REQUIRED_SUITES = {
+  unit: [
+    { workspace: 'packages/domain', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
+    { workspace: 'packages/ai', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
+    {
+      workspace: 'packages/auth',
+      script: 'test:unit',
+      testFiles: ['src/**/*.test.ts', 'test/**/*.test.ts'],
+    },
+    { workspace: 'packages/config', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
+    {
+      workspace: 'packages/database',
+      script: 'test:unit',
+      testFiles: ['src/**/*.test.ts'],
+    },
+    {
+      workspace: 'packages/storage',
+      script: 'test:unit',
+      testFiles: [
+        'src/config.test.ts',
+        'src/errors.test.ts',
+        'src/key-derivation.test.ts',
+        'src/in-memory/**/*.test.ts',
+      ],
+    },
+    { workspace: 'packages/test-support', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
+    { workspace: 'packages/jobs', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
+    {
+      workspace: 'packages/local-recovery',
+      script: 'test:unit',
+      testFiles: ['test/**/*.test.ts'],
+    },
+    {
+      workspace: 'packages/mobile-audio',
+      script: 'test:unit',
+      testFiles: ['test/**/*.test.ts'],
+    },
+    {
+      workspace: 'packages/native-contract',
+      script: 'test:unit',
+      testFiles: ['src/**/*.test.ts'],
+    },
+    { workspace: 'packages/speech', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
+    {
+      workspace: 'apps/api',
+      script: 'test:unit',
+      testFiles: [
+        'src/server.test.ts',
+        'src/modules/audio/dto.test.ts',
+        'src/modules/audio/errors.test.ts',
+        'src/modules/jobs/**/*.test.ts',
+        'src/modules/meetings/**/*.test.ts',
+        'src/modules/speech/**/*.test.ts',
+      ],
+    },
+    {
+      workspace: 'apps/desktop',
+      script: 'test:unit',
+      testFiles: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    },
+    {
+      workspace: 'apps/mobile',
+      script: 'test:unit',
+      testFiles: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    },
+    { workspace: 'apps/worker', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
+  ],
+  integration: [
+    {
+      workspace: 'apps/api',
+      script: 'test:integration',
+      testFiles: ['src/modules/audio/routes.test.ts'],
+    },
+    {
+      workspace: 'packages/database',
+      script: 'test:integration',
+      testFiles: ['test/**/*.test.ts'],
+    },
+    {
+      workspace: 'packages/storage',
+      script: 'test:integration',
+      testFiles: ['src/s3/**/*.minio.test.ts'],
+    },
+  ],
+  contract: [
+    { workspace: 'packages/domain', script: 'test:contract', testFiles: ['src/**/*.test.ts'] },
+    {
+      workspace: 'apps/api',
+      script: 'test:contract',
+      testFiles: [
+        'src/modules/jobs/**/*.test.ts',
+        'src/modules/meetings/**/*.test.ts',
+        'src/modules/speech/**/*.test.ts',
+      ],
+    },
+  ],
+  build: [
+    { workspace: 'packages/domain', script: 'typecheck' },
+    { workspace: 'packages/ai', script: 'typecheck' },
+    { workspace: 'packages/auth', script: 'typecheck' },
+    { workspace: 'packages/config', script: 'typecheck' },
+    { workspace: 'packages/database', script: 'typecheck' },
+    { workspace: 'packages/storage', script: 'typecheck' },
+    { workspace: 'packages/test-support', script: 'typecheck' },
+    { workspace: 'apps/api', script: 'typecheck' },
+    { workspace: 'apps/desktop', script: 'typecheck' },
+    { workspace: 'apps/mobile', script: 'typecheck' },
+    { workspace: 'apps/worker', script: 'typecheck' },
+    { workspace: 'packages/jobs', script: 'typecheck' },
+    { workspace: 'packages/local-recovery', script: 'typecheck' },
+    { workspace: 'packages/mobile-audio', script: 'typecheck' },
+    { workspace: 'packages/native-contract', script: 'typecheck' },
+    { workspace: 'packages/speech', script: 'typecheck' },
+  ],
+};

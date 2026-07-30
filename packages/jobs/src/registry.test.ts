@@ -27,6 +27,8 @@ describe('Job Configuration Registry', () => {
   });
 
   it('should throw an error for unsupported job types', () => {
-    expect(() => getJobConfig('invalid_type' as JobType)).toThrow('Unsupported job type: invalid_type');
+    expect(() => getJobConfig('invalid_type' as JobType)).toThrow(
+      'Unsupported job type: invalid_type',
+    );
   });
 });

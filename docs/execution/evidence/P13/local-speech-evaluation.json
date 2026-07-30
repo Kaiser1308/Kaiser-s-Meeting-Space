@@ -1,0 +1,32 @@
+{
+  "task": "P13-T06",
+  "evidenceDate": "2026-07-27",
+  "corpus": {
+    "path": "packages/speech/test/fixtures/corpus/",
+    "entries": 10,
+    "languages": ["vi", "en"],
+    "conditions": ["clean", "noisy"],
+    "frozen": true
+  },
+  "evaluation": {
+    "werAlgorithm": "Levenshtein distance / reference word count (case-insensitive)",
+    "planCoverage": "percentage of durationMs covered by window union",
+    "thresholds": {
+      "cleanWer": 0.18,
+      "noisyWer": 0.3,
+      "timestampP95": 1.5,
+      "localRtf": 1.0,
+      "cancelAck": 2.0
+    },
+    "safeMetrics": "no audio/text/content in report schema — EVAL_REPORT_SCHEMA rejects extra fields",
+    "blockedReport": "createBlockedReport produces a valid report with all measurement fields null and blocked flags true"
+  },
+  "tests": { "files": 1, "tests": 15, "pass": true },
+  "typecheck": "clean (speech)",
+  "t06status": {
+    "corpusFrozen": "VERIFIED",
+    "harnessUnits": "VERIFIED",
+    "werRtf": "BLOCKED on real whisper binary",
+    "cloudMetric": "BLOCKED on real Deepgram key"
+  }
+}
