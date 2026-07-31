@@ -22,7 +22,7 @@ Nguyên tắc bắt buộc:
 
 ### 2.1 Nền tảng
 
-- Mobile app: iOS và Android, ưu tiên ghi họp trực tiếp bằng microphone.
+- Mobile app: Android, ưu tiên ghi họp trực tiếp bằng microphone. Cấu hình và mã iOS hiện có chỉ được giữ làm phương án dự phòng, không thuộc phạm vi hỗ trợ hoặc nghiệm thu.
 - Desktop app: Windows trước, hỗ trợ microphone và âm thanh hệ thống cho Zoom, Meet, Teams hoặc ứng dụng khác.
 - macOS được triển khai sau khi luồng Windows ổn định vì cơ chế cấp quyền/thu system audio khác nhau.
 - Backend dùng chung để đồng bộ cuộc họp giữa mobile và desktop.
@@ -366,7 +366,7 @@ Tất cả mutation dùng idempotency key khi có nguy cơ client retry. API key
 
 - Security/privacy review, secret scanning và log redaction.
 - Long-meeting, crash, offline, provider failure và storage pressure tests.
-- Packaging/signing Windows, iOS và Android.
+- Packaging/signing Windows và Android; iOS không thuộc phạm vi phát hành.
 - Monitoring chỉ dùng metadata vận hành, không thu nội dung nhạy cảm.
 
 ## 11. Tiêu chí nghiệm thu bắt buộc

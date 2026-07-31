@@ -18,7 +18,7 @@ Highest severity risks are silent audio loss, corrupt ordering, transcript evide
 | Integration   | Vitest + Testcontainers                  | PostgreSQL, Redis, S3, jobs and migrations                   |
 | Contract      | OpenAPI/provider fixtures                | Client/API and adapter compatibility                         |
 | Desktop E2E   | Playwright                               | Setup, recording controls, recovery, editor/export           |
-| Mobile E2E    | Maestro                                  | Permissions, setup, recording lifecycle, recovery            |
+| Mobile E2E    | Maestro                                  | Supported Android permissions, setup, recording and recovery |
 | Resilience    | Fault injection                          | Network/provider/storage/process failures                    |
 | Performance   | Duration/load harnesses                  | Two-hour capture and worker throughput                       |
 | Security      | SAST/DAST/manual review                  | Authz, signed URLs, secrets and deletion                     |
@@ -57,7 +57,9 @@ Highest severity risks are silent audio loss, corrupt ordering, transcript evide
 ## Release gates
 
 - All static, unit, integration and contract suites pass.
-- Critical E2E matrix passes on supported OS/device versions.
+- Critical E2E matrix passes on supported Windows and Android versions.
+- Mobile manual accessibility qualification uses TalkBack on supported Android
+  devices. Dormant iOS reserve assets do not add a VoiceOver release gate.
 - No flaky critical tests; quarantine is not permitted for data-integrity tests.
 - Performance thresholds and recovery drills pass.
 - Zero open critical/high data-loss or security findings.

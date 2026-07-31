@@ -10,7 +10,7 @@
 | ---------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
 | Language               | TypeScript                                                  | Shared types and implementation across clients/backend           |
 | Workspace              | pnpm workspaces; Turborepo when task graph is needed        | Dependency and build orchestration                               |
-| Mobile                 | Expo + React Native                                         | iOS/Android in-person capture and mobile library                 |
+| Mobile                 | Expo + React Native                                         | Android in-person capture and mobile library; dormant iOS reserve retained |
 | Desktop                | Electron + React + Vite                                     | Window/update lifecycle and full TipTap editor                   |
 | Native runtime         | Rust signed sidecar/native bridge                           | Predictable audio callbacks, device health and optional local AI |
 | Windows audio          | WASAPI loopback through the Rust runtime                    | Reliable microphone/system-audio capture                         |
@@ -29,7 +29,7 @@
 | Export                 | `docx`; HTML/Chromium PDF; native MD/TXT/JSON               | Version-pinned document generation                               |
 | Unit/integration tests | Vitest + Testcontainers                                     | Fast logic tests and real service integration                    |
 | Web/desktop E2E        | Playwright                                                  | User flows and Electron-compatible automation                    |
-| Mobile E2E             | Maestro                                                     | Cross-platform mobile flow testing                               |
+| Mobile E2E             | Maestro                                                     | Supported Android mobile flow testing                            |
 | Observability          | OpenTelemetry + Sentry                                      | Traces/metrics and safe client/server errors                     |
 | Delivery               | Docker + GitHub Actions                                     | Reproducible services and gated CI/CD                            |
 

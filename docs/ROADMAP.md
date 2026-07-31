@@ -6,6 +6,12 @@
 
 Dates are intentionally omitted until capacity is known. Progress is gate-based, not calendar-based.
 
+## Supported release platforms
+
+The personal release supports Windows 11 23H2+ x64 and Android 12+. Android is
+the sole supported mobile platform. Existing iOS configuration and
+implementation remain as a dormant, non-gating reserve under ADR-007.
+
 ## Phase 0 — Design approval
 
 - Approve PRD, user flows, architecture, data lifecycle, stack and ADRs.

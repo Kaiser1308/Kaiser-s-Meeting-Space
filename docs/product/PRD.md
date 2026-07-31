@@ -5,6 +5,10 @@
 **Last reviewed:** 2026-07-21  
 **Target release:** Personal-use alpha
 
+**Supported platforms:** Windows 11 23H2+ x64 and Android 12+. Android is the
+sole supported mobile product platform. Existing iOS assets are a dormant,
+non-gating reserve under ADR-007.
+
 ## 1. Problem
 
 Meetings are frequently reduced to incomplete notes. Decisions, context and exact wording become hard to verify, especially across Vietnamese and English conversations. Existing transcription products often optimize for short summaries rather than preserving a complete, auditable record.
@@ -152,7 +156,7 @@ The user must complete the sequence `title → language → mode → audio sourc
 
 Alpha is releasable only when:
 
-1. Critical end-to-end flows pass on supported Windows, Android and iOS targets.
+1. Critical end-to-end flows pass on supported Windows and Android targets.
 2. Two-hour recording, network loss, crash recovery and low-storage tests pass without silent data loss.
 3. Source/derived data boundaries and revision history are verified.
 4. Citation validation rejects nonexistent segments or invalid timestamps.
