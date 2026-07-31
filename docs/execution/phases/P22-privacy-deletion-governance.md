@@ -133,7 +133,7 @@ Run `pnpm test:contract -- --project privacy`, `pnpm test:integration -- --proje
 
 ## Manual/platform/provider matrix
 
-Review consent/disclosure/delete copy in Vietnamese and English on Windows, Android, and iOS. Exercise every configured external processor with synthetic data; mark unavailable real capabilities as blockers.
+Review consent/disclosure/delete copy in Vietnamese and English on supported Windows and Android. Exercise every configured external processor with synthetic data; mark unavailable real capabilities as blockers.
 
 ## Security, privacy, and data-integrity review
 

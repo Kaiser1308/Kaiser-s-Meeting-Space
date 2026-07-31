@@ -13,6 +13,11 @@ risk: high
 
 All decisions required to implement P01-P27 are accepted or explicitly provisional with an owner and release deadline. Maintained documents agree on product scope, supported platforms, capture profile, privacy/retention, identity/provider/infrastructure policy, and repository truth. The initial baseline preserves all pre-existing work and contains no product implementation introduced by this phase.
 
+> **Current platform-scope supersession (2026-07-31):** ADR-007 makes Android
+> the sole supported mobile product platform. The Windows/Android/iOS wording
+> below records P00's accepted 2026-07-21 baseline and is not a current iOS
+> release commitment.
+
 # Authoritative context
 
 Read every maintained file under `docs/`, root governance files, package manifests/lockfile, current source/tests, and Git state. Read the complete Meetily review only as clean-room research. Precedence: accepted ADRs, focused product/architecture/security docs, this packet, consolidated plan, prototype code.

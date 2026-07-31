@@ -82,7 +82,7 @@ Implement validated local file playback fallback to scoped URL, source selection
 
 ## P10-T07 - Physical-device sync/recovery/security qualification
 
-Run network flap, airplane mode, token expiry, process kill at each upload/End boundary, checksum conflict, queue backlog, local/server mismatch, library paging, playback, and two-user attempts on Android/iOS. Inspect local files/manifests/DB/objects. Evidence: `evidence/P10/EVIDENCE.md`.
+Run network flap, airplane mode, token expiry, process kill at each upload/End boundary, checksum conflict, queue backlog, local/server mismatch, library paging, playback, and two-user attempts on supported Android. Inspect local files/manifests/DB/objects. Evidence: `evidence/P10/EVIDENCE.md`.
 
 # Subagent work packages
 
@@ -118,7 +118,7 @@ Run mobile sync/library/player unit/component tests, real API/PostgreSQL/MinIO/O
 - [ ] P10-A03 - End/pending/cloud/local/completeness states remain truthful across restart/outage.
 - [ ] P10-A04 - Offline library/playback works within cached/local limits and cross-user resources are denied.
 - [ ] P10-A05 - Cleanup cannot remove active/unverified/conflicted source.
-- [ ] P10-A06 - Android/iOS physical sync/recovery matrices pass.
+- [ ] P10-A06 - Supported Android physical sync/recovery matrices pass.
 
 # Migration, rollout, and rollback
 

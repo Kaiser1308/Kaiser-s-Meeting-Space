@@ -11,7 +11,7 @@ risk: critical
 
 # Outcome
 
-Supported Android/iOS development builds capture microphone audio into P07 durable chunks, expose responsive record/pause/resume/end controls, survive documented interruptions/background/route/storage/process failures without network/provider dependence, and never acknowledge source that cannot be recovered.
+Supported Android development builds capture microphone audio into P07 durable chunks, expose responsive record/pause/resume/end controls, survive documented interruptions/background/route/storage/process failures without network/provider dependence, and never acknowledge source that cannot be recovered. Existing iOS capture code remains a non-gating reserve under ADR-007.
 
 # Authoritative context
 
@@ -19,7 +19,7 @@ Read P00 capture profile/support matrix, P02 meeting/capture commands, P07 confo
 
 # Preconditions and external prerequisites
 
-P08 is `VERIFIED`; supported physical Android and iOS devices, native development build toolchains, private app storage, microphone permissions, and at least one wired/Bluetooth route class are available. Emulator microphone results cannot satisfy physical acceptance.
+P08 is `VERIFIED`; a supported physical Android device, the Android native development build toolchain, private app storage, microphone permissions, and at least one wired/Bluetooth route class are available. Emulator microphone results cannot satisfy physical acceptance. An iOS device or Xcode is not a prerequisite.
 
 # Dependency gate
 
@@ -29,7 +29,7 @@ P08 is `VERIFIED`; supported physical Android and iOS devices, native developmen
 
 # Scope firewall
 
-**Allowed:** a local Expo/React Native audio module, Android/iOS native code, P07 platform adapters, capture service/reducer/events, recording controls/health UI, and native/device/fault/performance tests.
+**Allowed:** a local Expo/React Native audio module, Android native code, retained iOS reserve code, P07 platform adapters, capture service/reducer/events, recording controls/health UI, and Android native/device/fault/performance tests.
 
 **Forbidden/out:** upload/library, speech/translation, hidden auto-recording, system audio on mobile, unsupported persistent background behavior, noise suppression that alters source, and server dependence.
 
@@ -49,7 +49,7 @@ P08 is `VERIFIED`; supported physical Android and iOS devices, native developmen
 | ----------------------------------- | ------------------------------------------------ | -------------------- |
 | mobile local audio module shared/JS | typed native interface and fake                  | JS integration       |
 | audio module Android sources        | AudioRecord/focus/route/chunk adapter            | Android              |
-| audio module iOS sources            | AVAudioEngine/Session/interruption/chunk adapter | iOS                  |
+| audio module iOS reserve sources    | Retained AVAudioEngine/Session/chunk adapter     | iOS reserve (non-gating) |
 | mobile recording feature            | lifecycle reducer/service/controls/health        | JS integration       |
 | native/device/resilience tests      | conformance, two-hour, fault matrix              | Independent reviewer |
 
@@ -63,9 +63,9 @@ Add TS/native fixture conformance tests for commands/events/version/correlation/
 
 Implement AudioRecord selection/configuration, bounded callback/ring buffer, writer thread, actual sample counts, P07 atomic commit, audio focus/route/interruption events, and safe shutdown. Native tests cover permission loss, read error, overrun, format/route change, low disk, and process kill. Evidence: `android-capture-report.json`.
 
-## P09-T03 - iOS durable microphone capture
+## P09-T03 - Retained iOS durable microphone capture reserve
 
-Implement AVAudioSession/AVAudioEngine configuration, bounded handoff, writer/commit, interruptions/route/media reset, actual format/sample metadata, and safe shutdown. Test call/Siri/route/background/storage/engine reset/kill. Evidence: `ios-capture-report.json`.
+Retain the completed AVAudioSession/AVAudioEngine configuration, bounded handoff, writer/commit, interruptions/route/media reset, actual format/sample metadata, and safe shutdown as contingency implementation. This task records implementation history and adds no current iOS build, device, parity, or verification gate. Evidence: `ios-capture-report.json`.
 
 ## P09-T04 - Recording lifecycle and responsive controls
 
@@ -81,7 +81,7 @@ Implement threshold warnings and accepted platform policy: finalize current vali
 
 ## P09-T07 - Physical-device two-hour and crash qualification
 
-On supported Android/iOS run silence/noise/synthetic playback, rapid pause/resume, network/provider absent, foreground/background, call, wired/Bluetooth change, low storage, native/app kill, restart/recovery, and 2h session. Record checksums/sample counts/gaps/memory/battery/control p95. Evidence: `evidence/P09/EVIDENCE.md`.
+On supported Android run silence/noise/synthetic playback, rapid pause/resume, network/provider absent, foreground/background, call, wired/Bluetooth change, low storage, native/app kill, restart/recovery, and 2h session. Record checksums/sample counts/gaps/memory/battery/control p95. Evidence: `evidence/P09/EVIDENCE.md`.
 
 # Subagent work packages
 
@@ -89,7 +89,7 @@ On supported Android/iOS run silence/noise/synthetic playback, rapid pause/resum
 | ------------------- | --------------- | ----------------------------- | ---------- | -------------------------- |
 | Contract/JS         | T01,T04,T05     | JS module + recording feature | P08        | state/IPC review           |
 | Android             | T02,T06 Android | Android native                | T01,P07    | realtime/durability review |
-| iOS                 | T03,T06 iOS     | iOS native                    | T01,P07    | realtime/durability review |
+| iOS reserve         | T03             | retained iOS native sources   | T01,P07    | non-gating preservation review |
 | Independent devices | T07             | tests/evidence only           | all        | data-loss/platform review  |
 
 # Failure and debugging matrix
@@ -115,7 +115,7 @@ Run JS/native unit/conformance, P07 recovery suite on both adapters, mobile E2E 
 - [ ] P09-A01 - Every acknowledged mobile chunk survives crash/restart with exact checksum/sample metadata.
 - [ ] P09-A02 - Pause/resume/end intervals and state/idempotency are exact under races.
 - [ ] P09-A03 - Capture functions with network/providers absent and never logs content.
-- [ ] P09-A04 - Supported Android/iOS physical interruption/route/background matrices pass declared limits.
+- [ ] P09-A04 - Supported Android physical interruption/route/background matrices pass declared limits.
 - [ ] P09-A05 - Two-hour memory/buffer/storage/battery and control-latency budgets pass with every loss explicit.
 
 # Migration, rollout, and rollback

@@ -1,7 +1,7 @@
 # Master Execution Plan
 
 **Status:** Accepted
-**Production target:** Personal-use cloud-synced release for Windows, Android, and iOS
+**Production target:** Personal-use cloud-synced release for Windows and Android
 **Optional extension:** P28 advanced model lifecycle, mobile/local-live speech, and immutable audio import
 **Last reviewed:** 2026-07-21
 
@@ -69,7 +69,7 @@ Only the direct dependencies above belong in phase frontmatter and `PROGRESS.md`
 | [P06](phases/P06-jobs-outbox-events.md)          | Durable jobs, transactional outbox, cancellation, and resumable SSE              | P03, P04            | Critical |
 | [P07](phases/P07-local-recovery-engine.md)       | Atomic local manifest, bounded upload queue, and recovery engine                 | P02, P05            | Critical |
 | [P08](phases/P08-mobile-start-flow.md)           | Mobile authentication, versioned speech policy, readiness, consent, localization | P04, P07            | High     |
-| [P09](phases/P09-mobile-recording.md)            | Android/iOS local-first microphone recording lifecycle                           | P08                 | Critical |
+| [P09](phases/P09-mobile-recording.md)            | Android local-first microphone recording lifecycle                               | P08                 | Critical |
 | [P10](phases/P10-mobile-sync-recovery.md)        | Mobile sync, Recovery Inbox, library, and evidence playback                      | P05, P09            | Critical |
 | [P11](phases/P11-desktop-rust-foundation.md)     | Secure Electron shell and versioned supervised Rust runtime                      | P07                 | Critical |
 | [P12](phases/P12-windows-audio-capture.md)       | Windows microphone/system capture with separate durable tracks                   | P05, P11            | Critical |

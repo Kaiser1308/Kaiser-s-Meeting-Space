@@ -11,7 +11,7 @@ risk: critical
 
 # Outcome
 
-The feature-complete personal product passes the supported Windows/Android/iOS matrix, two-hour and fault-injection tests, documented performance budgets, WCAG AA/keyboard/screen-reader checks, and Vietnamese/English UI validation with zero unresolved critical/high data-loss, security, accessibility, or release-blocking performance defects.
+The feature-complete personal product passes the supported Windows/Android matrix, two-hour and fault-injection tests, documented performance budgets, WCAG AA/keyboard/screen-reader checks, and Vietnamese/English UI validation with zero unresolved critical/high data-loss, security, accessibility, or release-blocking performance defects.
 
 # Authoritative context
 
@@ -20,7 +20,7 @@ Read the complete PRD release acceptance, User Flows, Test Strategy critical sce
 # Preconditions and external prerequisites
 
 - P23 is `VERIFIED`; P00 supported OS/device/browser/application matrix is still current.
-- Representative supported physical Android and iOS devices, Windows microphone/system-audio hardware, Zoom/Meet/Teams test environments, network fault controls, constrained-storage devices, and staging providers are available.
+- A representative supported physical Android device, Windows microphone/system-audio hardware, Zoom/Meet/Teams test environments, network fault controls, constrained-storage devices, and staging providers are available. iOS devices and Xcode are non-gating under ADR-007.
 - Fixed synthetic Vietnamese/English audio, transcript, minutes, export, and large-library fixtures are versioned.
 - Missing required physical devices or provider accounts is a truthful blocker for affected acceptance IDs.
 
@@ -79,7 +79,7 @@ Map every PRD release criterion and Test Strategy scenario to platforms, fixture
 
 ## P24-T02 - Mobile two-hour and lifecycle resilience
 
-On supported physical Android/iOS devices run start, record, pause/resume, background/interruption, network loss, low storage, kill/restart, upload, recovery, finalize, playback, and deletion. Capture safe sample/chunk/checksum counts, memory, battery, control latency, and gaps. Reproduce/fix defects and rerun affected plus baseline scenarios. Evidence: `evidence/P24/mobile-matrix.json`.
+On supported physical Android devices run start, record, pause/resume, background/interruption, network loss, low storage, kill/restart, upload, recovery, finalize, playback, and deletion. Capture safe sample/chunk/checksum counts, memory, battery, control latency, and gaps. Reproduce/fix defects and rerun affected plus baseline scenarios. Evidence: `evidence/P24/mobile-matrix.json`.
 
 ## P24-T03 - Windows two-hour capture and application compatibility
 
@@ -95,7 +95,7 @@ Run repeatable performance tests for API metadata, signed URL flow, queue throug
 
 ## P24-T06 - Accessibility and localization qualification
 
-Run automated scans plus manual keyboard/VoiceOver/TalkBack/Windows screen-reader and 200% text/contrast/focus tests across start, recording, recovery, review, editor, export, privacy, and errors. Verify all UI catalogs in Vietnamese/English, interpolation/plurals, truncation, dates/timezones, and language independent of meeting language. Evidence: `evidence/P24/a11y-l10n-matrix.json`.
+Run automated scans plus manual keyboard/TalkBack/Windows screen-reader and 200% text/contrast/focus tests across start, recording, recovery, review, editor, export, privacy, and errors. Verify all UI catalogs in Vietnamese/English, interpolation/plurals, truncation, dates/timezones, and language independent of meeting language. Evidence: `evidence/P24/a11y-l10n-matrix.json`.
 
 ## P24-T07 - Root-cause remediation and full regression
 

@@ -19,7 +19,7 @@ Read PRD FR-1/FR-2, User Flows start/live/failure sections, P00 support/consent/
 
 # Preconditions and external prerequisites
 
-P04's authenticated-owner/PKCE/secure-storage capability subset and P07's local-recovery contracts are available. P04-A05 device evidence is intentionally deferred into this phase. Expo development builds and supported Android/iOS SDKs are available. CI may use fake readiness/keychain adapters; physical-device permission/keychain/a11y evidence is required for `VERIFIED`.
+P04's authenticated-owner/PKCE/secure-storage capability subset and P07's local-recovery contracts are available. P04-A05 device evidence is intentionally deferred into this phase. Expo development builds and the supported Android SDK are available. CI may use fake readiness/keychain adapters; Android physical-device permission/keychain/a11y evidence is required for `VERIFIED`. Retained iOS assets are non-gating under ADR-007.
 
 # Dependency gate
 
@@ -81,7 +81,7 @@ Render reader-facing record-only/cloud-live/local-final/cloud-final/local-check 
 
 ## P08-T06 - Mobile branch, accessibility, localization, and platform qualification
 
-Run component and Maestro scenarios for every policy/readiness branch on Android/iOS, orientation, 200% font, contrast/focus/touch target, VoiceOver/TalkBack labels/order, vi/en UI with both meeting languages, permission denial/retry, offline/waiting desktop/model/provider, consent scope and auth expiry. Evidence: `evidence/P08/EVIDENCE.md`.
+Run component and Maestro scenarios for every policy/readiness branch on supported Android, orientation, 200% font, contrast/focus/touch target, TalkBack labels/order, vi/en UI with both meeting languages, permission denial/retry, offline/waiting desktop/model/provider, consent scope and auth expiry. Evidence: `evidence/P08/EVIDENCE.md`.
 
 # Subagent work packages
 
@@ -106,7 +106,7 @@ Run component and Maestro scenarios for every policy/readiness branch on Android
 
 # Integrated verification
 
-Run mobile typecheck/unit/component/catalog/a11y tests, P02/P04/P07 contracts, Maestro start-flow on supported Android/iOS, bundle secret scan, and `pnpm verify`. Record physical OS/device and executed cases.
+Run mobile typecheck/unit/component/catalog/a11y tests, P02/P04/P07 contracts, Maestro start-flow on supported Android, bundle secret scan, and `pnpm verify`. Record physical OS/device and executed cases.
 
 | Gate                  | Command       | Intended signal                                                                 | Evidence                   |
 | --------------------- | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
@@ -117,7 +117,7 @@ Run mobile typecheck/unit/component/catalog/a11y tests, P02/P04/P07 contracts, M
 - [ ] P08-A01 - Start is impossible without explicit valid title/language/mode/source/permission/storage and any cloud consent required by the selected policy.
 - [ ] P08-A02 - Produced command validates P02 plus `TranscriptionPolicyV1`, defaults to local final, is idempotent, and meeting-only requests no translation.
 - [ ] P08-A03 - Auth/readiness/offline/desktop/model/provider states are truthful, localized, recoverable, content-free and never cause automatic cloud fallback.
-- [ ] P08-A04 - Vietnamese/English UI, large text, VoiceOver/TalkBack, focus, and contrast pass supported-device matrix.
+- [ ] P08-A04 - Vietnamese/English UI, large text, TalkBack, focus, and contrast pass the supported Android device matrix.
 - [ ] P08-A05 - No audio capture/provider behavior beyond the fake starter was implemented.
 
 # Migration, rollout, and rollback

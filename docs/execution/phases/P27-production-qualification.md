@@ -83,7 +83,7 @@ From a clean checkout build the frozen artifacts, deploy via P25, migrate seeded
 
 ## P27-T03 - Full critical user-journey and fault matrix
 
-Rerun Vietnamese/English meeting-only/translation flows on supported Windows/Android/iOS: start, 2h capture, pause, network/provider loss, device interruption, crash recovery, sync, finalization/backfill, review/correction, detailed minutes, rewrite, branding/export, library/search, soft delete/restore/permanent delete. Evidence: `evidence/P27/release-matrix.json`.
+Rerun Vietnamese/English meeting-only/translation flows on supported Windows and Android: start, 2h capture, pause, network/provider loss, device interruption, crash recovery, sync, finalization/backfill, review/correction, detailed minutes, rewrite, branding/export, library/search, soft delete/restore/permanent delete. Evidence: `evidence/P27/release-matrix.json`.
 
 ## P27-T04 - Final security, privacy, supply-chain, and data-integrity gate
 

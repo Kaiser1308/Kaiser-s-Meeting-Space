@@ -86,7 +86,7 @@ Build windowed list/timeline with stable keys/heights, run-provenance panel, loc
 
 ## P16-T07 - Integrated authorization/conflict/replay/a11y/performance gate
 
-Run run/projection replay, local/cloud comparison and decision conflict, two-user/cross-meeting isolation, corrupted cache, large transcript scroll/search/exact seek, keyboard/VoiceOver/TalkBack/Windows screen reader, vi/en, gap/unresolved-disagreement visibility, and memory/latency benchmarks. Evidence: `evidence/P16/EVIDENCE.md`.
+Run run/projection replay, local/cloud comparison and decision conflict, two-user/cross-meeting isolation, corrupted cache, large transcript scroll/search/exact seek, keyboard/TalkBack/Windows screen reader, vi/en, gap/unresolved-disagreement visibility, and memory/latency benchmarks. Evidence: `evidence/P16/EVIDENCE.md`.
 
 # Subagent work packages
 

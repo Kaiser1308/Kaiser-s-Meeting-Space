@@ -11,7 +11,7 @@ risk: critical
 
 # Outcome
 
-Windows desktop and Android/iOS builds are reproducible, versioned, signed by approved identities, distribute through controlled channels, verify the Electron/Rust bundle and update metadata, survive interrupted/failed updates, and support staged rollout/rollback without losing local meeting evidence.
+Windows desktop and Android builds are reproducible, versioned, signed by approved identities, distribute through controlled channels, verify the Electron/Rust bundle and update metadata, survive interrupted/failed updates, and support staged rollout/rollback without losing local meeting evidence. Retained iOS assets remain outside release manifests and do not gate this outcome.
 
 # Authoritative context
 
@@ -20,7 +20,7 @@ Read Tech Stack, ADR-006, Security/Privacy, Deployment Runbook, P11/P12 native e
 # Preconditions and external prerequisites
 
 - P25 is `VERIFIED` and immutable backend release/staging endpoints exist.
-- Approved Windows code-signing identity/HSM or managed signing service, Apple Developer/App Store Connect identity, Android Play signing/internal distribution identity, and protected CI environments are available.
+- Approved Windows code-signing identity/HSM or managed signing service, Android Play signing/internal distribution identity, and protected CI environments are available.
 - Exact package IDs, publisher identities, version scheme, update channels, signing owner, rotation/revocation procedure, and supported upgrade floor are approved.
 - Missing signing/store identity is a real external blocker; unsigned local artifacts cannot satisfy signing acceptance.
 
@@ -34,7 +34,7 @@ Read Tech Stack, ADR-006, Security/Privacy, Deployment Runbook, P11/P12 native e
 
 ## In scope
 
-Desktop installer/package, signed Rust sidecar, bundle verification, updater metadata/channel, Android/iOS release builds, mobile internal distribution, provenance/SBOM attachment, update/rollback/recovery tests, and release operator docs.
+Desktop installer/package, signed Rust sidecar, bundle verification, updater metadata/channel, Android release builds, mobile internal distribution, provenance/SBOM attachment, update/rollback/recovery tests, iOS reserve-boundary verification, and release operator docs.
 
 ## Out of scope
 
@@ -65,7 +65,8 @@ Channel/metadata/signature verification is independent of hosting vendor; future
 | Path                             | Responsibility                                        | Task owner           |
 | -------------------------------- | ----------------------------------------------------- | -------------------- |
 | desktop packaging/updater config | Installer, sidecar bundle, permissions, update client | Desktop package      |
-| mobile release config            | Android/iOS IDs, entitlements, build/update channels  | Mobile package       |
+| mobile release config            | Android ID, permissions, signing/build/update channels | Mobile package       |
+| retained iOS reserve             | Presence and exclusion from release manifests          | Reserve boundary     |
 | release/signing workflows        | Protected signing, provenance, promotion              | Delivery package     |
 | release manifest/version tooling | Compatibility and artifact metadata                   | Contract package     |
 | packaging/update E2E             | install/upgrade/downgrade/tamper/recovery matrix      | Independent reviewer |
@@ -92,9 +93,9 @@ Implement signed stable/beta/internal metadata, staged check/download/install, a
 
 Produce signed release AAB/APK with approved package ID, permissions, network security, native audio module, version codes, symbols, SBOM/provenance, and internal track. Test clean install, upgrade from minimum supported build, interrupted sync/active recovery state, background policy, and signature mismatch. Evidence: `evidence/P26/android-release-report.json`.
 
-## P26-T06 - iOS release build and controlled distribution
+## P26-T06 - Retained iOS reserve boundary check
 
-Produce signed archive with approved bundle/entitlements/privacy manifest, symbols, audio/background declarations, version/build, SBOM/provenance, and TestFlight/internal channel. Test clean install/upgrade, interrupted recording recovery, permission retention/change, and incompatible local migration behavior. Evidence: `evidence/P26/ios-release-report.json`.
+Verify that the retained Expo iOS configuration, `ios` scripts, Swift native sources, adapters and compatibility tests remain present, while iOS artifacts, identifiers and signing/distribution steps are absent from release manifests and protected release jobs. Do not build, sign, distribute or claim qualification of iOS. Evidence: `evidence/P26/ios-reserve-report.json`.
 
 ## P26-T07 - Signing-key security, rotation, revocation, and artifact retention
 
@@ -102,7 +103,7 @@ Prove protected runner access, least privilege, approval, audit, no key export/l
 
 ## P26-T08 - Independent install/update/rollback qualification
 
-On clean supported Windows/Android/iOS environments install the signed artifacts, connect to staging, run synthetic capture/recovery/sync, upgrade across supported versions, inject update failures, verify signatures/manifests, and uninstall while respecting retained/deleted data policy. Evidence: `evidence/P26/EVIDENCE.md`.
+On clean supported Windows and Android environments install the signed artifacts, connect to staging, run synthetic capture/recovery/sync, upgrade across supported versions, inject update failures, verify signatures/manifests, and uninstall while respecting retained/deleted data policy. Verify separately that dormant iOS assets are excluded from release manifests. Evidence: `evidence/P26/EVIDENCE.md`.
 
 # Subagent work packages
 
@@ -111,7 +112,7 @@ On clean supported Windows/Android/iOS environments install the signed artifacts
 | Contract/delivery         | T01,T07  | version + signing workflows | P25        | supply-chain review        | manifest/controls     |
 | Windows                   | T02-T04  | desktop packaging/updater   | T01        | native/security review     | signed package/update |
 | Android                   | T05      | Android release config      | T01        | permission/signing review  | internal build        |
-| iOS                       | T06      | iOS release config          | T01        | entitlement/privacy review | internal build        |
+| iOS reserve boundary      | T06      | retained iOS paths          | T01        | non-release scope review   | reserve report        |
 | Independent qualification | T08      | tests/evidence only         | all        | install/update review      | final matrix          |
 
 # Failure and debugging matrix
@@ -126,7 +127,7 @@ On clean supported Windows/Android/iOS environments install the signed artifacts
 
 # Integrated verification
 
-Run clean release builds, package/bundle/secret/dependency/SBOM scans, signature verification, desktop update matrix, Android/iOS signed install/upgrade E2E, local-recovery conformance after update, `pnpm verify:release`, and Rust release checks.
+Run clean release builds, package/bundle/secret/dependency/SBOM scans, signature verification, desktop update matrix, Android signed install/upgrade E2E, iOS reserve-boundary checks, local-recovery conformance after update, `pnpm verify:release`, and Rust release checks.
 
 | Gate                  | Command               | Intended signal                                                                 | Evidence                   |
 | --------------------- | --------------------- | ------------------------------------------------------------------------------- | -------------------------- |
@@ -137,7 +138,7 @@ Run clean release builds, package/bundle/secret/dependency/SBOM scans, signature
 - [ ] P26-A01 - Release manifests bind compatible, immutable, scanned artifacts to provenance/SBOM.
 - [ ] P26-A02 - Windows installer/app/Rust runtime carry valid approved signatures and fail closed on tamper.
 - [ ] P26-A03 - Desktop updates are signed, channel-scoped, interruption-safe, downgrade-protected, and preserve evidence.
-- [ ] P26-A04 - Signed Android/iOS internal builds pass clean-install and supported-upgrade matrices.
+- [ ] P26-A04 - Signed Android internal builds pass clean-install and supported-upgrade matrices.
 - [ ] P26-A05 - Signing credentials and release workflows meet least-privilege/rotation/revocation controls.
 - [ ] P26-A06 - Independent supported-platform package/update qualification has no critical/high finding.
 
