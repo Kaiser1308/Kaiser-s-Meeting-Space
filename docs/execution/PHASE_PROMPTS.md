@@ -20,6 +20,11 @@ docs/execution/phases/P00-design-closure.md
 Required outcome:
 All decisions required to implement P01-P27 are accepted or explicitly provisional with an owner and release deadline. Maintained documents agree on product scope, supported platforms, capture profile, privacy/retention, identity/provider/infrastructure policy, and repository truth. The initial baseline preserves all pre-existing work and contains no product implementation introduced by this phase.
 
+> **Current platform-scope supersession (2026-07-31):** ADR-007 makes Android
+> the sole supported mobile product platform. The Windows/Android/iOS wording
+> below records P00's accepted 2026-07-21 baseline and is not a current iOS
+> release commitment.
+
 Dependency capability gate:
 None. This is the root phase.
 
@@ -202,7 +207,7 @@ Execute exactly phase P09 from:
 docs/execution/phases/P09-mobile-recording.md
 
 Required outcome:
-Supported Android/iOS development builds capture microphone audio into P07 durable chunks, expose responsive record/pause/resume/end controls, survive documented interruptions/background/route/storage/process failures without network/provider dependence, and never acknowledge source that cannot be recovered.
+Supported Android development builds capture microphone audio into P07 durable chunks, expose responsive record/pause/resume/end controls, survive documented interruptions/background/route/storage/process failures without network/provider dependence, and never acknowledge source that cannot be recovered. Existing iOS capture code remains a non-gating reserve under ADR-007.
 
 Dependency capability gate:
 P08 at VERIFIED: Verified outputs and invariants consumed by this packet. (evidence: `../evidence/P08/EVIDENCE.md`).
@@ -512,7 +517,7 @@ Execute exactly phase P24 from:
 docs/execution/phases/P24-resilience-performance-a11y.md
 
 Required outcome:
-The feature-complete personal product passes the supported Windows/Android/iOS matrix, two-hour and fault-injection tests, documented performance budgets, WCAG AA/keyboard/screen-reader checks, and Vietnamese/English UI validation with zero unresolved critical/high data-loss, security, accessibility, or release-blocking performance defects.
+The feature-complete personal product passes the supported Windows/Android matrix, two-hour and fault-injection tests, documented performance budgets, WCAG AA/keyboard/screen-reader checks, and Vietnamese/English UI validation with zero unresolved critical/high data-loss, security, accessibility, or release-blocking performance defects.
 
 Dependency capability gate:
 P23 at VERIFIED: Verified outputs and invariants consumed by this packet. (evidence: `../evidence/P23/EVIDENCE.md`).
@@ -552,7 +557,7 @@ Execute exactly phase P26 from:
 docs/execution/phases/P26-packaging-signing-updates.md
 
 Required outcome:
-Windows desktop and Android/iOS builds are reproducible, versioned, signed by approved identities, distribute through controlled channels, verify the Electron/Rust bundle and update metadata, survive interrupted/failed updates, and support staged rollout/rollback without losing local meeting evidence.
+Windows desktop and Android builds are reproducible, versioned, signed by approved identities, distribute through controlled channels, verify the Electron/Rust bundle and update metadata, survive interrupted/failed updates, and support staged rollout/rollback without losing local meeting evidence. Retained iOS assets remain outside release manifests and do not gate this outcome.
 
 Dependency capability gate:
 P25 at VERIFIED: Verified outputs and invariants consumed by this packet. (evidence: `../evidence/P25/EVIDENCE.md`).
