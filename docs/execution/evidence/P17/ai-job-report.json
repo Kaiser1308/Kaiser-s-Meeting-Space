@@ -1,0 +1,9 @@
+{
+  "phase": "P17",
+  "task": "P17-T04",
+  "status": "IMPLEMENTED",
+  "verification": { "focused_tests": 2, "typecheck": "blocked by pre-existing @kms/translation workspace failures" },
+  "invariants": ["owner/meeting/projection/completeness pins", "idempotency required", "budget checked before provider call", "abort checked before provider call", "sourceMutated is always false"],
+  "open": ["durable PostgreSQL/Redis persistence and API integration", "crash/retry live qualification"],
+  "data_policy": "Synthetic input only; no provider payloads, credentials, or meeting content."
+}
