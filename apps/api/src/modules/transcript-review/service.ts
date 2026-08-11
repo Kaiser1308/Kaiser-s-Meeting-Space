@@ -17,7 +17,7 @@ export class TranscriptReviewService {
 
   constructor(private readonly db: Db) {}
 
-  listRuns(ownerId: string, meetingId: string, query: { limit: number; cursor?: string }) {
+  async listRuns(ownerId: string, meetingId: string, query: { limit: number; cursor?: string }) {
     const page = await this.repository.listRuns({ ownerId }, this.db, meetingId, query);
     return {
       ...page,
@@ -25,12 +25,12 @@ export class TranscriptReviewService {
     };
   }
 
-  getRun(ownerId: string, meetingId: string, runId: string) {
+  async getRun(ownerId: string, meetingId: string, runId: string) {
     const result = await this.repository.getRun({ ownerId }, this.db, meetingId, runId);
     return result ? TranscriptRunDetailResponseSchema.parse(result) : null;
   }
 
-  compareRuns(ownerId: string, meetingId: string, runIds: readonly string[]) {
+  async compareRuns(ownerId: string, meetingId: string, runIds: readonly string[]) {
     const result = await this.repository.compareRuns({ ownerId }, this.db, meetingId, runIds);
     return result.map((item) => TranscriptRunComparisonItemSchema.parse(item));
   }
