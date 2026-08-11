@@ -1,0 +1,1 @@
+{"phase":"P18","task":"P18-T03","status":"IMPLEMENTED","partitions":["tuning","holdout"],"languages":["vi","en"],"fixturePolicy":"Synthetic-only; holdout answers are not runtime inputs","open":["human rubric and approved provider qualification"]}

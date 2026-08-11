@@ -1,0 +1,1 @@
+{"phase":"P18","task":"P18-T06/T08","status":"IMPLEMENTED","metrics":["citationCoverage","unsupportedClaimCount","confirmationCount","claimCount"],"focused_tests":1,"open":["fixed corpus scorecards","latency/cost/provider/human gates"]}
