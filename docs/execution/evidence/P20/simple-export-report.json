@@ -1,0 +1,1 @@
+{"phase":"P20","task":"P20-T03","status":"IMPLEMENTED","formats":["md","txt","json"],"verification":{"focused_tests":1,"deterministic_semantics":"passed"},"open":["audio package authorization","durable export jobs","DOCX/PDF renderer qualification"],"data_policy":"Synthetic export input only."}
