@@ -1,0 +1,9 @@
+{
+  "phase": "P17",
+  "task": "P17-T07",
+  "status": "IMPLEMENTED",
+  "verification": { "focused_tests": 2, "typecheck": "passed", "format_check": "pending" },
+  "invariants": ["version/hash-addressed artifacts", "same-version hash mutation rejected", "active and historical resolution"],
+  "open": ["durable activation transaction and generated manifest consistency"],
+  "data_policy": "Synthetic artifact bodies only."
+}
