@@ -1,0 +1,35 @@
+{
+  "phase": "P16",
+  "task": "P16-T04",
+  "status": "IMPLEMENTED",
+  "commit": "dadc2ff4",
+  "scope": {
+    "domain": [
+      "Unicode NFC/case-insensitive search contract",
+      "owner isolation",
+      "speaker/time/confidence/gap/locality/revision/disagreement/bookmark filters",
+      "stable startMs/id cursor validation and pagination"
+    ],
+    "database": [
+      "owner-scoped PostgreSQL read repository",
+      "latest revision and translation refresh",
+      "bookmark schema, unique owner/segment key, idempotent add/remove mutations, migration",
+      "explicit disagreement flags and active projection/target-language translation pinning"
+    ],
+    "api": ["owner-scoped GET /v1/meetings/:meetingId/transcript-search"]
+  },
+  "verification": {
+    "domain_tests": { "command": "vitest run src/review/search.test.ts", "passed": 3 },
+    "database_tests": {
+      "command": "vitest run src/repositories/transcript-search.test.ts",
+      "passed": 1
+    },
+    "format_and_diff_check": "passed",
+    "typecheck": {
+      "domain": "passed",
+      "database": "blocked by pre-existing @kms/translation alias resolution"
+    },
+    "integration": "not claimed; PostgreSQL runtime not available"
+  },
+  "data_policy": "Synthetic fixtures only; no meeting content, provider payloads, or secrets used."
+}

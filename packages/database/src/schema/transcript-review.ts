@@ -9,6 +9,7 @@ import {
   char,
   index,
   uniqueIndex,
+  boolean,
   foreignKey,
   check,
   primaryKey,
@@ -161,5 +162,49 @@ export const transcriptReviewIdempotency = pgTable(
       t.ownerId,
       t.meetingId,
     ),
+  }),
+);
+
+export const transcriptReviewBookmarks = pgTable(
+  'transcript_review_bookmarks',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    meetingId: uuid('meeting_id')
+      .notNull()
+      .references(() => meetings.id, { onDelete: 'restrict' }),
+    segmentId: text('segment_id')
+      .notNull()
+      .references(() => transcriptSegments.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (t) => ({
+    ownerSegmentUnique: uniqueIndex('transcript_review_bookmarks_owner_segment_unique').on(
+      t.ownerId,
+      t.segmentId,
+    ),
+    ownerMeetingIdx: index('transcript_review_bookmarks_owner_meeting_idx').on(
+      t.ownerId,
+      t.meetingId,
+    ),
+  }),
+);
+
+export const transcriptReviewFlags = pgTable(
+  'transcript_review_flags',
+  {
+    ownerId: text('owner_id').notNull(),
+    meetingId: uuid('meeting_id')
+      .notNull()
+      .references(() => meetings.id, { onDelete: 'restrict' }),
+    segmentId: text('segment_id')
+      .notNull()
+      .references(() => transcriptSegments.id, { onDelete: 'restrict' }),
+    disagreement: boolean('disagreement').notNull().default(false),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (t) => ({
+    ownerSegmentPrimaryKey: primaryKey({ columns: [t.ownerId, t.segmentId] }),
+    ownerMeetingIdx: index('transcript_review_flags_owner_meeting_idx').on(t.ownerId, t.meetingId),
   }),
 );

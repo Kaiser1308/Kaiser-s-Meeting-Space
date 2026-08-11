@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 CREATE TABLE IF NOT EXISTS transcript_review_projections (
   meeting_id uuid NOT NULL REFERENCES meetings(id) ON DELETE RESTRICT,
   owner_id text NOT NULL,
@@ -62,6 +64,24 @@ CREATE TABLE IF NOT EXISTS transcript_review_idempotency (
   UNIQUE (owner_id, command_type, idempotency_key)
 );
 CREATE INDEX IF NOT EXISTS transcript_review_idempotency_owner_meeting_idx ON transcript_review_idempotency(owner_id, meeting_id);
+CREATE TABLE IF NOT EXISTS transcript_review_bookmarks (
+  id text PRIMARY KEY,
+  owner_id text NOT NULL,
+  meeting_id uuid NOT NULL REFERENCES meetings(id) ON DELETE RESTRICT,
+  segment_id text NOT NULL REFERENCES transcript_segments(id) ON DELETE RESTRICT,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (owner_id, segment_id)
+);
+CREATE INDEX IF NOT EXISTS transcript_review_bookmarks_owner_meeting_idx ON transcript_review_bookmarks(owner_id, meeting_id);
+CREATE TABLE IF NOT EXISTS transcript_review_flags (
+  owner_id text NOT NULL,
+  meeting_id uuid NOT NULL REFERENCES meetings(id) ON DELETE RESTRICT,
+  segment_id text NOT NULL REFERENCES transcript_segments(id) ON DELETE RESTRICT,
+  disagreement boolean NOT NULL DEFAULT false,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (owner_id, segment_id)
+);
+CREATE INDEX IF NOT EXISTS transcript_review_flags_owner_meeting_idx ON transcript_review_flags(owner_id, meeting_id);
 CREATE OR REPLACE FUNCTION prevent_transcript_review_mutation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'immutable transcript review history'; END; $$;
 DROP TRIGGER IF EXISTS transcript_review_decisions_immutable ON transcript_review_decisions;
 CREATE TRIGGER transcript_review_decisions_immutable BEFORE UPDATE OR DELETE ON transcript_review_decisions FOR EACH ROW EXECUTE FUNCTION prevent_transcript_review_mutation();
