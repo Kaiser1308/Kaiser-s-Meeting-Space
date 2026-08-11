@@ -1,0 +1,17 @@
+{
+  "phase": "P16",
+  "task": "P16-T06",
+  "status": "IMPLEMENTED",
+  "scope": {
+    "sharedModel": "Stable segment keys, gap/disagreement/bookmark preservation, Unicode search navigation, follow-live state, and accessible announcements",
+    "adapters": ["mobile transcript-review view model", "desktop transcript-review view model"],
+    "rendering": "Platform-specific rendering and two-hour device benchmark remain open"
+  },
+  "verification": {
+    "domain_tests": { "command": "vitest run src/review/ui.test.ts", "passed": 2 },
+    "domain_typecheck": "passed",
+    "format_check": "passed",
+    "manual_accessibility_and_device_performance": "not claimed; unavailable"
+  },
+  "data_policy": "Synthetic transcript rows only; no meeting content, audio, or provider data used."
+}
