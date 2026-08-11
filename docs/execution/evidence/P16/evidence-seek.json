@@ -1,0 +1,18 @@
+{
+  "phase": "P16",
+  "task": "P16-T05",
+  "status": "IMPLEMENTED",
+  "scope": {
+    "contract": "Owner/meeting/segment-scoped exact evidence range resolution",
+    "states": ["available", "missing", "gap", "corrupt"],
+    "sourceChoice": "Preferred local/cloud source with deterministic track-id tie-break",
+    "safety": "No approximate ranges; cross-owner and out-of-range requests resolve missing"
+  },
+  "verification": {
+    "domain_tests": { "command": "vitest run src/review/evidence.test.ts", "passed": 2 },
+    "domain_typecheck": "passed",
+    "format_check": "passed",
+    "audio_provider_device_integration": "not claimed; unavailable"
+  },
+  "data_policy": "Synthetic track metadata only; no audio bytes, URLs, meeting content, or secrets used."
+}
