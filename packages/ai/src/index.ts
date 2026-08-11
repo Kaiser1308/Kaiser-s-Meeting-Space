@@ -126,3 +126,9 @@ export function createAiProvider(config: AiProviderConfig): AiProvider {
     model: config.model,
   });
 }
+
+export * from './core/registry.js';
+export * from './validation/structured.js';
+export * from './validation/citations.js';
+export * from './core/contracts.js';
+export { DeterministicGenerativeProvider } from './adapters/deterministic-mock.js';

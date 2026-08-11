@@ -1,0 +1,9 @@
+{
+  "phase": "P17",
+  "task": "P17-T02/T03/T05/T06",
+  "status": "IMPLEMENTED",
+  "verification": { "focused_tests": 7, "typecheck": "passed", "format_check": "passed" },
+  "implemented": ["provider-neutral request/result/error/cancel/health contracts", "deterministic mock", "bounded structured validation/repair", "same-meeting citation range validation"],
+  "open": ["durable jobs", "live adapter authorization", "PostgreSQL registry", "fuzz/live/device qualification"],
+  "data_policy": "Synthetic fixtures only; no secrets, raw provider bodies, or real meeting content."
+}

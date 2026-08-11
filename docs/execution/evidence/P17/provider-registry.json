@@ -1,0 +1,8 @@
+{
+  "phase": "P17",
+  "task": "P17-T01",
+  "status": "IMPLEMENTED",
+  "verification": { "tests": 2, "typecheck": "passed", "selection": ["configured", "healthy", "non-deprecated", "structured-capable", "context-bounded"] },
+  "live_provider": "not claimed; authorization unavailable",
+  "data_policy": "No credentials, provider payloads, or meeting content used."
+}

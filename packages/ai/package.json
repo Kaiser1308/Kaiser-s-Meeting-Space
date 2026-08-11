@@ -9,7 +9,8 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@kms/domain": "workspace:*"
+    "@kms/domain": "workspace:*",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "typescript": "^5.9.2"
