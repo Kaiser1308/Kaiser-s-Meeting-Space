@@ -39,9 +39,10 @@ Out of scope:
 
 ## Design
 
-`apps/mobile/maestro/config.yaml` defines the Android application identifier
-and a shared flow configuration. `apps/mobile/maestro/flows/` contains the
-three independently runnable YAML flows. A root workspace command named
+`apps/mobile/maestro/config.yaml` defines recursive flow discovery. Each flow
+declares the Android application identifier in its Maestro header.
+`apps/mobile/maestro/flows/` contains the three independently runnable YAML
+flows. A root workspace command named
 `test:e2e:mobile` invokes Maestro against that directory so the standard test
 strategy command is real rather than a placeholder.
 
