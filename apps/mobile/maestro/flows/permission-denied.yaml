@@ -1,0 +1,28 @@
+appId: com.anonymous.kaisermeetingspace
+name: Microphone denial displays remediation
+tags:
+  - android
+  - pre-meeting
+---
+- launchApp:
+    permissions:
+      microphone: deny
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: setup-meeting-button
+- assertVisible:
+    id: meeting-setup-screen
+- tapOn:
+    id: meeting-title-input
+- inputText: 'Synthetic Maestro Permission'
+- tapOn:
+    id: meeting-continue-button
+- assertVisible:
+    id: permission-screen
+- tapOn:
+    id: permission-continue-button
+- assertVisible:
+    id: permission-denied-error
+- assertVisible:
+    id: permission-continue-button

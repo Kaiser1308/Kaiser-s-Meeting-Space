@@ -1,0 +1,38 @@
+appId: com.anonymous.kaisermeetingspace
+name: Pre-meeting Translate requires explicit cloud consent
+tags:
+  - android
+  - pre-meeting
+---
+- launchApp:
+    permissions:
+      microphone: allow
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: translate-mode
+- tapOn:
+    id: setup-meeting-button
+- assertVisible:
+    id: meeting-setup-screen
+- tapOn:
+    id: meeting-title-input
+- inputText: 'Synthetic Maestro Translate'
+- tapOn:
+    id: meeting-language-en
+- tapOn:
+    id: meeting-continue-button
+- assertVisible:
+    id: permission-screen
+- tapOn:
+    id: permission-continue-button
+- assertVisible:
+    id: readiness-screen
+- tapOn:
+    id: cloud-processing-toggle
+- assertVisible:
+    id: cloud-consent-checkbox
+- tapOn:
+    id: cloud-consent-checkbox
+- assertVisible:
+    id: start-recording-button
