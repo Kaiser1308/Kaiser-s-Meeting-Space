@@ -17,6 +17,7 @@ import { audioRoutes } from './modules/audio/index.js';
 import { meetingRoutes } from './modules/meetings/index.js';
 import { finalizationRoutes } from './modules/finalization/index.js';
 import { translationRoutes } from './modules/translation/index.js';
+import { aiRoutes } from './modules/ai/index.js';
 import { speechRoutes } from './modules/speech/index.js';
 import { MeetingSpeechAuthorizer } from './modules/speech/meeting-speech-authorizer.js';
 
@@ -91,6 +92,7 @@ await app.register(async (protectedRoutes) => {
     });
     await protectedRoutes.register(finalizationRoutes, { db: dbClient.db });
     await protectedRoutes.register(translationRoutes, { db: dbClient.db });
+    await protectedRoutes.register(aiRoutes, { dispatcher: null });
     if (objectStore) {
       await protectedRoutes.register(audioRoutes, {
         db: dbClient.db,
