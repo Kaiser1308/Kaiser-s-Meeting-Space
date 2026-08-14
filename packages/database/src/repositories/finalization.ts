@@ -3,12 +3,13 @@ import type { Connection } from '../client.js';
 import {
   finalizationManifests,
   finalizationStates,
+  finalizationRuns,
   finalizationRanges,
   finalizationRunParts,
 } from '../schema/index.js';
 import { FinalizationManifestV1Schema, type FinalizationManifestV1 } from '@kms/domain';
 import { type OwnerContext, DbError } from './types.js';
-import { ownerCondition, mapDbError } from './base.js';
+import { mapDbError } from './base.js';
 
 export type FinalizationStateValue =
   | 'finalizing'
@@ -44,6 +45,17 @@ export interface FinalizationState {
   updatedAt: string;
 }
 
+export interface FinalizationRun {
+  id: string;
+  meetingId: string;
+  ownerId: string;
+  action: FinalizationLocality;
+  provider: string | null;
+  planHash: string;
+  state: FinalizationPartState;
+  createdAt: string;
+}
+
 export interface FinalizationRangeRecord {
   id: string;
   meetingId: string;
@@ -60,11 +72,11 @@ export interface FinalizationRunPart {
   id: string;
   meetingId: string;
   runId: string;
-  index: number;
+  partIndex: number;
   startMs: number;
   endMs: number;
   locality: FinalizationLocality;
-  lifecycleState: FinalizationPartState;
+  state: FinalizationPartState;
   rawResultHash: string | null;
   safeError: unknown;
   completedAt: string | null;
@@ -72,8 +84,6 @@ export interface FinalizationRunPart {
 }
 
 export class FinalizationRepository {
-  // ── Manifest (immutable) ──
-
   async recordManifest(
     ctx: OwnerContext,
     conn: Connection,
@@ -104,7 +114,6 @@ export class FinalizationRepository {
       .from(finalizationManifests)
       .where(and(eq(finalizationManifests.meetingId, meetingId), eq(finalizationManifests.ownerId, ctx.ownerId)))
       .limit(1);
-
     if (!row) return null;
     try {
       return FinalizationManifestV1Schema.parse(row.manifest);
@@ -112,8 +121,6 @@ export class FinalizationRepository {
       throw new DbError('internal');
     }
   }
-
-  // ── State (optimistic) ──
 
   async upsertState(
     ctx: OwnerContext,
@@ -125,14 +132,7 @@ export class FinalizationRepository {
     try {
       await conn
         .insert(finalizationStates)
-        .values({
-          meetingId,
-          ownerId: ctx.ownerId,
-          state,
-          primaryAction,
-          version: 1,
-          updatedAt: new Date(),
-        })
+        .values({ meetingId, ownerId: ctx.ownerId, state, primaryAction, version: 1, updatedAt: new Date() })
         .onConflictDoUpdate({
           target: finalizationStates.meetingId,
           set: {
@@ -148,17 +148,12 @@ export class FinalizationRepository {
     }
   }
 
-  async getState(
-    ctx: OwnerContext,
-    conn: Connection,
-    meetingId: string,
-  ): Promise<FinalizationState | null> {
+  async getState(ctx: OwnerContext, conn: Connection, meetingId: string): Promise<FinalizationState | null> {
     const [row]: any[] = await conn
       .select()
       .from(finalizationStates)
       .where(and(eq(finalizationStates.meetingId, meetingId), eq(finalizationStates.ownerId, ctx.ownerId)))
       .limit(1);
-
     if (!row) return null;
     return {
       meetingId: row.meetingId,
@@ -169,7 +164,49 @@ export class FinalizationRepository {
     };
   }
 
-  // ── Range classification (immutable, append-only) ──
+  async recordRun(
+    ctx: OwnerContext,
+    conn: Connection,
+    run: FinalizationRun,
+  ): Promise<void> {
+    try {
+      await conn.insert(finalizationRuns).values({
+        id: run.id,
+        meetingId: run.meetingId,
+        ownerId: ctx.ownerId,
+        action: run.action,
+        provider: run.provider,
+        planHash: run.planHash,
+        state: run.state,
+        createdAt: new Date(run.createdAt),
+      });
+    } catch (e: unknown) {
+      throw mapDbError(e);
+    }
+  }
+
+  async getRun(
+    ctx: OwnerContext,
+    conn: Connection,
+    runId: string,
+  ): Promise<FinalizationRun | null> {
+    const [row]: any[] = await conn
+      .select()
+      .from(finalizationRuns)
+      .where(and(eq(finalizationRuns.id, runId), eq(finalizationRuns.ownerId, ctx.ownerId)))
+      .limit(1);
+    if (!row) return null;
+    return {
+      id: row.id,
+      meetingId: row.meetingId,
+      ownerId: row.ownerId,
+      action: row.action as FinalizationLocality,
+      provider: row.provider ?? null,
+      planHash: row.planHash,
+      state: row.state as FinalizationPartState,
+      createdAt: (row.createdAt as Date).toISOString(),
+    };
+  }
 
   async recordRangeClassification(
     ctx: OwnerContext,
@@ -213,7 +250,6 @@ export class FinalizationRepository {
       .from(finalizationRanges)
       .where(and(eq(finalizationRanges.meetingId, meetingId), eq(finalizationRanges.ownerId, ctx.ownerId)))
       .orderBy(asc(finalizationRanges.startMs), asc(finalizationRanges.source));
-
     return rows.map((row: any) => ({
       id: row.id,
       meetingId: row.meetingId,
@@ -227,8 +263,6 @@ export class FinalizationRepository {
     }));
   }
 
-  // ── Run parts (immutable) ──
-
   async recordRunPart(
     ctx: OwnerContext,
     conn: Connection,
@@ -236,11 +270,11 @@ export class FinalizationRepository {
       id: string;
       meetingId: string;
       runId: string;
-      index: number;
+      partIndex: number;
       startMs: number;
       endMs: number;
       locality: FinalizationLocality;
-      lifecycleState: FinalizationPartState;
+      state: FinalizationPartState;
       rawResultHash?: string;
       safeError?: unknown;
       completedAt?: string;
@@ -249,14 +283,14 @@ export class FinalizationRepository {
     try {
       await conn.insert(finalizationRunParts).values({
         id: input.id,
+        runId: input.runId,
         meetingId: input.meetingId,
         ownerId: ctx.ownerId,
-        runId: input.runId,
-        index: input.index,
+        partIndex: input.partIndex,
         startMs: input.startMs,
         endMs: input.endMs,
         locality: input.locality,
-        lifecycleState: input.lifecycleState,
+        state: input.state,
         rawResultHash: input.rawResultHash ?? null,
         safeError: input.safeError ?? null,
         completedAt: input.completedAt ? new Date(input.completedAt) : null,
@@ -270,23 +304,22 @@ export class FinalizationRepository {
   async listRunParts(
     ctx: OwnerContext,
     conn: Connection,
-    meetingId: string,
+    runId: string,
   ): Promise<FinalizationRunPart[]> {
     const rows: any[] = await conn
       .select()
       .from(finalizationRunParts)
-      .where(and(eq(finalizationRunParts.meetingId, meetingId), eq(finalizationRunParts.ownerId, ctx.ownerId)))
-      .orderBy(asc(finalizationRunParts.runId), asc(finalizationRunParts.index));
-
+      .where(and(eq(finalizationRunParts.runId, runId), eq(finalizationRunParts.ownerId, ctx.ownerId)))
+      .orderBy(asc(finalizationRunParts.partIndex));
     return rows.map((row: any) => ({
       id: row.id,
       meetingId: row.meetingId,
       runId: row.runId,
-      index: row.index,
+      partIndex: row.partIndex,
       startMs: row.startMs,
       endMs: row.endMs,
       locality: row.locality as FinalizationLocality,
-      lifecycleState: row.lifecycleState as FinalizationPartState,
+      state: row.state as FinalizationPartState,
       rawResultHash: row.rawResultHash ?? null,
       safeError: row.safeError ?? null,
       completedAt: row.completedAt ? (row.completedAt as Date).toISOString() : null,

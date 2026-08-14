@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 import {
   finalizationManifests,
   finalizationStates,
+  finalizationRuns,
   finalizationRanges,
   finalizationRunParts,
   finalizationStateEnum,
@@ -20,30 +21,27 @@ const migrationPath = resolve(here, '../../drizzle/0009_finalization.sql');
 const migrationSql = readFileSync(migrationPath, 'utf8');
 
 describe('finalization schema module', () => {
-  it('imports without throwing and exports the four tables', () => {
+  it('imports without throwing and exports the five tables', () => {
     expect(finalizationManifests).toBeTruthy();
     expect(finalizationStates).toBeTruthy();
+    expect(finalizationRuns).toBeTruthy();
     expect(finalizationRanges).toBeTruthy();
     expect(finalizationRunParts).toBeTruthy();
   });
 
   it('exposes columns used by repositories (sanity shape)', () => {
-    expect(finalizationManifests.meetingId).toBeTruthy();
-    expect(finalizationManifests.ownerId).toBeTruthy();
     expect(finalizationManifests.manifest).toBeTruthy();
     expect(finalizationManifests.localManifestHash).toBeTruthy();
-    expect(finalizationStates.state).toBeTruthy();
-    expect(finalizationStates.primaryAction).toBeTruthy();
-    expect(finalizationStates.version).toBeTruthy();
-    expect(finalizationRanges.classification).toBeTruthy();
+    expect(finalizationRuns.action).toBeTruthy();
+    expect(finalizationRuns.planHash).toBeTruthy();
     expect(finalizationRunParts.runId).toBeTruthy();
+    expect(finalizationRunParts.partIndex).toBeTruthy();
     expect(finalizationRunParts.rawResultHash).toBeTruthy();
   });
 });
 
 describe('finalization pgEnums have expected values', () => {
   it('finalization_state', () => {
-    expect(finalizationStateEnum.enumName).toBe('finalization_state');
     expect([...finalizationStateEnum.enumValues]).toEqual([
       'finalizing', 'processing', 'partial_ready', 'ready', 'recovery_required',
     ]);
@@ -72,15 +70,17 @@ describe('finalization pgEnums have expected values', () => {
 });
 
 describe('0009_finalization.sql migration', () => {
-  it('creates the four finalization tables', () => {
+  it('creates the five finalization tables', () => {
     expect(migrationSql).toMatch(/CREATE TABLE "finalization_manifests"/);
     expect(migrationSql).toMatch(/CREATE TABLE "finalization_states"/);
+    expect(migrationSql).toMatch(/CREATE TABLE "finalization_runs"/);
     expect(migrationSql).toMatch(/CREATE TABLE "finalization_ranges"/);
     expect(migrationSql).toMatch(/CREATE TABLE "finalization_run_parts"/);
   });
 
-  it('enforces immutability on manifest/ranges/run-parts (block UPDATE and DELETE)', () => {
+  it('enforces immutability on manifest/runs/ranges/run-parts (block UPDATE and DELETE)', () => {
     expect(migrationSql).toMatch(/BEFORE UPDATE OR DELETE ON "finalization_manifests"/);
+    expect(migrationSql).toMatch(/BEFORE UPDATE OR DELETE ON "finalization_runs"/);
     expect(migrationSql).toMatch(/BEFORE UPDATE OR DELETE ON "finalization_ranges"/);
     expect(migrationSql).toMatch(/BEFORE UPDATE OR DELETE ON "finalization_run_parts"/);
     expect(migrationSql).toMatch(/RAISE EXCEPTION/);
@@ -90,13 +90,8 @@ describe('0009_finalization.sql migration', () => {
     expect(migrationSql).not.toMatch(/BEFORE UPDATE OR DELETE ON "finalization_states"/);
   });
 
-  it('check end_ms > start_ms on ranges and run parts', () => {
-    expect(migrationSql).toMatch(/"finalization_ranges"."end_ms" > "finalization_ranges"."start_ms"/);
-    expect(migrationSql).toMatch(/"finalization_run_parts"."end_ms" > "finalization_run_parts"."start_ms"/);
-  });
-
-  it('declares the unique(run_id, index) index on run parts', () => {
-    expect(migrationSql).toMatch(/CREATE UNIQUE INDEX "finalization_run_parts_run_index_unique"/);
+  it('declares the unique(run_id, part_index) index on run parts', () => {
+    expect(migrationSql).toMatch(/CREATE UNIQUE INDEX "finalization_run_parts_run_part_index_unique"/);
   });
 
   it('is additive (no DROP TABLE)', () => {

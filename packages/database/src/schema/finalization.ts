@@ -15,8 +15,6 @@ import {
 } from 'drizzle-orm/pg-core';
 import { meetings } from './meeting.js';
 
-// ── Enums ──
-
 export const finalizationStateEnum = pgEnum('finalization_state', [
   'finalizing',
   'processing',
@@ -54,12 +52,6 @@ export const finalizationSourceEnum = pgEnum('finalization_source', ['mic', 'sys
 
 const hex64Pattern = '^[0-9a-fA-F]{64}$';
 
-// ── Tables ──
-
-/**
- * Immutable expected-source manifest. INSERT-only; one per meeting.
- * The manifest JSONB is the domain FinalizationManifestV1 (parsed on read).
- */
 export const finalizationManifests = pgTable(
   'finalization_manifests',
   {
@@ -80,7 +72,6 @@ export const finalizationManifests = pgTable(
   }),
 );
 
-/** Mutable finalization progress state (optimistic version). */
 export const finalizationStates = pgTable(
   'finalization_states',
   {
@@ -99,7 +90,27 @@ export const finalizationStates = pgTable(
   }),
 );
 
-/** Immutable per-range source verification/classification (append-only). */
+/** Durable final-run orchestration (local/cloud), referenced by P16 review. */
+export const finalizationRuns = pgTable(
+  'finalization_runs',
+  {
+    id: text('id').primaryKey(),
+    meetingId: uuid('meeting_id')
+      .notNull()
+      .references(() => meetings.id, { onDelete: 'cascade' }),
+    ownerId: text('owner_id').notNull(),
+    action: finalizationLocalityEnum('action').notNull(),
+    provider: text('provider'),
+    planHash: char('plan_hash', { length: 64 }).notNull(),
+    state: finalizationPartStateEnum('state').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (t) => ({
+    planHashHex64: check('finalization_runs_plan_hash_hex64', sql`${t.planHash} ~ ${hex64Pattern}`),
+    ownerMeetingIdx: index('finalization_runs_owner_meeting_idx').on(t.ownerId, t.meetingId),
+  }),
+);
+
 export const finalizationRanges = pgTable(
   'finalization_ranges',
   {
@@ -122,21 +133,22 @@ export const finalizationRanges = pgTable(
   }),
 );
 
-/** Immutable final-run parts with per-part checkpoints. */
 export const finalizationRunParts = pgTable(
   'finalization_run_parts',
   {
     id: text('id').primaryKey(),
+    runId: text('run_id')
+      .notNull()
+      .references(() => finalizationRuns.id, { onDelete: 'cascade' }),
     meetingId: uuid('meeting_id')
       .notNull()
       .references(() => meetings.id, { onDelete: 'cascade' }),
     ownerId: text('owner_id').notNull(),
-    runId: text('run_id').notNull(),
-    index: integer('index').notNull(),
+    partIndex: integer('part_index').notNull(),
     startMs: bigint('start_ms', { mode: 'number' }).notNull(),
     endMs: bigint('end_ms', { mode: 'number' }).notNull(),
     locality: finalizationLocalityEnum('locality').notNull(),
-    lifecycleState: finalizationPartStateEnum('lifecycle_state').notNull(),
+    state: finalizationPartStateEnum('state').notNull(),
     rawResultHash: char('raw_result_hash', { length: 64 }),
     safeError: jsonb('safe_error'),
     completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
@@ -144,12 +156,12 @@ export const finalizationRunParts = pgTable(
   },
   (t) => ({
     endMsGreaterThanStartMs: check('finalization_run_parts_end_gt_start', sql`${t.endMs} > ${t.startMs}`),
-    indexNonNegative: check('finalization_run_parts_index_non_negative', sql`${t.index} >= 0`),
+    partIndexNonNegative: check('finalization_run_parts_part_index_non_negative', sql`${t.partIndex} >= 0`),
     rawResultHashHex64: check(
       'finalization_run_parts_raw_result_hash_hex64',
       sql`${t.rawResultHash} IS NULL OR (${t.rawResultHash} ~ ${hex64Pattern})`,
     ),
-    runIndexUnique: uniqueIndex('finalization_run_parts_run_index_unique').on(t.runId, t.index),
+    runPartIndexUnique: uniqueIndex('finalization_run_parts_run_part_index_unique').on(t.runId, t.partIndex),
     ownerMeetingIdx: index('finalization_run_parts_owner_meeting_idx').on(t.ownerId, t.meetingId),
   }),
 );
