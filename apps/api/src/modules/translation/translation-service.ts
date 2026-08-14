@@ -8,6 +8,7 @@ import {
   type TranslationVersionV1,
 } from '@kms/translation';
 import { TranslationError } from './errors.js';
+import { MeetingIdSchema, type Sha256 } from '@kms/domain';
 
 export interface TranslationServiceOptions {
   readonly db: Db;
@@ -18,7 +19,7 @@ export interface TranslateInput {
   readonly sourceSegmentId: string;
   readonly projectionVersion: number;
   readonly revision: number;
-  readonly sourceTextHash: string;
+  readonly sourceTextHash: Sha256;
   readonly sourceLanguage: 'vi' | 'en';
 }
 
@@ -57,7 +58,7 @@ export class TranslationService {
     const version: TranslationVersionV1 = {
       version: 1,
       id: randomUUID(),
-      meetingId,
+      meetingId: MeetingIdSchema.parse(meetingId),
       sourceSegmentId: input.sourceSegmentId,
       sourceRevision: input.revision,
       sourceTextHash: input.sourceTextHash,

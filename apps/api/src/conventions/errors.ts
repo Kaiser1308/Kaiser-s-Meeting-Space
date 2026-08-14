@@ -1,4 +1,4 @@
-import type { FastifyError, FastifyPluginAsync } from 'fastify';
+import type { FastifyError, FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
 export class ApiConventionError extends Error {
@@ -20,8 +20,8 @@ const safeMessages = {
   INTERNAL_ERROR: 'An unexpected internal error occurred',
 } as const;
 
-export const errorPlugin: FastifyPluginAsync = fp(async (app) => {
-  app.setErrorHandler((error: FastifyError | ApiConventionError, request, reply) => {
+export const errorPlugin: FastifyPluginAsync = fp(async (app: FastifyInstance) => {
+  app.setErrorHandler((error: FastifyError | ApiConventionError, request: FastifyRequest, reply: FastifyReply) => {
     const conventionError = error instanceof ApiConventionError ? error : undefined;
     const statusCode =
       conventionError?.statusCode ??

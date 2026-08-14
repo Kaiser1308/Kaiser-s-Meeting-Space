@@ -13,7 +13,7 @@ const projection = {
 const input = {
   meeting: { id: '00000000-0000-4000-8000-000000000001' },
   transcript: [{ id: 'seg-1', startMs: 0, endMs: 1000, text: 'hello', speakerId: 's1', sequence: 0 }],
-  template: 'general',
+  template: 'team',
   outputLanguage: 'en',
   detailLevel: 'detailed',
 } as unknown as GenerateMinutesInput;
@@ -22,7 +22,7 @@ const minutes: MinutesVersion = {
   id: 'm-1',
   documentId: 'doc-1',
   version: 1,
-  template: 'general',
+  template: 'team',
   detailLevel: 'detailed',
   outputLanguage: 'en',
   provider: 'mock',
@@ -61,12 +61,12 @@ describe('validateMinutesJob', () => {
 
 describe('runMinutesJob', () => {
   it('validates schema and citations, then commits', async () => {
-    let committed: MinutesVersion | null = null;
+    const committed: MinutesVersion[] = [];
     const result = await runMinutesJob(makeRequest(), provider, {
-      commit: async (m) => { committed = m; },
+      commit: async (m) => { committed.push(m); },
     });
     expect(result.id).toBe('m-1');
-    expect(committed?.id).toBe('m-1');
+    expect(committed[0]?.id).toBe('m-1');
   });
 
   it('rejects out-of-range citations before commit', async () => {

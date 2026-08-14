@@ -12,6 +12,7 @@ export * from './finalization.js';
 export * from './translation.js';
 export * from './minutes-provenance.js';
 export * from './minutes-editor.js';
+export * from './transcript-review.js';
 export * from './minutes.js';
 export * from './brand.js';
 export * from './export.js';

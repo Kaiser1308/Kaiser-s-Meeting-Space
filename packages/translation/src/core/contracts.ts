@@ -9,7 +9,6 @@ export const TranslationStatusSchema = z.enum([
   'processing',
   'completed',
   'failed',
-  'cancelled',
 ]);
 export type TranslationStatus = z.infer<typeof TranslationStatusSchema>;
 

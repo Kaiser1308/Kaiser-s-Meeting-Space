@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@kms/native-contract": "workspace:*",
+    "@kms/domain": "workspace:*",
+    "@kms/translation": "workspace:*",
     "@vitejs/plugin-react": "^5.0.2",
     "keytar": "7.9.0",
     "react": "^19.1.1",

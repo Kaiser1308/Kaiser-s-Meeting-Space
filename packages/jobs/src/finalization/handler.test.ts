@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { runFinalizationJob, validateFinalizationJob, type FinalizationJobRequest } from './handler.js';
+import { MeetingIdSchema, Sha256Schema } from '@kms/domain';
 
 const plan = {
   version: 1 as const,
   id: 'plan-1',
-  meetingId: '00000000-0000-4000-8000-000000000001',
+  meetingId: MeetingIdSchema.parse('00000000-0000-4000-8000-000000000001'),
   ownerId: 'owner-1',
   primaryAction: 'local' as const,
-  manifestHash: 'a'.repeat(64),
+  manifestHash: Sha256Schema.parse('a'.repeat(64)),
   policy: {
     version: 1 as const,
     language: 'vi' as const,

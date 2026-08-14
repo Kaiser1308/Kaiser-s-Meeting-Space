@@ -16,6 +16,7 @@ export * from './errors/catalog.js';
 export * from './state/machine.js';
 export * from './finalization/index.js';
 export * from './editor/index.js';
+export * from './review/index.js';
 
 // ── Transitional types for prototype consumers ──
 // These map old prototype names to canonical equivalents.

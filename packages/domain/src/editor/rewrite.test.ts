@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateRewriteProposal } from './rewrite.js';
+import { validateRewriteProposal, type RewriteProposal } from './rewrite.js';
 import type { MinutesDocumentV1 } from './schema.js';
 
 const base: MinutesDocumentV1 = {
@@ -12,7 +12,7 @@ const base: MinutesDocumentV1 = {
 
 describe('validateRewriteProposal', () => {
   it('accepts a valid proposal and returns a diff', () => {
-    const proposal = {
+    const proposal: RewriteProposal = {
       documentId: 'doc-1',
       baseVersion: 1,
       proposed: { ...base, nodes: [...base.nodes, { type: 'paragraph', id: 'p2', text: 'new' }] },

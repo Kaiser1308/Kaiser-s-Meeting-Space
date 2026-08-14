@@ -9,6 +9,9 @@ export type { ChunkRegisterResult, ManifestInput, AudioAssetInput } from './mani
 
 export { TranscriptRepository } from './transcript.js';
 
+export { TranscriptReviewRepository } from './transcript-review.js';
+export { TranscriptSearchRepository } from './transcript-search.js';
+
 export { MinutesRepository } from './minutes.js';
 export type { CreateVersionInput } from './minutes.js';
 
