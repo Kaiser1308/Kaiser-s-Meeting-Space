@@ -17,6 +17,9 @@ export type { FinalizationState, FinalizationRangeRecord, FinalizationRunPart } 
 
 export { TranslationRepository } from './translation.js';
 
+export { MinutesEditorRepository } from './minutes-editor.js';
+export type { MinutesEditorVersionRow } from './minutes-editor.js';
+
 export { JobsMetadataRepository } from './jobs.js';
 export type { JobCreateInput, JobListFilter } from './jobs.js';
 

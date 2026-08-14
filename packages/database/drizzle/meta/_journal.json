@@ -92,6 +92,13 @@
       "when": 1786602000000,
       "tag": "0012_minutes_provenance",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786603000000,
+      "tag": "0013_minutes_editor",
+      "breakpoints": true
     }
   ]
 }
