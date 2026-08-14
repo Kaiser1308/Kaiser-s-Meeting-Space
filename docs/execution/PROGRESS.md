@@ -1,48 +1,105 @@
 # Execution Progress Ledger
 
-**Current phase:** P13
-**Current task:** Handoff
-**State:** P00-P03,P06-P07,P11-P12 VERIFIED; P04-P05,P08-P10,P13 IMPLEMENTED
-**Branch/commit:** `master` / working tree (design upgrade commit `c8c991c`; P01-P13 changes preserved)
-**Last verified:** P13 IMPLEMENTED 2026-07-28 (real local whisper-rs engine compiled; cloud-live, model/corpus quality, and native test-link qualification remain pending)
+**Current phase:** P20
+**Current task:** P20 export/library implementation (T01-T07 seams pass; T08 qualification remains)
+**Implementation lane:** P10-P20 are eligible for implementation under the open [`DEFERRED_END_TO_END_QUALIFICATION.md`](DEFERRED_END_TO_END_QUALIFICATION.md) ledger; none may be promoted to `VERIFIED` while an inherited row is open.
+**Next eligible phase:** P21 only after P20 handoff; P20 must stop before P21.
+**State:** P00-P08,P11 VERIFIED; P09-P10,P12-P15,P17-P19 IMPLEMENTED; P16 IN_PROGRESS; P20 IN_PROGRESS under the deferred policy
 
-**P04 state:** IMPLEMENTED (not VERIFIED); see `docs/execution/evidence/P04/EVIDENCE.md`.
+**P04 verification closure (2026-08-06):** P04-A01 through P04-A06 now have
+direct automated, Windows keychain, Android restart, route-inventory, and
+security evidence. `pnpm test:security` exits 0 (4 files / 37 tests), and the
+full `pnpm verify` gate exits 0. See `evidence/P04/secure-storage-report.md`
+and `evidence/P04/route-matrix.json`.
+
+**P08 verification closure (2026-08-06):** Android CPH2699/API 36 ran the
+latest arm64 APK. Root pnpm/CMake paths now resolve through the portable short
+store `../../../../../q3` (resolving to `C:\q3`); clean install, clean build,
+release build, mobile
+typecheck, 247 mobile tests, and a real offline delayed-processing warning all
+have direct evidence. The platform adapter now delegates to Expo SecureStore;
+the real-device restart/logout/restart sequence passed on `fd12a6a7`. A04-05/
+A04-09 were confirmed passed by the reviewer during manual TalkBack/accessibility
+validation, so P08 is `VERIFIED`.
+**Branch/commit:** `master` / working tree (design upgrade commit `c8c991c`; P01-P13 changes preserved)
+**Last verified:** P08 VERIFIED 2026-08-06; P13 remains IMPLEMENTED (real local whisper-rs engine compiled; cloud-live, model/corpus quality, and native test-link qualification remain pending)
+
+**Verification attempts 2026-07-30:** P10 and P13 were rerun. The Vitest/Vite peer-resolution defect was repaired (root Vite 7.x plus package-local peer declarations); focused P10/P13 typechecks and 531 regression tests passed. Both remain `IMPLEMENTED`: P10 lacks the supported Android T07 matrix; P13 lacks frozen WAV assets, a rotated Deepgram secret, and native/device qualification. The repository-wide gate remains non-green on 584 unrelated pre-existing format violations; see `evidence/P10/RUN-20260730-verify-attempt.md` and `evidence/P13/RUN-20260730-verify-attempt.md`.
+
+**P04 state:** VERIFIED; the fresh integrated gate completed with Docker 29.6.2.
+See `docs/execution/evidence/P04/EVIDENCE.md`.
+
+**P09 verification continuation (2026-08-06):** package-local P09 gates passed
+(mobile-audio 46/46, mobile 247/247, both typechecks exit 0). The Android SDK/ADB
+was present but `adb devices -l` returned no attached physical device; therefore
+P09-A04/P09-A05/P09-T07 remain BLOCKED and P09 remains IMPLEMENTED. The full
+`pnpm verify` command could not start because pnpm could not open the workspace
+store SQLite database; the Gradle wrapper also required a network download that
+was denied. See `evidence/P09/RUN-20260806-1325.md`.
 
 ## Phase gates
 
-| Phase | State       | Direct dependencies | Tasks | Automated                                           | Manual/external                                                        | Security/integrity                                                                                                | Evidence                                | Commit           |
-| ----- | ----------- | ------------------- | ----: | --------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ---------------- |
-| P00   | VERIFIED    | -                   |   6/6 | -                                                   | -                                                                      | -                                                                                                                 | docs/execution/evidence/P00/EVIDENCE.md | Initial baseline |
-| P01   | VERIFIED    | P00                 |   7/7 | 283                                                 | CI hosted-run pending                                                  | -                                                                                                                 | docs/execution/evidence/P01/EVIDENCE.md | Working tree     |
-| P02   | VERIFIED    | P01                 |   7/7 | 283                                                 | -                                                                      | 100% branch                                                                                                       | docs/execution/evidence/P02/EVIDENCE.md | Working tree     |
-| P03   | VERIFIED    | P02                 |   7/7 | 265                                                 | -                                                                      | 100% content-free                                                                                                 | docs/execution/evidence/P03/EVIDENCE.md | Working tree     |
-| P04   | IMPLEMENTED | P03                 |   7/7 | 467 (all packages)                                  | OS keychain/device BLOCKED; full route matrix deferred                 | Auth/Database/Security/API/Mobile/Desktop + IDOR matrix + secret scan                                             | docs/execution/evidence/P04/EVIDENCE.md | Working tree     |
-| P05   | IMPLEMENTED | P03,P04             |   7/7 | 127 tests                                           | Docker integration pending                                             | Key policy, presigning, registration, completion, manifest view                                                   | docs/execution/evidence/P05/EVIDENCE.md | Working tree     |
-| P06   | VERIFIED    | P03,P04             |   7/7 | 12 suites / 316 database tests + 3 Redis-loss tests | `pnpm verify` exit 0                                                   | Outbox, Queue, Worker, Jobs REST APIs, Resumable SSE                                                              | docs/execution/evidence/P06/EVIDENCE.md | Working tree     |
-| P07   | VERIFIED    | P02,P05             |   7/7 | 91 (10 files)                                       | N/A                                                                    | PASS (6/6 acceptance gates, 31 conformance tests)                                                                 | docs/execution/evidence/P07/EVIDENCE.md | Working tree     |
-| P08   | IMPLEMENTED | P04,P07             |   6/6 | 108 mobile + 244 domain                             | Physical device a11y matrix pending (P08-A04)                          | A05 scan clean (no real capture imports); consent scope isolation verified                                        | docs/execution/evidence/P08/EVIDENCE.md | Working tree     |
-| P09   | IMPLEMENTED | P08                 |   7/7 | 221 (2 packages)                                    | Physical device 2h/interruption matrix BLOCKED (P09-A04, P09-A05, T07) | A05 scan clean (no network/provider/content); content-free events only; preallocated buffers                      | docs/execution/evidence/P09/EVIDENCE.md | Working tree     |
-| P10   | IMPLEMENTED | P05,P09             |   6/7 | 213 mobile + 91 local-recovery                      | Physical device matrices BLOCKED (P10-A06/T07)                         | Auth/API/Sync/Recovery/Playback                                                                                   | docs/execution/evidence/P10/EVIDENCE.md | Working tree     |
-| P11   | VERIFIED    | P07                 |   7/7 | 146 (3 packages)                                    | Windows setup smoke tests                                              | PASS (5/5 acceptance gates, 33 Electron + 37 Rust + 56 Contract tests)                                            | docs/execution/evidence/P11/EVIDENCE.md | Working tree     |
-| P12   | IMPLEMENTED | P05,P11             |   8/8 | 50 Rust tests; desktop gate not rerun               | Two-hour/device/app matrix BLOCKED; short host smoke only              | Automated capture diagnostics, bounded metadata, and storage integrity tests pass; physical qualification pending | docs/execution/evidence/P12/EVIDENCE.md | Working tree     |
- | P13   | IMPLEMENTED | P06,P09,P12         |   7/7 | 632 TS/DB/API + cargo check + vi/en native smoke   | Real Deepgram, model/corpus quality, and Rust test-link qualification BLOCKED | idempotent dedupe index + immutability triggers + real local engine/model smoke; secret scan clean | docs/execution/evidence/P13/EVIDENCE.md | commit 94f0050 |
-| P14   | NOT_STARTED | P06,P10,P13         |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P15   | NOT_STARTED | P14                 |   0/6 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P16   | NOT_STARTED | P14,P15             |   0/7 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P17   | NOT_STARTED | P06,P14,P16         |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P18   | NOT_STARTED | P17                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P19   | NOT_STARTED | P18                 |   0/7 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P20   | NOT_STARTED | P10,P19             |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P21   | NOT_STARTED | P20                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P22   | NOT_STARTED | P21                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P23   | NOT_STARTED | P22                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P24   | NOT_STARTED | P23                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P25   | NOT_STARTED | P24                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P26   | NOT_STARTED | P25                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P27   | NOT_STARTED | P26                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
-| P28   | NOT_STARTED | P14                 |   0/8 | -                                                   | -                                                                      | -                                                                                                                 | -                                       | -                |
+| Phase | State       | Direct dependencies | Tasks | Automated                                                                                                                                                           | Manual/external                                                                                                                    | Security/integrity                                                                                                | Evidence                                | Commit           |
+| ----- | ----------- | ------------------- | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ---------------- |
+| P00   | VERIFIED    | -                   |   6/6 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | docs/execution/evidence/P00/EVIDENCE.md | Initial baseline |
+| P01   | VERIFIED    | P00                 |   7/7 | 283                                                                                                                                                                 | CI hosted-run pending                                                                                                              | -                                                                                                                 | docs/execution/evidence/P01/EVIDENCE.md | Working tree     |
+| P02   | VERIFIED    | P01                 |   7/7 | 283                                                                                                                                                                 | -                                                                                                                                  | 100% branch                                                                                                       | docs/execution/evidence/P02/EVIDENCE.md | Working tree     |
+| P03   | VERIFIED    | P02                 |   7/7 | 265                                                                                                                                                                 | -                                                                                                                                  | 100% content-free                                                                                                 | docs/execution/evidence/P03/EVIDENCE.md | Working tree     |
+| P04   | VERIFIED    | P03                 |   7/7 | 467 baseline + 37 security                                                                                                                                          | Android restart + Windows keychain direct evidence; Docker 29.6.2; full `pnpm verify` exit 0                                       | Auth/Database/Security/API/Mobile/Desktop + IDOR matrix + secret scan                                             | docs/execution/evidence/P04/EVIDENCE.md | Working tree     |
+| P05   | VERIFIED    | P03,P04             |   7/7 | 110 storage unit + 20 MinIO + 19 API integration                                                                                                                    | T07 real-storage matrix passes; full `pnpm verify` exit 0                                                                          | Key policy, presigning, registration, completion, manifest view, orphan recording                                 | docs/execution/evidence/P05/EVIDENCE.md | Working tree     |
+| P06   | VERIFIED    | P03,P04             |   7/7 | 12 suites / 316 database tests + 3 Redis-loss tests                                                                                                                 | `pnpm verify` exit 0                                                                                                               | Outbox, Queue, Worker, Jobs REST APIs, Resumable SSE                                                              | docs/execution/evidence/P06/EVIDENCE.md | Working tree     |
+| P07   | VERIFIED    | P02,P05             |   7/7 | 91 (10 files)                                                                                                                                                       | N/A                                                                                                                                | PASS (6/6 acceptance gates, 31 conformance tests)                                                                 | docs/execution/evidence/P07/EVIDENCE.md | Working tree     |
+| P08   | VERIFIED    | P04,P07             |   6/6 | 247 mobile + 244 domain                                                                                                                                             | Android A04 cases executed; remaining TalkBack/accessibility manual checks confirmed passed 2026-08-06                             | A05 scan clean (no real capture imports); consent scope isolation verified; fake starter boundary exercised       | docs/execution/evidence/P08/EVIDENCE.md | Working tree     |
+| P09   | IMPLEMENTED | P08                 |   7/7 | 295 (46 mobile-audio + 249 mobile)                                                                                                                                  | Native Android smoke passed; interruption/route/background matrix and 2h qualification remain open (P09-A04, P09-A05, T07)         | A05 scan clean (no network/provider/content); content-free events only; preallocated buffers                      | docs/execution/evidence/P09/EVIDENCE.md | Working tree     |
+| P10   | IMPLEMENTED | P05,P09             |   6/7 | 213 mobile + 91 local-recovery                                                                                                                                      | Supported Android physical matrix BLOCKED (P10-A06/T07)                                                                            | Auth/API/Sync/Recovery/Playback                                                                                   | docs/execution/evidence/P10/EVIDENCE.md | Working tree     |
+| P11   | VERIFIED    | P07                 |   7/7 | 146 (3 packages)                                                                                                                                                    | Windows setup smoke tests                                                                                                          | PASS (5/5 acceptance gates, 33 Electron + 37 Rust + 56 Contract tests)                                            | docs/execution/evidence/P11/EVIDENCE.md | Working tree     |
+| P12   | IMPLEMENTED | P05,P11             |   8/8 | 50 Rust tests; desktop gate not rerun                                                                                                                               | Two-hour/device/app matrix BLOCKED; short host smoke only                                                                          | Automated capture diagnostics, bounded metadata, and storage integrity tests pass; physical qualification pending | docs/execution/evidence/P12/EVIDENCE.md | Working tree     |
+| P13   | IMPLEMENTED | P06,P09,P12         |   7/7 | 632 TS/DB/API + cargo check + vi/en native smoke                                                                                                                    | Real Deepgram, model/corpus quality, and Rust test-link qualification BLOCKED                                                      | idempotent dedupe index + immutability triggers + real local engine/model smoke; secret scan clean                | docs/execution/evidence/P13/EVIDENCE.md | commit 94f0050   |
+| P14   | IMPLEMENTED | P06,P10,P13         |   8/8 | 17 focused + 394 neighboring regressions; mobile 46 files/255 tests; Android physical smoke                                                                         | Provider/model, two-hour, inherited/security/performance qualification OPEN; `pnpm verify` not complete                            | PostgreSQL/Redis/MinIO, source-boundary contracts, native start/pause/resume/end smoke; full qualification OPEN   | docs/execution/evidence/P14/EVIDENCE.md | Working tree     |
+| P15   | IMPLEMENTED | P14                 |   6/6 | 16 focused translation tests + 1 schema test; six typechecks                                                                                                        | Approved provider/key, live quality/cost/latency, PostgreSQL/Redis, full E2E and inherited rows OPEN                               | Source hash/owner/auth/consent/idempotency/immutable lineage checks; full qualification OPEN                      | docs/execution/evidence/P15/EVIDENCE.md | Working tree     |
+| P16   | IN_PROGRESS | P14,P15             |   4/7 | T01 projection 12/12; T02 domain/database contracts 6/6; T03 speaker suite 2/2; T04 search contracts 5/5; focused regressions                                       | Runtime/provider/device/two-hour qualification inherited/open; T05-T07 UI/evidence/performance gates remain open                   | T01-T04 accepted; T05-T07 pending                                                                                 | docs/execution/evidence/P16/EVIDENCE.md | Working tree     |
+| P17   | IMPLEMENTED | P06,P14,P16         |   8/8 | AI 6 files/15 tests; jobs AI 7/7; API 14 files/53 tests; PostgreSQL minutes dispatcher and guarded minutes worker wired; citation/API bypass fixed; typechecks pass | Worker execution/guarded commit, live provider, production validation, fuzz/security, full verify and inherited qualification OPEN | Implementation contracts present; production commit/security/integration gates open                               | docs/execution/evidence/P17/EVIDENCE.md | Working tree     |
+| P18   | IMPLEMENTED | P17                 |   6/8 | Minutes package 6 files/24 tests; synthetic vi/en manifest; strict templates/output; token-aware context; metrics/conflicts; lifecycle seam                         | Durable PostgreSQL drafts, fixed holdout/provider/human qualification, security, full verify and inherited rows OPEN               | Development contracts pass; durable/provider/human/release gates open                                             | docs/execution/evidence/P18/EVIDENCE.md | Working tree     |
+| P19   | IMPLEMENTED | P18                 |   6/7 | Domain 18 focused; database integration 6/6; production Playwright+axe 5/5; native Electron smoke 1/1; API DTO 2/2; typechecks pass                                  | Screen-reader/200% manual qualification, inherited P16/P17/P18 rows, and repository-wide verify remain OPEN                    | P19 implementation lane direct contracts pass; not VERIFIED                                                                  | docs/execution/evidence/P19/EVIDENCE.md | Working tree     |
+| P20   | IN_PROGRESS | P10,P19             |   5/8 | Brand preset 3/3 + asset security 6/6; manifest 4/4; exporter 11/11; lifecycle/provenance/storage-check job 6/6; mobile library query/pagination 3/3; API list/detail 5/5; strict DTO/query 2/2; typechecks; deterministic audio/DOCX/PDF seams | Durable P05/P06 jobs/downloads, real audio package, full branded layouts, complete library UI/API, reader/security/performance, and inherited qualification remain OPEN | P20-T01/T02/T03/T04/T05/T06/T07 seams pass; not VERIFIED | docs/execution/evidence/P20/EVIDENCE.md | Working tree     |
+| P21   | NOT_STARTED | P20                 |   0/8 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | -                                       | -                |
+| P22   | NOT_STARTED | P21                 |   0/8 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | -                                       | -                |
+| P23   | NOT_STARTED | P22                 |   0/8 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | -                                       | -                |
+| P24   | NOT_STARTED | P23                 |   0/8 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | -                                       | -                |
+| P25   | NOT_STARTED | P24                 |   0/8 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | -                                       | -                |
+| P26   | NOT_STARTED | P25                 |   0/8 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | -                                       | -                |
+| P27   | NOT_STARTED | P26                 |   0/8 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | -                                       | -                |
+| P28   | NOT_STARTED | P14                 |   0/8 | -                                                                                                                                                                   | -                                                                                                                                  | -                                                                                                                 | -                                       | -                |
+
+**P09 controls/recovery continuation (2026-08-06):** CPH2699/API 36 directly
+exercised recovery-marker routing/discard, native start, pause/resume, and
+short background return. The real End path remained `stopping` with zero
+committed chunks, so A01/A02 remain blocked; phone-call/Bluetooth routes and
+the two-hour run were not claimed. See
+`evidence/P09/RUN-20260806-1445.md`.
 
 ## Ledger rules
+
+**P09 physical End fix (2026-08-06):** CPH2699/API 36 now reaches `idle` with
+one committed durable chunk and a finalized local manifest after End. The root
+cause was a detached Expo event emitter in the JS adapter; the native writer
+also now drains before final close. P09 remains IMPLEMENTED: phone-call,
+Bluetooth/full interruption coverage and P09-A05's two-hour session are still
+unrun. See `evidence/P09/RUN-20260806-1615.md`.
+
+**P09 qualification continuation (2026-08-06):** the same CPH2699 run directly
+verified camera mic contention (`focus loss -> paused -> focus gain -> Resume`),
+Bluetooth disable/enable routing, repeated End without duplicate finalization,
+and force-stop/relaunch recovery with completion explicitly unclaimed. Wired
+route was not run because no wired/USB device was attached; lock/unlock was not
+closed because the device remained on keyguard. P09-A05 two-hour capture is
+still NOT RUN; P09 remains IMPLEMENTED.
+
+**P09-A05 retry (2026-08-07):** after authorized recovery discard, CPH2699 ran
+a fresh synthetic two-hour test session. Native capture/writer progress remained
+observable for approximately 44 minutes, reaching 277,909,504 accepted bytes;
+then two successive ADB checks returned no device. The run is INCOMPLETE and
+requires manual retry; no duration, End, manifest, or storage PASS is claimed.
 
 - Only the main agent for the requested phase edits this file.
 - Direct dependencies and task totals must match `MASTER_PLAN.md` and phase frontmatter.
@@ -53,6 +110,48 @@
 - A phase cannot be `VERIFIED` while any acceptance ID lacks evidence.
 
 ## Append-only execution history
+
+### Product scope decision 2026-07-31 - Android-only mobile release
+
+- ADR-007 makes Android 12+ the sole supported mobile product platform; Windows
+  support is unchanged.
+- Existing iOS configuration and implementation remain as dormant, non-gating
+  reserve assets.
+- Historical Android/iOS run entries and evidence remain unchanged.
+- P08-P10 verification still requires direct Android physical-device evidence;
+  no unavailable test is claimed as passed.
+
+### Run 2026-07-30 22:12 UTC+7 - P09 physical qualification continuation
+
+- Scope: P09 only; all pre-existing dirty and untracked files were preserved.
+- ADB discovery returned the supplied CPH2699 as `unauthorized`; device property access failed with `device unauthorized`.
+- The Android interruption/route/background matrix, continuous two-hour session, and physical recording invocation were not run. No physical evidence was fabricated.
+- P09 remains IMPLEMENTED. Owner action: accept the USB debugging/RSA prompt, rerun the matrix on the authorized physical device, and provide iOS physical evidence for full P09 verification.
+- Evidence: `docs/execution/evidence/P09/RUN-20260730-2212.md`.
+
+### Run 2026-07-30 22:00 UTC+7 - P05 verification continuation
+
+- Scope: P05 only; all pre-existing dirty and untracked files were preserved.
+- Docker Engine 29.6.2 became available and real MinIO/PostgreSQL checks were rerun.
+- Verified: storage unit 125/125, real MinIO 15/15, PostgreSQL audio routes 14/14, storage/API typechecks.
+- Root-cause fix: `AudioChunkService.completeChunk` now records `pending_object` or `corrupt_object` orphan candidates in a separate transaction after storage completion failures; route regression tests pass.
+- Repository gate: `pnpm verify` exited 1 at `execution:check` with `PROMPT_STALE docs/execution/PHASE_PROMPTS.md`.
+- Final state: P05 remains IMPLEMENTED. T07's dedicated real-storage adversarial matrix and the stale repository-generated prompt gate still prevent VERIFIED.
+- Evidence: `docs/execution/evidence/P05/EVIDENCE.md`.
+
+### Run 2026-08-04 14:43 UTC+7 - P05 verification continuation
+
+- Execution validator: PASS — 29 packets, 213 tasks, 170 acceptance IDs, 0 broken links.
+- Real MinIO adversarial matrix: PASS — 20 tests; real PostgreSQL + MinIO audio-route matrix: PASS — 5 tests; existing route regression: PASS — 14 tests.
+- Storage/API typechecks and focused P05 formatting checks pass.
+- `pnpm.cmd verify` is blocked by project pnpm signature verification; the bundled fallback exceeded the 300-second timeout. The repository-wide format gate also has broad unrelated violations.
+- Final state: P05 remains IMPLEMENTED; focused acceptance scenarios pass, but the binary repository gate is not green.
+
+### Run 2026-08-04 15:12 UTC+7 - P05 gate repair
+
+- Dependency installation completed after targeted build approvals; generated dependency ACLs were repaired without changing source files.
+- P05 MinIO matrix passed 20/20; PostgreSQL + MinIO route/regression matrix passed 19/19; storage/API typechecks and focused P05 lint/format checks passed.
+- `pnpm verify` passed execution validation but failed at repository-wide format check with 72 files outside P05. `endOfLine: auto` removed CRLF-only false failures; P05 remains IMPLEMENTED because the packet requires integrated `pnpm verify` exit 0.
 
 ### Run 2026-07-21 00:00 UTC+7 - P00 (Design closure and repository baseline)
 
@@ -296,6 +395,13 @@ No product phase execution has started. Append each run using:
 - Ending commit/tree: Working tree (uncommitted)
 - Run/evidence links: docs/execution/evidence/P08/EVIDENCE.md, docs/execution/evidence/P08/RUN-20260725-0000.md
 
+### Run 2026-08-05 UTC+7 - P08 verification continuation → IMPLEMENTED
+
+- Root cause fixed: Gradle/Metro now share the workspace root while bundling the explicit `apps/mobile/index.js` entrypoint; pnpm native dependencies use a hoisted layout to avoid deep CMake object paths.
+- Fresh gates: arm64 Android release build PASS; mobile unit suite PASS (41 files / 240 tests); mobile typecheck PASS; theme contrast assertions pass at >=4.5:1.
+- Physical Android CPH2699/API 36 is reachable through ADB port 5038 with libusb disabled and the APK launches. The A04 run directly covers vi/en UI, meeting-language controls, 200% text, portrait, and WMS-confirmed landscape bounds. TalkBack, permission denial/retry, offline/delayed processing, cloud-consent physical coverage, and independent review remain open. P08 remains IMPLEMENTED, not VERIFIED; no P09 recording fix was attempted.
+- Evidence: `docs/execution/evidence/P08/RUN-20260805-verify-continuation.md` and `docs/execution/evidence/P08/physical-accessibility-matrix.md`.
+
 ### Run 2026-07-26 UTC+7 - P09 (Mobile local-first microphone recording lifecycle) → IMPLEMENTED
 
 - Agent/task: Main agent + 3 subagents (design/architecture, Android native T02, iOS native T03). P08 closure was prerequisite in this session.
@@ -418,3 +524,73 @@ P13 continuation: added the real local evaluation runner with strict WAV checksu
 The remaining P13 gates were rerun without changing scope. The local evaluator exited 1 with `missing_audio_asset` for all 10 frozen entries; the Deepgram runner exited 1 with `missing_rotated_server_key`; and `cargo check -p kms-native` exited 1 before compilation because `whisper-rs-sys` could not discover `libclang.dll`. Package reruns were blocked by the host's pnpm signature/registry verification and incomplete local node_modules. P13 remains `IMPLEMENTED`, not `VERIFIED`; see `docs/execution/evidence/P13/RUN-20260729-1200.md`.
 
 Native continuation later the same day removed the path/CMake-policy blockers using a temporary drive mapping and a target-local cache: `cargo check -p kms-native` now passes exit 0 with three non-blocking warnings. `cargo test -p kms-native` reaches the final link and exits 101 because the host mixes `libstdc++` and `libc++`; no suppression flag is accepted as evidence. Model hashes match the local manifest. The frozen WAV corpus, rotated Deepgram key, clean TypeScript dependency install, and P13 integrated gate remain open. See `docs/execution/evidence/P13/RUN-20260729-2300.md`.
+
+### P14 implementation continuation — 2026-08-11
+
+P14 is `IMPLEMENTED` under the deferred end-to-end qualification policy. T01–T07 implementation work and the T08 synthetic evidence path are present: finalization contracts, source verification, transactional End/status boundary, additive persistence schema/migration, resumable planner/handler, deterministic reconciliation, speaker/cloud-check/completeness projections, and desktop/mobile status surfaces. Isolated P14 tests pass (17 tests across 11 files), neighboring domain/jobs/API regressions pass (394 tests), six package/app typechecks pass, scoped lint has zero errors, formatting and execution-plan checks pass, and synthetic runtime smoke passes. `pnpm verify` was not runnable because pnpm attempted a non-interactive modules purge; a workspace-expanded direct Vitest run exposed unrelated missing migration/device harness assumptions and is not treated as P14 evidence. Real PostgreSQL/Redis/MinIO/provider/device/two-hour/security/resilience/performance gates remain OPEN. See `docs/execution/evidence/P14/EVIDENCE.md` and `docs/execution/evidence/P14/RUN-20260811-2059.md`. Stop at P14; do not begin P15 in this cycle.
+
+### P15 implementation continuation — 2026-08-11
+
+P15 is `IMPLEMENTED` under the deferred qualification policy. All six task
+implementation paths are present: strict provider-neutral vi/en contracts and
+safe errors; explicit mode/language/completeness/owner/disclosure/budget/
+idempotency policy; deterministic mock plus server-secret compatible adapter;
+append-only version/current persistence with migration `0010`; authorization-
+first jobs; provisional/final read models and mobile/desktop projections; and a
+synthetic bilingual corpus/fault matrix. The isolated P15 matrix passes 16
+tests across 8 files, the database schema test passes 1/1, six typechecks pass,
+scoped lint/format/diff checks pass, and execution-plan/migration static checks
+pass. Approved live provider quality/cost/latency, real PostgreSQL/Redis,
+full integrated E2E, device/reader/two-hour, and inherited deferred rows remain
+OPEN. See `docs/execution/evidence/P15/EVIDENCE.md` and
+`docs/execution/evidence/P15/RUN-20260811-2200.md`. Stop at P15; do not begin
+P16 implementation is authorized under the deferred policy; do not begin P17
+until the P16 handoff.
+
+### P16 implementation continuation — 2026-08-11
+
+P16-T01 is accepted and implemented under the deferred qualification policy.
+The immutable transcript review projection now validates canonical provenance
+parent relationships, manifest/finalization lineage, metadata and ranges,
+version-pinned speaker mappings, chronological ordering, duplicate
+alternatives, linear revision ancestry, and a shared conflict-safe mutation
+version timeline. It preserves source and raw alternatives during replay.
+The focused suite passes 12/12 tests; the domain typecheck, Prettier check,
+and `git diff --check` pass. A fresh independent reviewer accepted T01 with
+no actionable findings. T02-T07 remain pending; inherited live/provider,
+database-service, device/accessibility, and two-hour qualification gates
+remain OPEN. See `docs/execution/evidence/P16/RUN-20260811-2245.md`.
+
+### P15 continuation - 2026-08-12
+
+P15 was rechecked without entering P16. Translation, jobs, database-schema,
+mobile, and desktop translation tests passed; translation, database, jobs, API,
+and mobile typechecks passed; execution-plan validation, formatting, and diff
+checks passed. A P15-T04 defect was fixed: versioned translation persistence
+now stores and restores bounded confidence and safe failure metadata previously
+dropped by the PostgreSQL mapping. Independent review also recorded unresolved
+projection/revision verification, pre-provider idempotency race, synchronous
+route/durable-job mismatch, production provider authorization, legacy
+persistence bypass, cancellation/cost reporting, and provisional identity
+gaps. P15 remains IMPLEMENTED under the deferred policy; live provider/key,
+real-service, full E2E/device, and inherited qualification rows remain OPEN.
+See `evidence/P15/RUN-20260812-2230.md`.
+
+Implementation continuation (2026-08-12): P17 provider-neutral AI contracts,
+bounded validation, deterministic mock, owner/budget job policy, and artifact
+registry are IMPLEMENTED; P18 template/output/context/evaluation core is
+IMPLEMENTED; P19 safe editor document/journal core is IMPLEMENTED; P20 pinned
+export/simple renderer core is IMPLEMENTED. Live provider, durable storage,
+desktop/reader/device/manual and inherited qualification rows remain OPEN.
+
+P18 verification continuation (2026-08-13): fresh minutes package gate passed
+6 files / 26 tests and typecheck. Corpus fixture hashes, execution-plan
+validation and diff check passed. P18 remains IMPLEMENTED because durable
+PostgreSQL draft persistence, provider/model baseline, fixed holdout quality,
+human review, security scans and inherited qualification remain OPEN.
+
+P18 durable provenance continuation (2026-08-13): migration `0012` and
+repository/domain mapping passed database typecheck, 6 files / 28 unit tests,
+and 17 files / 324 PostgreSQL integration tests. P18 remains IMPLEMENTED;
+durable draft orchestration and provider/human/security/inherited gates remain
+OPEN.
