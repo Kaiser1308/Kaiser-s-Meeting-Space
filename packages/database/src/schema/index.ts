@@ -10,6 +10,7 @@ export * from './speech-runs.js';
 export * from './completeness.js';
 export * from './finalization.js';
 export * from './translation.js';
+export * from './minutes-provenance.js';
 export * from './minutes.js';
 export * from './brand.js';
 export * from './export.js';
