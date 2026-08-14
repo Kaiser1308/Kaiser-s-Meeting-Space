@@ -8,6 +8,7 @@ export * from './audio.js';
 export * from './transcript.js';
 export * from './speech-runs.js';
 export * from './completeness.js';
+export * from './finalization.js';
 export * from './minutes.js';
 export * from './brand.js';
 export * from './export.js';

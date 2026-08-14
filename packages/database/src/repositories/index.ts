@@ -12,6 +12,9 @@ export { TranscriptRepository } from './transcript.js';
 export { MinutesRepository } from './minutes.js';
 export type { CreateVersionInput } from './minutes.js';
 
+export { FinalizationRepository } from './finalization.js';
+export type { FinalizationState, FinalizationRangeRecord, FinalizationRunPart } from './finalization.js';
+
 export { JobsMetadataRepository } from './jobs.js';
 export type { JobCreateInput, JobListFilter } from './jobs.js';
 

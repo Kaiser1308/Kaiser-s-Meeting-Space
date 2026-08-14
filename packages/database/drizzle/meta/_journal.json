@@ -64,6 +64,13 @@
       "when": 1784841000000,
       "tag": "0008_meeting_transcription_policy",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786600000000,
+      "tag": "0009_finalization",
+      "breakpoints": true
     }
   ]
 }
