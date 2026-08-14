@@ -16,6 +16,7 @@ import { jobRoutes } from './modules/jobs/index.js';
 import { audioRoutes } from './modules/audio/index.js';
 import { meetingRoutes } from './modules/meetings/index.js';
 import { finalizationRoutes } from './modules/finalization/index.js';
+import { translationRoutes } from './modules/translation/index.js';
 import { speechRoutes } from './modules/speech/index.js';
 import { MeetingSpeechAuthorizer } from './modules/speech/meeting-speech-authorizer.js';
 
@@ -89,6 +90,7 @@ await app.register(async (protectedRoutes) => {
       objectStore: objectStore ?? undefined,
     });
     await protectedRoutes.register(finalizationRoutes, { db: dbClient.db });
+    await protectedRoutes.register(translationRoutes, { db: dbClient.db });
     if (objectStore) {
       await protectedRoutes.register(audioRoutes, {
         db: dbClient.db,
