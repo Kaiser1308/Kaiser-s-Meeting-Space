@@ -21,6 +21,7 @@
 ### Task 1: Chốt preflight và môi trường owner
 
 **Files:**
+
 - Read: `docs/execution/EXECUTION_PROTOCOL.md`
 - Read: `docs/execution/PROGRESS.md`
 - Read: `docs/execution/phases/P14-finalization-backfill.md`
@@ -36,6 +37,7 @@
 ### Task 2: Đóng P10 để đạt VERIFIED
 
 **Files:**
+
 - Read/Modify only within P10 ownership after impact analysis: mobile sync/recovery implementation and tests.
 - Evidence: `docs/execution/evidence/P10/EVIDENCE.md`, new P10 run evidence.
 
@@ -47,6 +49,7 @@
 ### Task 3: Đóng P13 external gates để đạt VERIFIED
 
 **Files:**
+
 - Read/Modify only within P13 ownership after impact analysis: speech evaluation/native qualification tooling if required.
 - Evidence: `docs/execution/evidence/P13/EVIDENCE.md` and new P13 run evidence.
 
@@ -59,6 +62,7 @@
 ### Task 4: Mở P14 đúng protocol
 
 **Files:**
+
 - Read: `docs/execution/MASTER_PLAN.md`, PRD/flows/data model/provider contract/ADR-001/002/003, P05/P06/P07/P10/P13 evidence, Test Strategy scenarios 5/8/9.
 - Create: `docs/execution/evidence/P14/RUN-YYYYMMDD-HHMM.md`
 - Modify only after preflight passes: `docs/execution/PROGRESS.md`
@@ -72,6 +76,7 @@
 ### Task 5: Thực thi P14 sau khi đã mở phase
 
 **Files:**
+
 - P14 ownership map trong `docs/execution/phases/P14-finalization-backfill.md`
 - Evidence: `docs/execution/evidence/P14/`
 

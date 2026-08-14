@@ -6,6 +6,12 @@
 **Next eligible phase:** P21 only after P20 handoff; P20 must stop before P21.
 **State:** P00-P08,P11 VERIFIED; P09-P10,P12-P15,P17-P19 IMPLEMENTED; P16 IN_PROGRESS; P20 IN_PROGRESS under the deferred policy
 
+**P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
+contract with domain/database `markdown` and added verified download resolution.
+Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The
+integrated gate remains blocked before execution by the pre-existing frozen
+lockfile mismatch; P20 remains IN_PROGRESS under the deferred policy.
+
 **P04 verification closure (2026-08-06):** P04-A01 through P04-A06 now have
 direct automated, Windows keychain, Android restart, route-inventory, and
 security evidence. `pnpm test:security` exits 0 (4 files / 37 tests), and the

@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-08-06T09:59:27+07:00",
+  "scope": "currently registered API routes",
+  "ownerContext": "bearerAuth is registered around every protected route; service/repository tests enforce owner scoping",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/v1/meetings",
+      "evidence": [
+        "apps/api/src/modules/meetings/meeting-service.test.ts",
+        "tests/security/api-conventions/api-conventions.test.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/meetings/:meetingId/start",
+      "evidence": [
+        "apps/api/src/modules/meetings/meeting-service.test.ts",
+        "tests/security/api-conventions/api-conventions.test.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/meetings",
+      "evidence": [
+        "apps/api/src/modules/meetings/meeting-service.test.ts",
+        "packages/database/test/p04-idor-matrix.test.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/meetings/:meetingId",
+      "evidence": ["packages/database/test/p04-idor-matrix.test.ts"]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/meetings/:meetingId/end",
+      "evidence": [
+        "apps/api/src/modules/meetings/meeting-service.test.ts",
+        "tests/security/api-conventions/api-conventions.test.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/meetings/:meetingId/audio/playback-url",
+      "evidence": ["apps/api/src/modules/audio/routes.test.ts"]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/meetings/:meetingId/audio/chunks/register",
+      "evidence": [
+        "apps/api/src/modules/audio/routes.test.ts",
+        "apps/api/src/modules/audio/routes.real-storage.test.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/meetings/:meetingId/audio/chunks/:source/:chunkIndex/complete",
+      "evidence": [
+        "apps/api/src/modules/audio/routes.test.ts",
+        "apps/api/src/modules/audio/routes.real-storage.test.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/meetings/:meetingId/audio/manifest",
+      "evidence": [
+        "apps/api/src/modules/audio/routes.test.ts",
+        "apps/api/src/modules/audio/routes.real-storage.test.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/meetings/:meetingId/events",
+      "evidence": ["apps/api/src/modules/jobs/sse.test.ts"]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/jobs/:id",
+      "evidence": ["apps/api/src/modules/jobs/routes.test.ts"]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/jobs/:id/retry",
+      "evidence": ["apps/api/src/modules/jobs/routes.test.ts"]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/jobs/:id/cancel",
+      "evidence": ["apps/api/src/modules/jobs/routes.test.ts"]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/meetings/:meetingId/speech-sessions",
+      "evidence": ["apps/api/src/modules/speech/routes.test.ts"]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/minutes/generate",
+      "evidence": [
+        "apps/api/src/server.test.ts",
+        "tests/security/api-conventions/api-conventions.test.ts"
+      ]
+    }
+  ],
+  "notInCurrentSurface": "Target-contract routes not yet registered in apps/api remain successor-phase scope and are not represented as implemented routes."
+}

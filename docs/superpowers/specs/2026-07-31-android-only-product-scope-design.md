@@ -56,16 +56,16 @@ platform qualification.
 The implementation will reconcile maintained, forward-looking documents so
 they use one consistent platform model:
 
-| Document area | Required change |
-| --- | --- |
-| Product requirements and consolidated plan | Replace mobile iOS/Android commitments with Android-only commitments. |
-| Architecture and technology stack | Describe Expo/React Native as the Android product stack and iOS as retained contingency code. |
-| Roadmap and execution master plan | Remove iOS from production targets and future phase outcomes. |
-| Mobile phase packets | Make Android the only required physical-device and accessibility target. |
-| Release/security/privacy phases | Remove iOS, Apple signing, App Store, and VoiceOver from mandatory gates. |
-| Test strategy and traceability | Define release evidence against Windows and Android, with TalkBack for mobile accessibility. |
-| Status and progress ledgers | Record the new decision prospectively while preserving historical implementation facts. |
-| Generated phase prompts | Regenerate from updated authoritative phase packets rather than editing generated text independently. |
+| Document area                              | Required change                                                                                       |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Product requirements and consolidated plan | Replace mobile iOS/Android commitments with Android-only commitments.                                 |
+| Architecture and technology stack          | Describe Expo/React Native as the Android product stack and iOS as retained contingency code.         |
+| Roadmap and execution master plan          | Remove iOS from production targets and future phase outcomes.                                         |
+| Mobile phase packets                       | Make Android the only required physical-device and accessibility target.                              |
+| Release/security/privacy phases            | Remove iOS, Apple signing, App Store, and VoiceOver from mandatory gates.                             |
+| Test strategy and traceability             | Define release evidence against Windows and Android, with TalkBack for mobile accessibility.          |
+| Status and progress ledgers                | Record the new decision prospectively while preserving historical implementation facts.               |
+| Generated phase prompts                    | Regenerate from updated authoritative phase packets rather than editing generated text independently. |
 
 Historical evidence and completed run records remain immutable except for a
 clearly labeled prospective addendum if one is necessary to prevent current

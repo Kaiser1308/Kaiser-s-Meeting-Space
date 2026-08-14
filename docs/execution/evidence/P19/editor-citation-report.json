@@ -1,0 +1,14 @@
+{
+  "phase": "P19",
+  "task": "P19-T04",
+  "status": "IMPLEMENTED",
+  "fixturePolicy": "synthetic-only",
+  "directChecks": { "focusedTestsPassed": 2 },
+  "covered": [
+    "exact seek range",
+    "focus return token",
+    "valid/stale/broken/gap/missing states",
+    "no arbitrary URL"
+  ],
+  "open": ["live P16 evidence/player integration", "manual keyboard/focus qualification"]
+}

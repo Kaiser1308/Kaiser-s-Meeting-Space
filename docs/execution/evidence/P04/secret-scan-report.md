@@ -1,6 +1,6 @@
 # P04 Secret Scan Report
 
-**Date:** 2026-07-23
+**Date:** 2026-08-06 (closure rerun)
 **Scanner:** grep-based pattern matching
 **Scope:** All source files excluding node_modules, .git, .claude/worktrees, pnpm-lock.yaml
 
@@ -49,3 +49,19 @@ P04-A06 (No credential/token/provider secret appears in source, bundle, response
 - Test fixtures: synthetic only
 - Configuration: all credentials empty/default
 - Documentation: no embedded secrets
+
+## Closure artifact scan — 2026-08-06
+
+The generated Android release bundle, mobile Hermes bundle, and desktop renderer
+bundle were scanned directly with the same high-risk patterns above:
+
+| Artifact                                                                                 | Bearer/API-key/private-key/content matches |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle` | 0                                          |
+| `apps/mobile/dist/_expo/static/js/android/index-f5a0a8b7e5db73b22d279921c0b26a39.hbc`    | 0                                          |
+| `apps/desktop/dist/assets/index-DTQowe3o.js`                                             | 0                                          |
+
+No persisted runtime response or log artifact exists in the repository to scan;
+the response/log paths are covered by the 37-test security suite using synthetic
+values only. No real credentials, tokens, meeting content, or provider output
+were used or recorded.

@@ -1,0 +1,19 @@
+{
+  "phase": "P19",
+  "task": "P19-T06",
+  "status": "IMPLEMENTED",
+  "fixturePolicy": "synthetic-only",
+  "directChecks": { "domainFocusedTestsPassed": 3, "typecheck": "passed" },
+  "covered": [
+    "strict proposal validation",
+    "stale base/selection rejection",
+    "unsafe output rejection",
+    "citation removal/change rejection",
+    "explicit accept boundary creates new version through API"
+  ],
+  "open": [
+    "provider-backed proposal generation",
+    "desktop diff/accept/reject E2E",
+    "inherited P17 live qualification"
+  ]
+}

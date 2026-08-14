@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
 import { validateRequiredSuiteInventory } from './required-suite-inventory.mjs';
+import { REQUIRED_SUITES } from './required-suites.mjs';
 
 const temporaryDirectories = [];
 
@@ -49,6 +50,11 @@ afterEach(() => {
 });
 
 describe('validateRequiredSuiteInventory', () => {
+  it('registers the translation package in unit and build gates', () => {
+    assert.ok(REQUIRED_SUITES.unit.some((target) => target.workspace === 'packages/translation'));
+    assert.ok(REQUIRED_SUITES.build.some((target) => target.workspace === 'packages/translation'));
+  });
+
   it('rejects a root suite with no registered execution target', () => {
     const rootDir = createFixture();
     const inventory = validInventory();

@@ -6,10 +6,10 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
-use tokio::sync::mpsc::UnboundedSender;
 
-use crate::capture::device::{get_default_device, enumerate_devices};
+use crate::capture::device::{enumerate_devices, get_default_device};
 use crate::protocol::NativeEventV1;
+use crate::runtime::NativeEventSender;
 
 pub struct DeviceMonitor {
     thread_handle: Option<JoinHandle<()>>,
@@ -17,9 +17,7 @@ pub struct DeviceMonitor {
 }
 
 impl DeviceMonitor {
-    pub fn start(
-        event_sender: UnboundedSender<NativeEventV1>,
-    ) -> Result<Self, String> {
+    pub fn start(event_sender: NativeEventSender) -> Result<Self, String> {
         let stop_signal = Arc::new(AtomicBool::new(false));
         let stop_signal_clone = stop_signal.clone();
 
@@ -77,7 +75,10 @@ impl DeviceMonitor {
                 if let Ok(current_devices) = enumerate_devices() {
                     // Check for disconnected devices
                     for last in &last_devices {
-                        if !current_devices.iter().any(|d| d.device_id == last.device_id) {
+                        if !current_devices
+                            .iter()
+                            .any(|d| d.device_id == last.device_id)
+                        {
                             let _ = event_sender.send(NativeEventV1::new(
                                 "device_event",
                                 serde_json::json!({
@@ -93,7 +94,10 @@ impl DeviceMonitor {
 
                     // Check for connected devices
                     for current in &current_devices {
-                        if !last_devices.iter().any(|d| d.device_id == current.device_id) {
+                        if !last_devices
+                            .iter()
+                            .any(|d| d.device_id == current.device_id)
+                        {
                             let _ = event_sender.send(NativeEventV1::new(
                                 "device_event",
                                 serde_json::json!({

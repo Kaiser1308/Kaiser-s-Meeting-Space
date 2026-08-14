@@ -7,7 +7,9 @@ const language = process.env.P13_DEEPGRAM_LANGUAGE === 'vi' ? 'vi' : 'en';
 const exposedKeyFingerprint = 'a6470abdff6e6229c48ace30563a2b895c027853fc0b2ac4526d58fe8b111841';
 
 function fail(code) {
-  console.error(JSON.stringify({ version: 'p13-deepgram-live-v1', pass: false, blocked: true, code }));
+  console.error(
+    JSON.stringify({ version: 'p13-deepgram-live-v1', pass: false, blocked: true, code }),
+  );
   process.exitCode = 2;
 }
 
@@ -61,14 +63,16 @@ if (!key) {
       });
     });
     await done;
-    console.log(JSON.stringify({
-      version: 'p13-deepgram-live-v1',
-      pass: opened && providerErrors === 0 && finalResults > 0,
-      blocked: false,
-      language,
-      finalResults,
-      providerErrors,
-    }));
+    console.log(
+      JSON.stringify({
+        version: 'p13-deepgram-live-v1',
+        pass: opened && providerErrors === 0 && finalResults > 0,
+        blocked: false,
+        language,
+        finalResults,
+        providerErrors,
+      }),
+    );
   } catch {
     fail('provider_live_failure');
   }

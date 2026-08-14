@@ -1,0 +1,22 @@
+{
+  "phase": "P19",
+  "task": "P19-T03",
+  "status": "IMPLEMENTED",
+  "fixturePolicy": "synthetic-only",
+  "directChecks": { "focusedFiles": 3, "testsPassed": 9, "typecheck": "passed" },
+  "covered": [
+    "paragraph/heading commands",
+    "list/checklist/table editing",
+    "reorder",
+    "confirmation resolution",
+    "undo/redo seams",
+    "safe paste",
+    "vi/en labels",
+    "word count"
+  ],
+  "open": [
+    "full desktop integration",
+    "keyboard-only/screen-reader/200% manual qualification",
+    "accessible drag/reorder E2E"
+  ]
+}

@@ -27,6 +27,13 @@ P17 is `VERIFIED`; approved provider/model access, fixed synthetic/consented vi/
 | ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
 | P17        | Verified outputs and invariants consumed by this packet. | `../evidence/P17/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+For implementation only, P18 may consume P17 contracts at `IMPLEMENTED` under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+Its run record must carry every inherited open row. P18 cannot claim `VERIFIED`
+until its dependencies and the inherited qualification rows are closed.
+
 # Scope firewall
 
 **Allowed:** `packages/minutes/` template/output/context/evaluation modules, immutable draft lifecycle/API/jobs, prompt/schema artifacts under P17 registry, synthetic corpus/scorecards.

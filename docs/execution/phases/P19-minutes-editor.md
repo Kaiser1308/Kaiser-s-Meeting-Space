@@ -27,6 +27,13 @@ P18 is `VERIFIED`; approved TipTap/ProseMirror versions, fixed complex document 
 | ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
 | P18        | Verified outputs and invariants consumed by this packet. | `../evidence/P18/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+For implementation only, P19 may consume P18 contracts at `IMPLEMENTED` under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+Its run record must carry every inherited open row. P19 cannot claim `VERIFIED`
+until its dependencies and the inherited qualification rows are closed.
+
 # Scope firewall
 
 **Allowed:** minutes document schema/migrations/serialization, API versions/current/autosave/proposal, desktop editor/citations/history/compare/restore/confirmation UI, offline pending state, a11y/conflict/E2E tests.

@@ -29,6 +29,15 @@ P06/P14/P16 are `VERIFIED`; P00-approved first generative provider, secret/regio
 | P14        | Verified outputs and invariants consumed by this packet. | `../evidence/P14/EVIDENCE.md` | VERIFIED          |
 | P16        | Verified outputs and invariants consumed by this packet. | `../evidence/P16/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+For implementation only, P17 may consume P14/P16 contracts at `IMPLEMENTED`
+under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+Its run record must carry every inherited open row. P17 cannot claim `VERIFIED`
+until its dependencies and the inherited qualification rows are closed; provider
+authorization remains a real, non-deferrable input.
+
 # Scope firewall
 
 **Allowed:** rewrite `packages/ai/` into core/provider adapters, provider registry/config, AI workers/API, schema/repair/citation validation, prompt registry, usage policy, conformance/security/fault tests.

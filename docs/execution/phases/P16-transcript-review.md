@@ -28,6 +28,14 @@ P14/P15 are `VERIFIED`; fixed large synthetic two-hour transcript/audio/translat
 | P14        | Verified outputs and invariants consumed by this packet. | `../evidence/P14/EVIDENCE.md` | VERIFIED          |
 | P15        | Verified outputs and invariants consumed by this packet. | `../evidence/P15/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+For implementation only, P16 may consume P14/P15 contracts at `IMPLEMENTED`
+under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+Its run record must carry every inherited open row. P16 cannot claim `VERIFIED`
+until its dependencies and the inherited qualification rows are closed.
+
 # Scope firewall
 
 **Allowed:** transcript run/provenance/comparison/projection-decision/revision/speaker/search/marker API/services, desktop full/mobile lightweight review UI, virtualization, evidence seek, accessibility/performance/conflict tests.

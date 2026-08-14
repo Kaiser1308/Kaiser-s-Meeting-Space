@@ -4,19 +4,84 @@
 // Reads requests from stdin, writes responses/events to stdout.
 // Structured logging to stderr.
 
-use std::sync::Arc;
-use std::time::Instant;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Instant;
 use tokio::io::{self, AsyncWriteExt};
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{Mutex, mpsc};
 
-use crate::protocol::{
-    parse_request, NativeEventV1, NativeResponseV1,
-    PROTOCOL_VERSION,
-};
-use crate::storage::StorageManager;
-use crate::simulator::Simulator;
 use crate::capture::manager::CaptureManager;
+use crate::protocol::{NativeEventV1, NativeResponseV1, PROTOCOL_VERSION, parse_request};
+use crate::simulator::Simulator;
+use crate::storage::StorageManager;
+
+const EVENT_CHANNEL_CAPACITY: usize = 64;
+
+fn capture_stop_status(recovery_required: bool) -> &'static str {
+    if recovery_required {
+        "recovery_required"
+    } else {
+        "committed"
+    }
+}
+
+/// Bounded, non-blocking event handoff shared by every native producer.
+///
+/// A producer must never await the stdout writer: a full queue instead records
+/// an explicit overrun that can be surfaced through health diagnostics.
+#[derive(Clone)]
+pub struct BoundedEventDispatcher {
+    sender: mpsc::Sender<NativeEventV1>,
+    dropped_events: Arc<AtomicU64>,
+}
+
+pub type NativeEventSender = BoundedEventDispatcher;
+
+impl BoundedEventDispatcher {
+    pub fn new(capacity: usize) -> (Self, mpsc::Receiver<NativeEventV1>) {
+        let (sender, receiver) = mpsc::channel(capacity.max(1));
+        (
+            Self {
+                sender,
+                dropped_events: Arc::new(AtomicU64::new(0)),
+            },
+            receiver,
+        )
+    }
+
+    /// Attempts one bounded handoff. Only capacity overruns are counted: a
+    /// closed receiver is a lifecycle failure, not a dropped diagnostic.
+    pub fn try_send(
+        &self,
+        event: NativeEventV1,
+    ) -> Result<(), mpsc::error::TrySendError<NativeEventV1>> {
+        match self.sender.try_send(event) {
+            Err(error @ mpsc::error::TrySendError::Full(_)) => {
+                self.dropped_events.fetch_add(1, Ordering::Relaxed);
+                Err(error)
+            }
+            result => result,
+        }
+    }
+
+    /// Compatibility spelling for existing event producers. This is always
+    /// non-blocking and has the same bounded-overrun semantics as `try_send`.
+    pub fn send(
+        &self,
+        event: NativeEventV1,
+    ) -> Result<(), mpsc::error::TrySendError<NativeEventV1>> {
+        self.try_send(event)
+    }
+
+    pub fn try_emit(&self, event: NativeEventV1) -> bool {
+        self.try_send(event).is_ok()
+    }
+
+    pub fn dropped_events(&self) -> u64 {
+        self.dropped_events.load(Ordering::Relaxed)
+    }
+}
 
 /// Runtime state.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,13 +123,13 @@ pub struct Runtime {
     simulator: Arc<Mutex<Option<Simulator>>>,
     capture_manager: Arc<Mutex<Option<Arc<Mutex<CaptureManager>>>>>,
     local_speech: Arc<Mutex<Option<crate::local_speech::LocalSpeechEngine>>>,
-    event_tx: mpsc::UnboundedSender<NativeEventV1>,
-    event_rx: Arc<Mutex<Option<mpsc::UnboundedReceiver<NativeEventV1>>>>,
+    event_tx: NativeEventSender,
+    event_rx: Arc<Mutex<Option<mpsc::Receiver<NativeEventV1>>>>,
 }
 
 impl Runtime {
     pub fn new(config: RuntimeConfig) -> Self {
-        let (event_tx, event_rx) = mpsc::unbounded_channel();
+        let (event_tx, event_rx) = BoundedEventDispatcher::new(EVENT_CHANNEL_CAPACITY);
         Self {
             config,
             state: Arc::new(Mutex::new(RuntimeState::Starting)),
@@ -98,7 +163,12 @@ impl Runtime {
         let (tx, mut rx) = mpsc::channel::<Vec<u8>>(64);
 
         // Forward events from unbounded channel to stdout tx
-        let mut event_rx = self.event_rx.lock().await.take().ok_or("event_rx already taken")?;
+        let mut event_rx = self
+            .event_rx
+            .lock()
+            .await
+            .take()
+            .ok_or("event_rx already taken")?;
         let tx_clone = tx.clone();
         tokio::spawn(async move {
             while let Some(event) = event_rx.recv().await {
@@ -144,8 +214,13 @@ impl Runtime {
 
                     // Read payload
                     let mut payload = vec![0u8; len];
-                    if let Err(e) = tokio::io::AsyncReadExt::read_exact(&mut stdin, &mut payload).await {
-                        self.log(&format!("Failed to read request payload of size {}: {}", len, e));
+                    if let Err(e) =
+                        tokio::io::AsyncReadExt::read_exact(&mut stdin, &mut payload).await
+                    {
+                        self.log(&format!(
+                            "Failed to read request payload of size {}: {}",
+                            len, e
+                        ));
                         break;
                     }
 
@@ -220,10 +295,7 @@ impl Runtime {
     }
 
     /// Dispatch a validated request to the appropriate handler.
-    async fn dispatch(
-        &self,
-        request: &crate::protocol::NativeRequestV1,
-    ) -> NativeResponseV1 {
+    async fn dispatch(&self, request: &crate::protocol::NativeRequestV1) -> NativeResponseV1 {
         match request.command.as_str() {
             "ping" => NativeResponseV1::success(
                 &request.correlation_id,
@@ -258,6 +330,7 @@ impl Runtime {
                     serde_json::json!({
                         "status": "healthy",
                         "uptimeMs": self.start_time.elapsed().as_millis() as u64,
+                        "eventOverruns": self.event_tx.dropped_events(),
                         "storageReady": storage_ready,
                         "simulatorActive": simulator_active,
                     }),
@@ -273,19 +346,13 @@ impl Runtime {
             }
 
             // Storage commands
-            cmd if cmd.starts_with("storage_") => {
-                self.handle_storage_command(request).await
-            }
+            cmd if cmd.starts_with("storage_") => self.handle_storage_command(request).await,
 
             // Manifest commands
-            cmd if cmd.starts_with("manifest_") => {
-                self.handle_storage_command(request).await
-            }
+            cmd if cmd.starts_with("manifest_") => self.handle_storage_command(request).await,
 
             // Simulator commands
-            cmd if cmd.starts_with("simulator_") => {
-                self.handle_simulator_command(request).await
-            }
+            cmd if cmd.starts_with("simulator_") => self.handle_simulator_command(request).await,
 
             // Capture commands (P12)
             "device_enumerate" | "capture_start" | "capture_stop" | "capture_get_state" => {
@@ -314,25 +381,23 @@ impl Runtime {
         let mut storage_guard = self.storage.lock().await;
 
         match request.command.as_str() {
-            "storage_init" => {
-                match StorageManager::new(&self.config.storage_root) {
-                    Ok(mgr) => {
-                        *storage_guard = Some(mgr);
-                        NativeResponseV1::success(
-                            &request.correlation_id,
-                            "storage_init",
-                            serde_json::json!({"initialized": true, "root": self.config.storage_root}),
-                        )
-                    }
-                    Err(e) => NativeResponseV1::error(
+            "storage_init" => match StorageManager::new(&self.config.storage_root) {
+                Ok(mgr) => {
+                    *storage_guard = Some(mgr);
+                    NativeResponseV1::success(
                         &request.correlation_id,
                         "storage_init",
-                        "STORAGE_INIT_FAILED",
-                        &e.to_string(),
-                        "storage",
-                    ),
+                        serde_json::json!({"initialized": true, "root": self.config.storage_root}),
+                    )
                 }
-            }
+                Err(e) => NativeResponseV1::error(
+                    &request.correlation_id,
+                    "storage_init",
+                    "STORAGE_INIT_FAILED",
+                    &e.to_string(),
+                    "storage",
+                ),
+            },
             _ => {
                 let storage = match storage_guard.as_mut() {
                     Some(s) => s,
@@ -359,10 +424,14 @@ impl Runtime {
 
         match request.command.as_str() {
             "simulator_configure" => {
-                let seed = request.payload.get("seed")
+                let seed = request
+                    .payload
+                    .get("seed")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(42);
-                let device_count = request.payload.get("deviceCount")
+                let device_count = request
+                    .payload
+                    .get("deviceCount")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(1) as usize;
 
@@ -397,26 +466,32 @@ impl Runtime {
         request: &crate::protocol::NativeRequestV1,
     ) -> NativeResponseV1 {
         match request.command.as_str() {
-            "device_enumerate" => {
-                match crate::capture::device::enumerate_devices() {
-                    Ok(devs) => NativeResponseV1::success(
-                        &request.correlation_id,
-                        "device_enumerate",
-                        serde_json::json!(devs),
-                    ),
-                    Err(e) => NativeResponseV1::error(
-                        &request.correlation_id,
-                        "device_enumerate",
-                        "ENUMERATION_FAILED",
-                        &e,
-                        "capture",
-                    ),
-                }
-            }
+            "device_enumerate" => match crate::capture::device::enumerate_devices() {
+                Ok(devs) => NativeResponseV1::success(
+                    &request.correlation_id,
+                    "device_enumerate",
+                    serde_json::json!(devs),
+                ),
+                Err(e) => NativeResponseV1::error(
+                    &request.correlation_id,
+                    "device_enumerate",
+                    "ENUMERATION_FAILED",
+                    &e,
+                    "capture",
+                ),
+            },
             "capture_start" => {
                 let meeting_id = request.payload.get("meetingId").and_then(|v| v.as_str());
-                let mic_device_id = request.payload.get("micDeviceId").and_then(|v| v.as_str()).map(|s| s.to_string());
-                let sys_device_id = request.payload.get("systemDeviceId").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let mic_device_id = request
+                    .payload
+                    .get("micDeviceId")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                let sys_device_id = request
+                    .payload
+                    .get("systemDeviceId")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
 
                 let Some(meeting_id) = meeting_id else {
                     return NativeResponseV1::error(
@@ -477,18 +552,61 @@ impl Runtime {
                     );
                 };
 
-                let mut mgr_lock = mgr.lock().await;
-                let (mic_chunks, sys_chunks) = mgr_lock.stop_session(self.storage.clone(), self.event_tx.clone()).await;
+                // Producer close happens under the manager mutex, but the
+                // acknowledgement must be awaited without it: the dispatcher
+                // needs that mutex to consume every accepted packet.
+                let drain_ack = {
+                    let mut mgr_lock = mgr.lock().await;
+                    mgr_lock.begin_stop_and_take_drain_ack()
+                };
+                drop(manager_guard);
 
-                NativeResponseV1::success(
-                    &request.correlation_id,
-                    "capture_stop",
-                    serde_json::json!({
-                        "stopped": true,
-                        "totalMicChunks": mic_chunks,
-                        "totalSysChunks": sys_chunks
-                    }),
-                )
+                let Some(drain_ack) = drain_ack else {
+                    return NativeResponseV1::error(
+                        &request.correlation_id,
+                        "capture_stop",
+                        "RECOVERY_REQUIRED",
+                        "Capture dispatcher drain acknowledgement is unavailable",
+                        "capture",
+                    );
+                };
+                if drain_ack.await.is_err() {
+                    return NativeResponseV1::error(
+                        &request.correlation_id,
+                        "capture_stop",
+                        "RECOVERY_REQUIRED",
+                        "Capture dispatcher stopped before its durable drain acknowledgement",
+                        "capture",
+                    );
+                }
+
+                let (mic_chunks, sys_chunks, recovery_required) = {
+                    let mut mgr_lock = mgr.lock().await;
+                    mgr_lock
+                        .finish_stop_after_drain(self.storage.clone(), self.event_tx.clone())
+                        .await
+                };
+
+                if recovery_required {
+                    NativeResponseV1::error(
+                        &request.correlation_id,
+                        "capture_stop",
+                        "RECOVERY_REQUIRED",
+                        "Capture drained but one or more source ranges require recovery",
+                        "capture",
+                    )
+                } else {
+                    NativeResponseV1::success(
+                        &request.correlation_id,
+                        "capture_stop",
+                        serde_json::json!({
+                            "stopped": true,
+                            "totalMicChunks": mic_chunks,
+                            "totalSysChunks": sys_chunks,
+                            "commitStatus": capture_stop_status(false)
+                        }),
+                    )
+                }
             }
             "capture_get_state" => {
                 let manager_guard = self.capture_manager.lock().await;
@@ -576,10 +694,7 @@ impl Runtime {
                     .and_then(|v| v.as_str())
                     .unwrap_or(&format!("models/{}.bin", model_id))
                     .to_string();
-                let model_sha256 = request
-                    .payload
-                    .get("modelSha256")
-                    .and_then(|v| v.as_str());
+                let model_sha256 = request.payload.get("modelSha256").and_then(|v| v.as_str());
                 let Some(model_sha256) = model_sha256 else {
                     return NativeResponseV1::error(
                         &request.correlation_id,
@@ -591,7 +706,9 @@ impl Runtime {
                 };
                 if crate::local_speech::manifest::validate_model_path(&model_path).is_err()
                     || model_sha256.len() != 64
-                    || !model_sha256.chars().all(|character| character.is_ascii_hexdigit())
+                    || !model_sha256
+                        .chars()
+                        .all(|character| character.is_ascii_hexdigit())
                 {
                     return NativeResponseV1::error(
                         &request.correlation_id,
@@ -655,8 +772,13 @@ impl Runtime {
                 let source_path = request.payload.get("sourcePath").and_then(|v| v.as_str());
                 let source_sha256 = request.payload.get("sourceSha256").and_then(|v| v.as_str());
 
-                let (Some(run_id), Some(start_ms), Some(end_ms), Some(source_path), Some(source_sha256)) =
-                    (run_id, start_ms, end_ms, source_path, source_sha256)
+                let (
+                    Some(run_id),
+                    Some(start_ms),
+                    Some(end_ms),
+                    Some(source_path),
+                    Some(source_sha256),
+                ) = (run_id, start_ms, end_ms, source_path, source_sha256)
                 else {
                     return NativeResponseV1::error(
                         &request.correlation_id,
@@ -732,11 +854,7 @@ impl Runtime {
                         "isSimulated": true,
                     }),
                 };
-                NativeResponseV1::success(
-                    &request.correlation_id,
-                    "local_speech_get_state",
-                    state,
-                )
+                NativeResponseV1::success(&request.correlation_id, "local_speech_get_state", state)
             }
             _ => NativeResponseV1::error(
                 &request.correlation_id,
@@ -749,7 +867,7 @@ impl Runtime {
     }
 
     async fn emit_event(&self, event: NativeEventV1) -> Result<(), Box<dyn std::error::Error>> {
-        let _ = self.event_tx.send(event);
+        let _ = self.event_tx.try_send(event);
         Ok(())
     }
 
@@ -765,6 +883,21 @@ impl Runtime {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bounded_event_dispatcher_counts_each_event_dropped_when_full() {
+        let (dispatcher, mut receiver) = BoundedEventDispatcher::new(1);
+        assert!(dispatcher.try_emit(NativeEventV1::new("first", serde_json::json!({}))));
+        assert!(!dispatcher.try_emit(NativeEventV1::new("second", serde_json::json!({}))));
+        assert_eq!(dispatcher.dropped_events(), 1);
+        assert_eq!(receiver.try_recv().unwrap().event_type, "first");
+    }
+
+    #[test]
+    fn bounded_event_dispatcher_never_reports_a_capacity_of_zero() {
+        let (dispatcher, _receiver) = BoundedEventDispatcher::new(0);
+        assert!(dispatcher.try_emit(NativeEventV1::new("event", serde_json::json!({}))));
+    }
 
     #[test]
     fn runtime_config_defaults() {
@@ -827,6 +960,32 @@ mod tests {
         };
         let resp = rt.dispatch(&request).await;
         assert!(resp.success);
+    }
+
+    #[tokio::test]
+    async fn health_check_exposes_bounded_event_overruns_without_event_content() {
+        let config = RuntimeConfig {
+            storage_root: "/tmp/test".to_string(),
+            protocol_version: PROTOCOL_VERSION,
+        };
+        let rt = Runtime::new(config);
+        for _ in 0..=EVENT_CHANNEL_CAPACITY {
+            let _ = rt
+                .event_tx
+                .send(NativeEventV1::new("diagnostic", serde_json::json!({})));
+        }
+        let request = crate::protocol::NativeRequestV1 {
+            version: 1,
+            correlation_id: "test-id".to_string(),
+            command: "health_check".to_string(),
+            payload: serde_json::Value::Object(serde_json::Map::new()),
+            timeout_ms: None,
+            cancel: false,
+        };
+
+        let response = rt.dispatch(&request).await;
+        assert_eq!(response.payload["eventOverruns"], 1);
+        assert!(!response.payload.to_string().contains("diagnostic"));
     }
 
     #[tokio::test]
@@ -934,6 +1093,15 @@ mod tests {
         };
         let trans_resp = rt.dispatch(&transcribe_req).await;
         assert!(!trans_resp.success);
-        assert_eq!(trans_resp.error.as_ref().map(|error| error.code.as_str()), Some("TRANSCRIBE_FAILED"));
+        assert_eq!(
+            trans_resp.error.as_ref().map(|error| error.code.as_str()),
+            Some("TRANSCRIBE_FAILED")
+        );
+    }
+
+    #[test]
+    fn capture_stop_status_never_marks_recovery_as_local_safe() {
+        assert_eq!(capture_stop_status(false), "committed");
+        assert_eq!(capture_stop_status(true), "recovery_required");
     }
 }

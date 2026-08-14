@@ -145,6 +145,33 @@ pnpm --filter @kms/domain test:unit -- --reporter=verbose  # Single package, ver
 pnpm --filter @kms/ai test:unit -- --coverage               # With coverage
 ```
 
+### Android Maestro E2E
+
+The mobile E2E suite uses the Maestro CLI and contains three independently
+runnable flows covering only the Android pre-meeting journeys: Record
+setup/readiness, Translate cloud disclosure and consent, and microphone-denial
+remediation. It does not verify successful
+recording, upload, provider work, recovery, transcription, or iOS behavior.
+
+Before running it, prepare an Android 12+ device or emulator, install the
+current mobile development build, make sure the Maestro CLI is available on
+`PATH`, and sign in manually through Auth0 with an authenticated synthetic test
+account. Credentials must never appear in a flow or shell command. Reset only
+the test app's permission state as needed between flows, then return to the app
+with the authenticated session available.
+
+Run:
+
+```powershell
+pnpm test:e2e:mobile
+```
+
+This dispatches `pnpm --filter @kms/mobile test:e2e` and executes the three
+flows in `apps/mobile/maestro/`. If Maestro, the Android device/build, or the
+authenticated session is unavailable, the command must produce a non-zero
+unavailable/blocked result. Record that result as external evidence; do not
+claim the mobile E2E suite passed.
+
 ### Test locations
 
 | Package           | Test location                         | Config                                   |
@@ -275,30 +302,3 @@ if (result.isError) {
 const config = result.config;
 console.log(redactConfig(config)); // Secrets replaced with [REDACTED]
 ```
-
-### Android Maestro E2E
-
-The mobile E2E suite uses the Maestro CLI and contains three independently
-runnable flows covering only the Android pre-meeting journeys: Record
-setup/readiness, Translate cloud disclosure and consent, and microphone-denial
-remediation. It does not verify successful
-recording, upload, provider work, recovery, transcription, or iOS behavior.
-
-Before running it, prepare an Android 12+ device or emulator, install the
-current mobile development build, make sure the Maestro CLI is available on
-`PATH`, and sign in manually through Auth0 with an authenticated synthetic test
-account. Credentials must never appear in a flow or shell command. Reset only
-the test app's permission state as needed between flows, then return to the app
-with the authenticated session available.
-
-Run:
-
-```powershell
-pnpm test:e2e:mobile
-```
-
-This dispatches `pnpm --filter @kms/mobile test:e2e` and executes the three
-flows in `apps/mobile/maestro/`. If Maestro, the Android device/build, or the
-authenticated session is unavailable, the command must produce a non-zero
-unavailable/blocked result. Record that result as external evidence; do not
-claim the mobile E2E suite passed.

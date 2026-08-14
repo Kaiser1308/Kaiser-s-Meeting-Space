@@ -45,9 +45,10 @@ Complete these steps before editing product files:
    **Dependency gate**. `VERIFIED` is the default. `IMPLEMENTED` is allowed only
    when the packet names the exact consumed capability, links direct contract,
    security, integrity, and regression evidence, and proves every unsatisfied
-   dependency acceptance criterion is orthogonal. Never upgrade or waive the
-   dependency's lifecycle state. A stale ledger, missing evidence, or
-   undocumented exception blocks execution.
+   dependency acceptance criterion is orthogonal, or when the dependency is
+   explicitly admitted by the deferred integrated-qualification policy in
+   section 3.2. Never upgrade or waive the dependency's lifecycle state. A
+   stale ledger, missing evidence, or undocumented exception blocks execution.
 5. Record exact Node, pnpm, Rust, OS, SDK, container, database, provider, browser, application, and device versions required by the packet.
 6. Resolve the packet's intended paths against current repository structure. A compatible path move is recorded in the run record; a contract or boundary change requires an ADR/packet update.
 7. Convert the unchanged task IDs into a runtime checklist. Record task order, exact narrow-test commands, and evidence destinations.
@@ -67,6 +68,27 @@ The runtime checklist is now locked. It may gain regression cases discovered whi
 - Owner approval may provide a missing credential, device, legal decision, or
   service state. It may not waive an acceptance gate or create an undocumented
   dependency contract.
+
+### 3.2 Deferred end-to-end qualification policy
+
+`DEFERRED_END_TO_END_QUALIFICATION` is a planning exception for the bounded
+P10 through P20 implementation lane. It moves named long-running physical,
+provider, and integrated end-to-end evidence into
+`DEFERRED_END_TO_END_QUALIFICATION.md`; it does not waive, shorten, simulate,
+or mark that evidence as passed.
+
+- A P10 through P20 packet may consume a direct `IMPLEMENTED` dependency only
+  when its packet links the ledger, identifies the consumed contract/capability,
+  and records inherited deferred rows in its run record.
+- The downstream phase may reach `IMPLEMENTED` only. An open inherited row is
+  a hard ceiling: neither that phase nor the originating phase may claim
+  `VERIFIED`.
+- Security, owner isolation, consent, immutable source evidence, data-loss,
+  migration, and provider-authorisation gates are never deferred. A missing
+  real provider/model/device remains an explicit unavailable state.
+- P21 through P27 and P28 use the default `VERIFIED` dependency rule. P27
+  preflight must reject any open ledger row and rerun the integrated
+  qualification before release.
 
 ## 4. Subagent allocation and review
 

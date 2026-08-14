@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import prettier from 'prettier';
 
 import { loadExecutionModel } from './plan-model.mjs';
 
@@ -21,6 +22,10 @@ block references the single complete mandatory workflow.
 
 ${blocks.join('\n\n')}
 `;
+}
+
+export async function renderFormattedPhasePrompts(model) {
+  return prettier.format(renderPhasePrompts(model), { filepath: OUTPUT_PATH });
 }
 
 function renderPacket(packet) {
@@ -58,14 +63,18 @@ ${packet.boundary}
 
 export async function writePhasePrompts(rootDir, model) {
   const resolvedModel = model ?? (await loadExecutionModel(rootDir));
-  await writeFile(path.join(rootDir, OUTPUT_PATH), renderPhasePrompts(resolvedModel), 'utf8');
+  await writeFile(
+    path.join(rootDir, OUTPUT_PATH),
+    await renderFormattedPhasePrompts(resolvedModel),
+    'utf8',
+  );
 }
 
 export async function checkPhasePrompts(rootDir, model) {
   const resolvedModel = model ?? (await loadExecutionModel(rootDir));
   try {
     const current = await readFile(path.join(rootDir, OUTPUT_PATH), 'utf8');
-    return current === renderPhasePrompts(resolvedModel);
+    return current === (await renderFormattedPhasePrompts(resolvedModel));
   } catch {
     return false;
   }

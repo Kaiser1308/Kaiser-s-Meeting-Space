@@ -19,6 +19,16 @@
 
 P20 is feature-complete, not production-ready. P27 is the only phase allowed to mark the personal release `RELEASED`. P28 is optional and must not delay or weaken P27.
 
+## Deferred end-to-end qualification lane
+
+The project may implement P10 through P20 while the named rows in
+`DEFERRED_END_TO_END_QUALIFICATION.md` remain open. This lane exists to build
+and test the complete meeting flow before running one integrated real
+two-hour/device/provider qualification. It does not promote an originating or
+downstream phase beyond `IMPLEMENTED`, and it does not waive any acceptance
+criterion. P21 through P27 and P28 retain the normal `VERIFIED` dependency
+rule; P27 is blocked until the ledger has no open row.
+
 ## Canonical direct dependency graph
 
 ```mermaid
@@ -98,7 +108,11 @@ Each packet is sized for one sustained agent conversation. It may contain severa
 
 - Direct dependencies default to `VERIFIED` before a phase enters `IN_PROGRESS`.
   A packet may explicitly consume an `IMPLEMENTED` dependency capability only
-  through the evidence-linked, orthogonal-gate rules in `EXECUTION_PROTOCOL.md`.
+  through the evidence-linked, orthogonal-gate rules or the bounded
+  `DEFERRED_END_TO_END_QUALIFICATION` lane in `EXECUTION_PROTOCOL.md`.
+- An open deferred-qualification ledger row keeps every inheriting P10-P20
+  phase at or below `IMPLEMENTED`; it is mandatory input to the P27 release
+  qualification, not a passed gate.
 - P00-P20 deliver feature-complete personal behavior.
 - P21-P27 convert feature completeness into production qualification; none may be skipped.
 - P27 re-runs the full critical matrix and cannot rely solely on earlier evidence.

@@ -13,8 +13,8 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use crate::protocol::{NativeRequestV1, NativeResponseV1};
-use windows::core::HSTRING;
 use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+use windows::core::HSTRING;
 
 #[derive(Debug, Error)]
 pub enum StorageError {
@@ -54,6 +54,7 @@ impl StorageManager {
 
         let mut mgr = Self { root, db };
         mgr.run_migrations()?;
+        mgr.reconcile_capture_orphans()?;
         Ok(mgr)
     }
 
@@ -80,8 +81,54 @@ impl StorageManager {
                 UNIQUE(meeting_id, source, chunk_index)
             );
 
-            INSERT OR IGNORE INTO schema_version (version) VALUES (1);"
+            CREATE TABLE IF NOT EXISTS capture_provenance (
+                meeting_id TEXT NOT NULL,
+                source TEXT NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                provenance_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (meeting_id, source, chunk_index),
+                FOREIGN KEY (meeting_id, source, chunk_index)
+                    REFERENCES manifest_entries(meeting_id, source, chunk_index)
+            );
+
+            CREATE TABLE IF NOT EXISTS capture_gaps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                meeting_id TEXT NOT NULL,
+                source TEXT NOT NULL,
+                start_frame INTEGER NOT NULL,
+                end_frame INTEGER NOT NULL,
+                qpc_start INTEGER,
+                qpc_end INTEGER,
+                device_start INTEGER,
+                device_end INTEGER,
+                reason TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                CHECK(end_frame >= start_frame)
+            );
+
+            INSERT OR IGNORE INTO schema_version (version) VALUES (1);",
         )?;
+        self.ensure_capture_gap_columns()?;
+        Ok(())
+    }
+
+    /// Existing P12 databases predate device boundary fields. Reconcile the
+    /// schema before accepting a new capture: this is idempotent and keeps
+    /// recovery records queryable across an interrupted upgrade.
+    fn ensure_capture_gap_columns(&self) -> Result<(), StorageError> {
+        let mut statement = self.db.prepare("PRAGMA table_info(capture_gaps)")?;
+        let columns = statement
+            .query_map([], |row| row.get::<_, String>(1))?
+            .collect::<Result<Vec<_>, _>>()?;
+        if !columns.iter().any(|column| column == "device_start") {
+            self.db
+                .execute_batch("ALTER TABLE capture_gaps ADD COLUMN device_start INTEGER;")?;
+        }
+        if !columns.iter().any(|column| column == "device_end") {
+            self.db
+                .execute_batch("ALTER TABLE capture_gaps ADD COLUMN device_end INTEGER;")?;
+        }
         Ok(())
     }
 
@@ -120,7 +167,11 @@ impl StorageManager {
     }
 
     /// Atomic write: temp → fsync → checksum → rename → dir-fsync.
-    pub fn atomic_write(&self, relative_path: &str, data: &[u8]) -> Result<(String, usize), StorageError> {
+    pub fn atomic_write(
+        &self,
+        relative_path: &str,
+        data: &[u8],
+    ) -> Result<(String, usize), StorageError> {
         let full_path = self.validate_path(relative_path)?;
 
         // Ensure parent directory exists
@@ -234,7 +285,11 @@ impl StorageManager {
     }
 
     /// Verify SHA-256 of a file.
-    pub fn checksum_verify(&self, relative_path: &str, expected: &str) -> Result<bool, StorageError> {
+    pub fn checksum_verify(
+        &self,
+        relative_path: &str,
+        expected: &str,
+    ) -> Result<bool, StorageError> {
         let actual = self.checksum_compute(relative_path)?;
         Ok(actual == expected)
     }
@@ -253,6 +308,86 @@ impl StorageManager {
             "INSERT INTO manifest_entries (meeting_id, source, chunk_index, file_path, sha256, byte_length)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![meeting_id, source, chunk_index, file_path, sha256, byte_length],
+        )?;
+        Ok(())
+    }
+
+    /// Capture provenance is deliberately local durable state, rather than a
+    /// best-effort IPC event. It records the negotiated native format and
+    /// canonical source accounting without changing P05's public chunk schema.
+    pub fn capture_record_provenance(
+        &self,
+        meeting_id: &str,
+        source: &str,
+        chunk_index: i64,
+        provenance: &serde_json::Value,
+    ) -> Result<(), StorageError> {
+        self.db.execute(
+            "INSERT INTO capture_provenance (meeting_id, source, chunk_index, provenance_json)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(meeting_id, source, chunk_index) DO NOTHING",
+            params![meeting_id, source, chunk_index, provenance.to_string()],
+        )?;
+        Ok(())
+    }
+
+    /// Commits a canonical source file only after its manifest row and native
+    /// provenance are durable in one SQLite transaction. A crash after the
+    /// atomic rename but before this transaction leaves an orphan that the
+    /// existing recovery scan can report; it can never leave a manifest-visible
+    /// source chunk whose provenance is absent.
+    pub fn commit_source_chunk(
+        &self,
+        meeting_id: &str,
+        source: &str,
+        chunk_index: i64,
+        file_path: &str,
+        data: &[u8],
+        provenance: &serde_json::Value,
+    ) -> Result<(String, usize), StorageError> {
+        let (sha256, byte_length) = self.atomic_write(file_path, data)?;
+        let tx = self.db.unchecked_transaction()?;
+        let result = (|| -> Result<(), rusqlite::Error> {
+            tx.execute(
+                "INSERT INTO manifest_entries (meeting_id, source, chunk_index, file_path, sha256, byte_length)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![meeting_id, source, chunk_index, file_path, sha256, byte_length as i64],
+            )?;
+            tx.execute(
+                "INSERT INTO capture_provenance (meeting_id, source, chunk_index, provenance_json)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![meeting_id, source, chunk_index, provenance.to_string()],
+            )?;
+            Ok(())
+        })();
+        match result {
+            Ok(()) => {
+                tx.commit()?;
+                Ok((sha256, byte_length))
+            }
+            Err(error) => {
+                tx.rollback()?;
+                Err(StorageError::Sqlite(error))
+            }
+        }
+    }
+
+    pub fn capture_record_gap(
+        &self,
+        meeting_id: &str,
+        source: &str,
+        start_frame: u64,
+        end_frame: u64,
+        qpc_start: Option<u64>,
+        qpc_end: Option<u64>,
+        device_start: Option<u64>,
+        device_end: Option<u64>,
+        reason: &str,
+    ) -> Result<(), StorageError> {
+        self.db.execute(
+            "INSERT INTO capture_gaps (meeting_id, source, start_frame, end_frame, qpc_start, qpc_end, device_start, device_end, reason)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![meeting_id, source, start_frame as i64, end_frame as i64, qpc_start.map(|v| v as i64), qpc_end.map(|v| v as i64), device_start.map(|v| v as i64), device_end.map(|v| v as i64), reason],
         )?;
         Ok(())
     }
@@ -294,7 +429,10 @@ impl StorageManager {
     }
 
     /// List manifest entries for a meeting.
-    pub fn manifest_list_entries(&self, meeting_id: &str) -> Result<Vec<serde_json::Value>, StorageError> {
+    pub fn manifest_list_entries(
+        &self,
+        meeting_id: &str,
+    ) -> Result<Vec<serde_json::Value>, StorageError> {
         let mut stmt = self.db.prepare(
             "SELECT id, meeting_id, source, chunk_index, file_path, sha256, byte_length,
                     upload_status, created_at, updated_at
@@ -343,7 +481,10 @@ impl StorageManager {
     }
 
     /// Get incomplete entries (upload_status != 'completed').
-    pub fn manifest_get_incomplete(&self, meeting_id: &str) -> Result<Vec<serde_json::Value>, StorageError> {
+    pub fn manifest_get_incomplete(
+        &self,
+        meeting_id: &str,
+    ) -> Result<Vec<serde_json::Value>, StorageError> {
         let mut stmt = self.db.prepare(
             "SELECT id, meeting_id, source, chunk_index, file_path, sha256, byte_length,
                     upload_status
@@ -390,15 +531,36 @@ impl StorageManager {
             let relative = format!("chunks/{}", filename);
 
             // Check if there's a manifest entry for this file
-            let mut stmt = self.db.prepare(
-                "SELECT COUNT(*) FROM manifest_entries WHERE file_path = ?1",
-            )?;
+            let mut stmt = self
+                .db
+                .prepare("SELECT COUNT(*) FROM manifest_entries WHERE file_path = ?1")?;
             let count: i64 = stmt.query_row(params![relative], |row| row.get(0))?;
             if count == 0 {
                 orphans.push(relative);
             }
         }
         Ok(orphans)
+    }
+
+    /// A file that survived the file rename but not the source-commit
+    /// transaction is evidence for recovery, never a candidate canonical
+    /// chunk. On startup isolate it so normal manifest scans cannot publish it.
+    fn reconcile_capture_orphans(&self) -> Result<(), StorageError> {
+        for orphan in self.manifest_get_orphans()? {
+            let source = self.validate_path(&orphan)?;
+            let file_name = source
+                .file_name()
+                .ok_or_else(|| StorageError::NotFound(orphan.clone()))?;
+            let target_relative = format!("quarantine/{}.orphan", file_name.to_string_lossy());
+            let target = self.validate_path(&target_relative)?;
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            if !target.exists() {
+                fs::rename(&source, &target)?;
+            }
+        }
+        Ok(())
     }
 
     /// Handle an IPC command.
@@ -412,25 +574,37 @@ impl StorageManager {
                     (Some(path), Some(b64)) => {
                         let data = match base64_decode(b64) {
                             Ok(d) => d,
-                            Err(e) => return NativeResponseV1::error(
-                                &request.correlation_id, &request.command,
-                                "INVALID_DATA", &e, "validation",
-                            ),
+                            Err(e) => {
+                                return NativeResponseV1::error(
+                                    &request.correlation_id,
+                                    &request.command,
+                                    "INVALID_DATA",
+                                    &e,
+                                    "validation",
+                                );
+                            }
                         };
                         match self.atomic_write(path, &data) {
                             Ok((sha256, byte_length)) => NativeResponseV1::success(
-                                &request.correlation_id, &request.command,
+                                &request.correlation_id,
+                                &request.command,
                                 serde_json::json!({"path": path, "sha256": sha256, "byteLength": byte_length}),
                             ),
                             Err(e) => NativeResponseV1::error(
-                                &request.correlation_id, &request.command,
-                                "WRITE_FAILED", &e.to_string(), "storage",
+                                &request.correlation_id,
+                                &request.command,
+                                "WRITE_FAILED",
+                                &e.to_string(),
+                                "storage",
                             ),
                         }
                     }
                     _ => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: path, dataBase64", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: path, dataBase64",
+                        "validation",
                     ),
                 }
             }
@@ -441,18 +615,25 @@ impl StorageManager {
                         Ok(data) => {
                             let b64 = base64_encode(&data);
                             NativeResponseV1::success(
-                                &request.correlation_id, &request.command,
+                                &request.correlation_id,
+                                &request.command,
                                 serde_json::json!({"path": path, "dataBase64": b64, "byteLength": data.len()}),
                             )
                         }
                         Err(e) => NativeResponseV1::error(
-                            &request.correlation_id, &request.command,
-                            "READ_FAILED", &e.to_string(), "storage",
+                            &request.correlation_id,
+                            &request.command,
+                            "READ_FAILED",
+                            &e.to_string(),
+                            "storage",
                         ),
                     },
                     None => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: path", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: path",
+                        "validation",
                     ),
                 }
             }
@@ -461,42 +642,64 @@ impl StorageManager {
                 match path {
                     Some(path) => match self.delete(path) {
                         Ok(()) => NativeResponseV1::success(
-                            &request.correlation_id, &request.command,
+                            &request.correlation_id,
+                            &request.command,
                             serde_json::json!({"deleted": true}),
                         ),
                         Err(e) => NativeResponseV1::error(
-                            &request.correlation_id, &request.command,
-                            "DELETE_FAILED", &e.to_string(), "storage",
+                            &request.correlation_id,
+                            &request.command,
+                            "DELETE_FAILED",
+                            &e.to_string(),
+                            "storage",
                         ),
                     },
                     None => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: path", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: path",
+                        "validation",
                     ),
                 }
             }
             "storage_list" => {
-                let dir = request.payload.get("dir").and_then(|v| v.as_str()).unwrap_or(".");
+                let dir = request
+                    .payload
+                    .get("dir")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(".");
                 match self.list(dir) {
                     Ok(entries) => NativeResponseV1::success(
-                        &request.correlation_id, &request.command,
+                        &request.correlation_id,
+                        &request.command,
                         serde_json::json!({"entries": entries}),
                     ),
                     Err(e) => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "LIST_FAILED", &e.to_string(), "storage",
+                        &request.correlation_id,
+                        &request.command,
+                        "LIST_FAILED",
+                        &e.to_string(),
+                        "storage",
                     ),
                 }
             }
             "storage_stat" => {
-                let path = request.payload.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+                let path = request
+                    .payload
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(".");
                 match self.stat(path) {
-                    Ok(stat) => NativeResponseV1::success(
-                        &request.correlation_id, &request.command, stat,
-                    ),
+                    Ok(stat) => {
+                        NativeResponseV1::success(&request.correlation_id, &request.command, stat)
+                    }
                     Err(e) => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "STAT_FAILED", &e.to_string(), "storage",
+                        &request.correlation_id,
+                        &request.command,
+                        "STAT_FAILED",
+                        &e.to_string(),
+                        "storage",
                     ),
                 }
             }
@@ -505,52 +708,64 @@ impl StorageManager {
                 match dir {
                     Some(dir) => match self.mkdir(dir) {
                         Ok(()) => NativeResponseV1::success(
-                            &request.correlation_id, &request.command,
+                            &request.correlation_id,
+                            &request.command,
                             serde_json::json!({"created": true}),
                         ),
                         Err(e) => NativeResponseV1::error(
-                            &request.correlation_id, &request.command,
-                            "MKDIR_FAILED", &e.to_string(), "storage",
+                            &request.correlation_id,
+                            &request.command,
+                            "MKDIR_FAILED",
+                            &e.to_string(),
+                            "storage",
                         ),
                     },
                     None => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: dir", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: dir",
+                        "validation",
                     ),
                 }
             }
-            "storage_available_space" => {
-                match self.available_space_bytes() {
-                    Ok(available_bytes) => NativeResponseV1::success(
-                        &request.correlation_id,
-                        &request.command,
-                        serde_json::json!({"availableBytes": available_bytes}),
-                    ),
-                    Err(error) => NativeResponseV1::error(
-                        &request.correlation_id,
-                        &request.command,
-                        "STORAGE_SPACE_UNAVAILABLE",
-                        &error.to_string(),
-                        "storage",
-                    ),
-                }
-            }
+            "storage_available_space" => match self.available_space_bytes() {
+                Ok(available_bytes) => NativeResponseV1::success(
+                    &request.correlation_id,
+                    &request.command,
+                    serde_json::json!({"availableBytes": available_bytes}),
+                ),
+                Err(error) => NativeResponseV1::error(
+                    &request.correlation_id,
+                    &request.command,
+                    "STORAGE_SPACE_UNAVAILABLE",
+                    &error.to_string(),
+                    "storage",
+                ),
+            },
             "storage_checksum_compute" => {
                 let path = request.payload.get("path").and_then(|v| v.as_str());
                 match path {
                     Some(path) => match self.checksum_compute(path) {
                         Ok(sha256) => NativeResponseV1::success(
-                            &request.correlation_id, &request.command,
+                            &request.correlation_id,
+                            &request.command,
                             serde_json::json!({"sha256": sha256}),
                         ),
                         Err(e) => NativeResponseV1::error(
-                            &request.correlation_id, &request.command,
-                            "CHECKSUM_FAILED", &e.to_string(), "storage",
+                            &request.correlation_id,
+                            &request.command,
+                            "CHECKSUM_FAILED",
+                            &e.to_string(),
+                            "storage",
                         ),
                     },
                     None => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: path", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: path",
+                        "validation",
                     ),
                 }
             }
@@ -560,24 +775,32 @@ impl StorageManager {
                 match (path, expected) {
                     (Some(path), Some(expected)) => match self.checksum_verify(path, expected) {
                         Ok(valid) => NativeResponseV1::success(
-                            &request.correlation_id, &request.command,
+                            &request.correlation_id,
+                            &request.command,
                             serde_json::json!({"valid": valid}),
                         ),
                         Err(e) => NativeResponseV1::error(
-                            &request.correlation_id, &request.command,
-                            "VERIFY_FAILED", &e.to_string(), "storage",
+                            &request.correlation_id,
+                            &request.command,
+                            "VERIFY_FAILED",
+                            &e.to_string(),
+                            "storage",
                         ),
                     },
                     _ => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: path, expected", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: path, expected",
+                        "validation",
                     ),
                 }
             }
             "manifest_init" => {
                 // Already initialized in new()
                 NativeResponseV1::success(
-                    &request.correlation_id, &request.command,
+                    &request.correlation_id,
+                    &request.command,
                     serde_json::json!({"initialized": true}),
                 )
             }
@@ -589,22 +812,36 @@ impl StorageManager {
                 let sha256 = request.payload.get("sha256").and_then(|v| v.as_str());
                 let byte_length = request.payload.get("byteLength").and_then(|v| v.as_i64());
 
-                match (meeting_id, source, chunk_index, file_path, sha256, byte_length) {
+                match (
+                    meeting_id,
+                    source,
+                    chunk_index,
+                    file_path,
+                    sha256,
+                    byte_length,
+                ) {
                     (Some(mid), Some(src), Some(ci), Some(fp), Some(sha), Some(bl)) => {
                         match self.manifest_add_entry(mid, src, ci, fp, sha, bl) {
                             Ok(()) => NativeResponseV1::success(
-                                &request.correlation_id, &request.command,
+                                &request.correlation_id,
+                                &request.command,
                                 serde_json::json!({"added": true}),
                             ),
                             Err(e) => NativeResponseV1::error(
-                                &request.correlation_id, &request.command,
-                                "ADD_FAILED", &e.to_string(), "storage",
+                                &request.correlation_id,
+                                &request.command,
+                                "ADD_FAILED",
+                                &e.to_string(),
+                                "storage",
                             ),
                         }
                     }
                     _ => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: meetingId, source, chunkIndex, filePath, sha256, byteLength", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: meetingId, source, chunkIndex, filePath, sha256, byteLength",
+                        "validation",
                     ),
                 }
             }
@@ -617,21 +854,30 @@ impl StorageManager {
                     (Some(mid), Some(src), Some(ci)) => {
                         match self.manifest_get_entry(mid, src, ci) {
                             Ok(Some(entry)) => NativeResponseV1::success(
-                                &request.correlation_id, &request.command, entry,
+                                &request.correlation_id,
+                                &request.command,
+                                entry,
                             ),
                             Ok(None) => NativeResponseV1::success(
-                                &request.correlation_id, &request.command,
+                                &request.correlation_id,
+                                &request.command,
                                 serde_json::json!({"found": false}),
                             ),
                             Err(e) => NativeResponseV1::error(
-                                &request.correlation_id, &request.command,
-                                "GET_FAILED", &e.to_string(), "storage",
+                                &request.correlation_id,
+                                &request.command,
+                                "GET_FAILED",
+                                &e.to_string(),
+                                "storage",
                             ),
                         }
                     }
                     _ => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: meetingId, source, chunkIndex", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: meetingId, source, chunkIndex",
+                        "validation",
                     ),
                 }
             }
@@ -640,17 +886,24 @@ impl StorageManager {
                 match meeting_id {
                     Some(mid) => match self.manifest_list_entries(mid) {
                         Ok(entries) => NativeResponseV1::success(
-                            &request.correlation_id, &request.command,
+                            &request.correlation_id,
+                            &request.command,
                             serde_json::json!({"entries": entries}),
                         ),
                         Err(e) => NativeResponseV1::error(
-                            &request.correlation_id, &request.command,
-                            "LIST_FAILED", &e.to_string(), "storage",
+                            &request.correlation_id,
+                            &request.command,
+                            "LIST_FAILED",
+                            &e.to_string(),
+                            "storage",
                         ),
                     },
                     None => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: meetingId", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: meetingId",
+                        "validation",
                     ),
                 }
             }
@@ -664,18 +917,25 @@ impl StorageManager {
                     (Some(mid), Some(src), Some(ci), Some(st)) => {
                         match self.manifest_update_upload_status(mid, src, ci, st) {
                             Ok(updated) => NativeResponseV1::success(
-                                &request.correlation_id, &request.command,
+                                &request.correlation_id,
+                                &request.command,
                                 serde_json::json!({"updated": updated}),
                             ),
                             Err(e) => NativeResponseV1::error(
-                                &request.correlation_id, &request.command,
-                                "UPDATE_FAILED", &e.to_string(), "storage",
+                                &request.correlation_id,
+                                &request.command,
+                                "UPDATE_FAILED",
+                                &e.to_string(),
+                                "storage",
                             ),
                         }
                     }
                     _ => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: meetingId, source, chunkIndex, status", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: meetingId, source, chunkIndex, status",
+                        "validation",
                     ),
                 }
             }
@@ -684,41 +944,52 @@ impl StorageManager {
                 match meeting_id {
                     Some(mid) => match self.manifest_get_incomplete(mid) {
                         Ok(entries) => NativeResponseV1::success(
-                            &request.correlation_id, &request.command,
+                            &request.correlation_id,
+                            &request.command,
                             serde_json::json!({"entries": entries}),
                         ),
                         Err(e) => NativeResponseV1::error(
-                            &request.correlation_id, &request.command,
-                            "QUERY_FAILED", &e.to_string(), "storage",
+                            &request.correlation_id,
+                            &request.command,
+                            "QUERY_FAILED",
+                            &e.to_string(),
+                            "storage",
                         ),
                     },
                     None => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "MISSING_PARAMS", "Required: meetingId", "validation",
+                        &request.correlation_id,
+                        &request.command,
+                        "MISSING_PARAMS",
+                        "Required: meetingId",
+                        "validation",
                     ),
                 }
             }
-            "manifest_get_orphans" => {
-                match self.manifest_get_orphans() {
-                    Ok(orphans) => NativeResponseV1::success(
-                        &request.correlation_id, &request.command,
-                        serde_json::json!({"orphans": orphans}),
-                    ),
-                    Err(e) => NativeResponseV1::error(
-                        &request.correlation_id, &request.command,
-                        "QUERY_FAILED", &e.to_string(), "storage",
-                    ),
-                }
-            }
-            "manifest_close" => {
-                NativeResponseV1::success(
-                    &request.correlation_id, &request.command,
-                    serde_json::json!({"closed": true}),
-                )
-            }
+            "manifest_get_orphans" => match self.manifest_get_orphans() {
+                Ok(orphans) => NativeResponseV1::success(
+                    &request.correlation_id,
+                    &request.command,
+                    serde_json::json!({"orphans": orphans}),
+                ),
+                Err(e) => NativeResponseV1::error(
+                    &request.correlation_id,
+                    &request.command,
+                    "QUERY_FAILED",
+                    &e.to_string(),
+                    "storage",
+                ),
+            },
+            "manifest_close" => NativeResponseV1::success(
+                &request.correlation_id,
+                &request.command,
+                serde_json::json!({"closed": true}),
+            ),
             _ => NativeResponseV1::error(
-                &request.correlation_id, &request.command,
-                "UNKNOWN_COMMAND", &format!("Unknown storage command: {}", request.command), "protocol",
+                &request.correlation_id,
+                &request.command,
+                "UNKNOWN_COMMAND",
+                &format!("Unknown storage command: {}", request.command),
+                "protocol",
             ),
         }
     }
@@ -742,7 +1013,9 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     let mut bits: u32 = 0;
 
     for &byte in input.as_bytes() {
-        let val = TABLE.iter().position(|&b| b == byte)
+        let val = TABLE
+            .iter()
+            .position(|&b| b == byte)
             .ok_or_else(|| format!("Invalid base64 character: {}", byte as char))?;
         buf = (buf << 6) | val as u32;
         bits += 6;
@@ -762,8 +1035,16 @@ fn base64_encode(data: &[u8]) -> String {
     let mut i = 0;
     while i < data.len() {
         let b0 = data[i] as u32;
-        let b1 = if i + 1 < data.len() { data[i + 1] as u32 } else { 0 };
-        let b2 = if i + 2 < data.len() { data[i + 2] as u32 } else { 0 };
+        let b1 = if i + 1 < data.len() {
+            data[i + 1] as u32
+        } else {
+            0
+        };
+        let b2 = if i + 2 < data.len() {
+            data[i + 2] as u32
+        } else {
+            0
+        };
         let triple = (b0 << 16) | (b1 << 8) | b2;
         result.push(TABLE[((triple >> 18) & 0x3F) as usize] as char);
         result.push(TABLE[((triple >> 12) & 0x3F) as usize] as char);
@@ -788,7 +1069,8 @@ fn fsync_dir(path: &Path) -> std::io::Result<()> {
     {
         use std::os::unix::io::AsRawFd;
         let dir = fs::File::open(path)?;
-        nix::unistd::fsync(dir.as_raw_fd()).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        nix::unistd::fsync(dir.as_raw_fd())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
     }
     // On Windows, directory fsync is not natively supported via std
     // FlushFileBuffers requires HANDLE — skip for now, WAL mode provides safety
@@ -820,13 +1102,46 @@ mod tests {
     }
 
     #[test]
+    fn capture_gap_persists_exact_device_and_qpc_boundaries() {
+        let temp = tempfile::tempdir().unwrap();
+        let mgr = StorageManager::new(temp.path().to_str().unwrap()).unwrap();
+        mgr.capture_record_gap(
+            "meeting",
+            "microphone",
+            10,
+            970,
+            Some(100),
+            Some(200_100),
+            Some(7),
+            Some(967),
+            "overflow",
+        )
+        .unwrap();
+        let row: (i64, i64, i64, i64) = mgr
+            .db
+            .query_row(
+                "SELECT device_start, device_end, qpc_start, qpc_end FROM capture_gaps WHERE meeting_id = 'meeting'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(row, (7, 967, 100, 200_100));
+    }
+
+    #[test]
     fn checksum_verify() {
         let (_dir, mgr) = make_storage();
         let data = b"test data for checksum";
         let (sha256, _) = mgr.atomic_write("checksum.txt", data).unwrap();
 
         assert!(mgr.checksum_verify("checksum.txt", &sha256).unwrap());
-        assert!(!mgr.checksum_verify("checksum.txt", "0000000000000000000000000000000000000000000000000000000000000000").unwrap());
+        assert!(
+            !mgr.checksum_verify(
+                "checksum.txt",
+                "0000000000000000000000000000000000000000000000000000000000000000"
+            )
+            .unwrap()
+        );
     }
 
     #[test]
@@ -863,16 +1178,28 @@ mod tests {
         let (_dir, mgr) = make_storage();
         let sha = "a".repeat(64);
 
-        mgr.manifest_add_entry("meeting-1", "microphone", 0, "chunks/chunk_000.webm", &sha, 1024).unwrap();
+        mgr.manifest_add_entry(
+            "meeting-1",
+            "microphone",
+            0,
+            "chunks/chunk_000.webm",
+            &sha,
+            1024,
+        )
+        .unwrap();
 
-        let entry = mgr.manifest_get_entry("meeting-1", "microphone", 0).unwrap();
+        let entry = mgr
+            .manifest_get_entry("meeting-1", "microphone", 0)
+            .unwrap();
         assert!(entry.is_some());
         let entry = entry.unwrap();
         assert_eq!(entry["chunkIndex"], 0);
         assert_eq!(entry["uploadStatus"], "pending");
 
         // Update status
-        let updated = mgr.manifest_update_upload_status("meeting-1", "microphone", 0, "completed").unwrap();
+        let updated = mgr
+            .manifest_update_upload_status("meeting-1", "microphone", 0, "completed")
+            .unwrap();
         assert!(updated);
 
         // Get incomplete
@@ -881,12 +1208,140 @@ mod tests {
     }
 
     #[test]
+    fn capture_provenance_and_gaps_are_durable_local_records() {
+        let (_dir, mgr) = make_storage();
+        let sha = "c".repeat(64);
+        mgr.manifest_add_entry("meeting", "microphone", 3, "chunks/c.webm", &sha, 3)
+            .unwrap();
+        mgr.capture_record_provenance(
+            "meeting",
+            "microphone",
+            3,
+            &serde_json::json!({"canonical": {"codec": "opus"}}),
+        )
+        .unwrap();
+        mgr.capture_record_gap(
+            "meeting",
+            "microphone",
+            480,
+            960,
+            Some(1),
+            Some(2),
+            None,
+            None,
+            "queue_overflow",
+        )
+        .unwrap();
+        let provenance: String = mgr
+            .db
+            .query_row(
+                "SELECT provenance_json FROM capture_provenance",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let gap: (i64, i64, String) = mgr
+            .db
+            .query_row(
+                "SELECT start_frame, end_frame, reason FROM capture_gaps",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert!(provenance.contains("opus"));
+        assert_eq!(gap, (480, 960, "queue_overflow".to_string()));
+    }
+
+    #[test]
+    fn source_chunk_commit_never_exposes_manifest_without_provenance_after_recovery() {
+        let (_dir, mgr) = make_storage();
+        let provenance = serde_json::json!({"version": 1, "nativePackets": {"rawFrameCount": 4}});
+
+        mgr.commit_source_chunk(
+            "meeting",
+            "microphone",
+            0,
+            "chunks/mic_000.webm",
+            b"synthetic-webm",
+            &provenance,
+        )
+        .unwrap();
+
+        assert!(
+            mgr.manifest_get_entry("meeting", "microphone", 0)
+                .unwrap()
+                .is_some()
+        );
+        let provenance_count: i64 = mgr.db.query_row(
+            "SELECT COUNT(*) FROM capture_provenance WHERE meeting_id = 'meeting' AND source = 'microphone' AND chunk_index = 0",
+            [],
+            |row| row.get(0),
+        ).unwrap();
+        assert_eq!(provenance_count, 1);
+    }
+
+    #[test]
+    fn failed_provenance_step_rolls_back_manifest_and_leaves_recoverable_orphan() {
+        // Production break caught: inserting the manifest before provenance
+        // outside a transaction makes an upload-visible chunk survive a crash
+        // without the native sample/QPC accounting needed to trust it.
+        let (_dir, mgr) = make_storage();
+        mgr.db
+            .execute_batch(
+                "CREATE TRIGGER fail_capture_provenance BEFORE INSERT ON capture_provenance
+                 BEGIN SELECT RAISE(FAIL, 'synthetic provenance failure'); END;",
+            )
+            .unwrap();
+
+        let error = mgr
+            .commit_source_chunk(
+                "meeting",
+                "microphone",
+                0,
+                "chunks/mic_000.webm",
+                b"synthetic-webm",
+                &serde_json::json!({"version": 1}),
+            )
+            .unwrap_err();
+        assert!(error.to_string().contains("synthetic provenance failure"));
+        assert!(
+            mgr.manifest_get_entry("meeting", "microphone", 0)
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(
+            mgr.manifest_get_orphans().unwrap(),
+            vec!["chunks/mic_000.webm".to_string()]
+        );
+    }
+
+    #[test]
+    fn startup_quarantines_orphaned_source_chunk_before_manifest_recovery() {
+        let dir = tempfile::tempdir().unwrap();
+        let mgr = StorageManager::new(dir.path().to_str().unwrap()).unwrap();
+        mgr.atomic_write("chunks/interrupted.webm", b"synthetic-webm")
+            .unwrap();
+        drop(mgr);
+
+        let recovered = StorageManager::new(dir.path().to_str().unwrap()).unwrap();
+        assert!(recovered.manifest_get_orphans().unwrap().is_empty());
+        assert_eq!(
+            recovered
+                .read("quarantine/interrupted.webm.orphan")
+                .unwrap(),
+            b"synthetic-webm"
+        );
+    }
+
+    #[test]
     fn manifest_list_entries() {
         let (_dir, mgr) = make_storage();
         let sha = "b".repeat(64);
 
-        mgr.manifest_add_entry("meeting-2", "microphone", 0, "chunks/c0.webm", &sha, 500).unwrap();
-        mgr.manifest_add_entry("meeting-2", "microphone", 1, "chunks/c1.webm", &sha, 600).unwrap();
+        mgr.manifest_add_entry("meeting-2", "microphone", 0, "chunks/c0.webm", &sha, 500)
+            .unwrap();
+        mgr.manifest_add_entry("meeting-2", "microphone", 1, "chunks/c1.webm", &sha, 600)
+            .unwrap();
 
         let entries = mgr.manifest_list_entries("meeting-2").unwrap();
         assert_eq!(entries.len(), 2);
@@ -904,7 +1359,10 @@ mod tests {
     #[test]
     fn sha256_computation() {
         let result = compute_sha256(b"hello");
-        assert_eq!(result, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
+        assert_eq!(
+            result,
+            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        );
     }
 
     #[test]

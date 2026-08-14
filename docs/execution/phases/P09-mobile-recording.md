@@ -27,6 +27,14 @@ P08 is `VERIFIED`; a supported physical Android device, the Android native devel
 | ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
 | P08        | Verified outputs and invariants consumed by this packet. | `../evidence/P08/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+P09 implementation evidence may be extended while the P09 row in
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md)
+is open. The row is not passed by this exception: P09 remains at most
+`IMPLEMENTED` until its physical interruption/route and two-hour evidence is
+closed.
+
 # Scope firewall
 
 **Allowed:** a local Expo/React Native audio module, Android native code, retained iOS reserve code, P07 platform adapters, capture service/reducer/events, recording controls/health UI, and Android native/device/fault/performance tests.
@@ -45,13 +53,13 @@ P08 is `VERIFIED`; a supported physical Android device, the Android native devel
 
 # File and ownership map
 
-| Path                                | Responsibility                                   | Owner                |
-| ----------------------------------- | ------------------------------------------------ | -------------------- |
-| mobile local audio module shared/JS | typed native interface and fake                  | JS integration       |
-| audio module Android sources        | AudioRecord/focus/route/chunk adapter            | Android              |
-| audio module iOS reserve sources    | Retained AVAudioEngine/Session/chunk adapter     | iOS reserve (non-gating) |
-| mobile recording feature            | lifecycle reducer/service/controls/health        | JS integration       |
-| native/device/resilience tests      | conformance, two-hour, fault matrix              | Independent reviewer |
+| Path                                | Responsibility                               | Owner                    |
+| ----------------------------------- | -------------------------------------------- | ------------------------ |
+| mobile local audio module shared/JS | typed native interface and fake              | JS integration           |
+| audio module Android sources        | AudioRecord/focus/route/chunk adapter        | Android                  |
+| audio module iOS reserve sources    | Retained AVAudioEngine/Session/chunk adapter | iOS reserve (non-gating) |
+| mobile recording feature            | lifecycle reducer/service/controls/health    | JS integration           |
+| native/device/resilience tests      | conformance, two-hour, fault matrix          | Independent reviewer     |
 
 # Ordered task packets
 
@@ -85,12 +93,12 @@ On supported Android run silence/noise/synthetic playback, rapid pause/resume, n
 
 # Subagent work packages
 
-| Package             | Tasks           | Exclusive paths               | Depends on | Review gate                |
-| ------------------- | --------------- | ----------------------------- | ---------- | -------------------------- |
-| Contract/JS         | T01,T04,T05     | JS module + recording feature | P08        | state/IPC review           |
-| Android             | T02,T06 Android | Android native                | T01,P07    | realtime/durability review |
+| Package             | Tasks           | Exclusive paths               | Depends on | Review gate                    |
+| ------------------- | --------------- | ----------------------------- | ---------- | ------------------------------ |
+| Contract/JS         | T01,T04,T05     | JS module + recording feature | P08        | state/IPC review               |
+| Android             | T02,T06 Android | Android native                | T01,P07    | realtime/durability review     |
 | iOS reserve         | T03             | retained iOS native sources   | T01,P07    | non-gating preservation review |
-| Independent devices | T07             | tests/evidence only           | all        | data-loss/platform review  |
+| Independent devices | T07             | tests/evidence only           | all        | data-loss/platform review      |
 
 # Failure and debugging matrix
 

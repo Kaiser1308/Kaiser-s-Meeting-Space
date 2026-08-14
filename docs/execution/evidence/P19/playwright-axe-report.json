@@ -1,0 +1,20 @@
+{
+  "phase": "P19",
+  "run": "2026-08-13T15:06:00+07:00",
+  "suite": "apps/desktop/e2e/desktop.accessibility.spec.ts",
+  "runner": "Playwright + Chromium + axe-core",
+  "tests": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5
+  },
+  "checks": [
+    "desktop shell primary meeting controls",
+    "desktop shell WCAG 2A/2AA/best-practice axe scan",
+    "synthetic editor fixture WCAG 2A/2AA axe scan",
+    "production MinutesEditor edit/undo/redo/safe-paste/save flow",
+    "production MinutesEditor WCAG 2A/2AA/best-practice axe scan"
+  ],
+  "violations": 0,
+  "content": "synthetic UI only; no real meeting content, credentials, provider, device, or manual result"
+}

@@ -19,7 +19,14 @@ Read PRD FR-2-FR-5/release rules, User Flows End/processing/failure, Data Model 
 
 # Preconditions and external prerequisites
 
-P06/P10/P13 are `VERIFIED`; real storage/jobs, verified Windows local-file capability, authorized cloud file transcription capability, and fixed synthetic/consented two-hour manifests/audio are available. Provider/model/desktop outage is an expected truthful state, but local and cloud acceptance require their named real environments.
+P06 is `VERIFIED`. P10/P13 are required to be `VERIFIED` for P14 verification;
+for P14 implementation only, their named finalization inputs may be consumed at
+`IMPLEMENTED` through the deferred qualification lane below. Real storage/jobs,
+verified Windows local-file capability, authorized cloud file transcription
+capability, and fixed synthetic/consented two-hour manifests/audio remain
+mandatory closure prerequisites. Provider/model/desktop outage is an expected
+truthful state, but local and cloud acceptance require their named real
+environments.
 
 # Dependency gate
 
@@ -28,6 +35,15 @@ P06/P10/P13 are `VERIFIED`; real storage/jobs, verified Windows local-file capab
 | P06        | Verified outputs and invariants consumed by this packet. | `../evidence/P06/EVIDENCE.md` | VERIFIED          |
 | P10        | Verified outputs and invariants consumed by this packet. | `../evidence/P10/EVIDENCE.md` | VERIFIED          |
 | P13        | Verified outputs and invariants consumed by this packet. | `../evidence/P13/EVIDENCE.md` | VERIFIED          |
+
+## Deferred end-to-end qualification lane
+
+For implementation only, P14 may consume the directly evidenced P10 sync and
+P13 final-run contracts at `IMPLEMENTED` under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+The fresh run record must identify those contracts and inherit their open rows.
+P14 is capped at `IMPLEMENTED` until the inherited rows and P14's own integrated
+finalization rows are closed.
 
 # Scope firewall
 

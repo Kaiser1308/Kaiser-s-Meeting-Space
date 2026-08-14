@@ -1,4 +1,8 @@
 node_modules/
+node_modules.corrupt/
+node_modules.hardlink-acl-backup/
+**/.node_modules.backup*/
+.node_modules.backup*/
 dist/
 .expo/
 pnpm-lock.yaml
@@ -7,6 +11,8 @@ coverage/
 recordings/
 exports/
 .claude/
+.agents/
+android/
 .gitnexus/
 apps/desktop/dist-electron/
 native/target/

@@ -9,10 +9,11 @@ When asked to execute a phase:
 3. Inspect current files and Git state before editing. Preserve user changes; never reset or discard them.
 4. Use subagents only for independent work packages with non-overlapping file ownership. The main agent integrates and verifies.
 5. For every task: implement, run the narrow test, debug the root cause and rerun. Then run the complete phase gate.
-6. Audio/source transcript are immutable after finalization. Derived artifacts are versioned. Recording must not depend on network/AI availability.
-7. Never use real meeting content, commit secrets, log content, fake device/provider behavior or claim unavailable manual tests passed.
-8. Update `STATUS.md`, `execution/TRACEABILITY.md`, `execution/PROGRESS.md` and phase evidence only after direct verification.
-9. A phase is `VERIFIED` only when every binary gate has evidence. Stop after handoff; never start the next phase.
+6. Commit each completed task separately, only after its required verification passes. Stage only that task's files and use a clear, task-scoped commit message; never combine unrelated work or user changes in the commit.
+7. Audio/source transcript are immutable after finalization. Derived artifacts are versioned. Recording must not depend on network/AI availability.
+8. Never use real meeting content, commit secrets, log content, fake device/provider behavior or claim unavailable manual tests passed.
+9. Update `STATUS.md`, `execution/TRACEABILITY.md`, `execution/PROGRESS.md` and phase evidence only after direct verification.
+10. A phase is `VERIFIED` only when every binary gate has evidence. Stop after handoff; never start the next phase.
 
 Conflict precedence:
 
@@ -21,7 +22,7 @@ Conflict precedence:
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Kaiser-s-Meeting-Space** (10044 symbols, 17915 relationships, 298 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Kaiser-s-Meeting-Space** (12493 symbols, 21659 relationships, 299 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

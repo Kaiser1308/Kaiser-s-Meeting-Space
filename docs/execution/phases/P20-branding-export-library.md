@@ -28,6 +28,15 @@ P10/P19 are `VERIFIED`; P06/P05 are transitively available, approved fonts/licen
 | P10        | Verified outputs and invariants consumed by this packet. | `../evidence/P10/EVIDENCE.md` | VERIFIED          |
 | P19        | Verified outputs and invariants consumed by this packet. | `../evidence/P19/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+For implementation only, P20 may consume P10/P19 contracts at `IMPLEMENTED`
+under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+Its run record must carry every inherited open row. P20 cannot claim `VERIFIED`
+until its dependencies and the inherited qualification rows are closed. P20 is
+the feature-complete end of this implementation lane, not a release gate.
+
 # Scope firewall
 
 **Allowed:** brand schemas/assets/UI, export manifest/jobs/renderers/sandbox/history/download, desktop/mobile library/detail/search/filter, golden/visual/security/performance/a11y tests.

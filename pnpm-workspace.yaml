@@ -2,15 +2,23 @@ packages:
   - apps/*
   - packages/*
 
+# Resolve outside the workspace so native package paths do not inherit the
+# workspace's long Windows path. The relative location is portable across
+# machines and does not encode a user profile or drive letter.
+virtualStoreDir: ../../../../../q3
+nodeLinker: isolated
+packageImportMethod: copy
+storeDir: ../../../../../pnpm-store
+
 allowBuilds:
-  better-sqlite3: set this to true or false
-  cpu-features: set this to true or false
-  electron: set this to true or false
-  esbuild: set this to true or false
-  keytar: set this to true or false
-  msgpackr-extract: set this to true or false
-  protobufjs: set this to true or false
-  ssh2: set this to true or false
+  better-sqlite3: true
+  cpu-features: true
+  electron: true
+  esbuild: true
+  keytar: true
+  msgpackr-extract: true
+  protobufjs: true
+  ssh2: true
 
 onlyBuiltDependencies:
   - esbuild

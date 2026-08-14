@@ -1,1 +1,13 @@
-{"phase":"P18","task":"P18-T01/T02/T04/T06/T07","status":"IMPLEMENTED","templates":["team","one_to_one","direct_report","leadership","recurring_review"],"focused_tests":7,"typecheck":"passed","open":["durable draft persistence","frozen bilingual holdout and human/provider qualification"],"data_policy":"Synthetic metadata only; no real meeting content."}
+{
+  "phase": "P18",
+  "task": "P18-T01/T02/T04/T06/T07",
+  "status": "IMPLEMENTED",
+  "templates": ["team", "one_to_one", "direct_report", "leadership", "recurring_review"],
+  "focused_tests": 7,
+  "typecheck": "passed",
+  "open": [
+    "durable draft persistence",
+    "frozen bilingual holdout and human/provider qualification"
+  ],
+  "data_policy": "Synthetic metadata only; no real meeting content."
+}

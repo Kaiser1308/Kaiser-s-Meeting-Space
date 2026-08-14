@@ -1,0 +1,10 @@
+{
+  "phase": "P19",
+  "run": "2026-08-13T15:36:00+07:00",
+  "suite": "apps/desktop/e2e/native.electron.spec.ts",
+  "runner": "Playwright Electron",
+  "tests": { "passed": 1, "failed": 0, "total": 1 },
+  "checks": ["native Electron shell loads renderer", "primary meeting controls visible"],
+  "pageErrors": 0,
+  "content": "synthetic UI only; no real meeting content, credentials, provider, device, or manual result"
+}

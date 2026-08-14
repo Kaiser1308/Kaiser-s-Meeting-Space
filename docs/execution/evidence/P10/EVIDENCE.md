@@ -123,3 +123,7 @@ P10 is **IMPLEMENTED, not VERIFIED**. All CI-grade tasks (T01-T06) are complete:
 - **Recovery, library, and player hooks** for mobile UI integration
 
 P10-A06 (physical device sync/recovery/security matrices) is BLOCKED on physical Android/iOS device availability. P10-T07 is not executable without devices. P14 is unblocked: P10 provides sync transport, scheduler, end requestor, recovery, library, and player capabilities that P14 consumes.
+
+## Verification attempt — 2026-07-30
+
+Fresh verification is recorded in `RUN-20260730-verify-attempt.md`. P10-T07 remains blocked because this host has neither `adb`/an Android device nor an iOS physical-device environment. The shared Vitest/Vite resolution defect was repaired and fresh mobile (236), local-recovery (91), and meeting API (5) regressions passed. The full repository gate remains blocked by 584 pre-existing formatting violations. P10 remains **IMPLEMENTED, not VERIFIED**.

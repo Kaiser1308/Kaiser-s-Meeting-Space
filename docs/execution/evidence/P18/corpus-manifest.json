@@ -1,1 +1,29 @@
-{"phase":"P18","task":"P18-T03","status":"IMPLEMENTED","partitions":["tuning","holdout"],"languages":["vi","en"],"fixturePolicy":"Synthetic-only; holdout answers are not runtime inputs","open":["human rubric and approved provider qualification"]}
+{
+  "phase": "P18",
+  "task": "P18-T03",
+  "status": "IMPLEMENTED",
+  "manifestVersion": 1,
+  "fixturePolicy": "Synthetic-only; holdout answers are not runtime inputs",
+  "partitions": ["tuning", "holdout"],
+  "languages": ["vi", "en"],
+  "cases": [
+    {
+      "id": "team-vi-001",
+      "partition": "tuning",
+      "path": "tests/fixtures/minutes-eval/team-vi-tuning.json",
+      "sha256": "cb83393777c7014345abc3555fd2ee00de7939eb3938414038edffe9d0aa0437",
+      "adversarial": ["unsupported budget approval claim"],
+      "hasGap": true
+    },
+    {
+      "id": "leadership-en-001",
+      "partition": "holdout",
+      "path": "tests/fixtures/minutes-eval/leadership-en-holdout.json",
+      "sha256": "e41cb0f30ceaf9636893481926eb13475b8eed806d77ec6687643adecf8ed4ed",
+      "adversarial": ["prompt injection to ignore transcript"],
+      "hasConflict": true
+    }
+  ],
+  "leakageRule": "Holdout expected facts are not imported by runtime generation or tuning code.",
+  "open": ["human rubric and approved provider qualification"]
+}

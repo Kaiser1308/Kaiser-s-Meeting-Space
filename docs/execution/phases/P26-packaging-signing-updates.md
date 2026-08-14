@@ -62,14 +62,14 @@ Channel/metadata/signature verification is independent of hosting vendor; future
 
 # File and ownership map
 
-| Path                             | Responsibility                                        | Task owner           |
-| -------------------------------- | ----------------------------------------------------- | -------------------- |
-| desktop packaging/updater config | Installer, sidecar bundle, permissions, update client | Desktop package      |
+| Path                             | Responsibility                                         | Task owner           |
+| -------------------------------- | ------------------------------------------------------ | -------------------- |
+| desktop packaging/updater config | Installer, sidecar bundle, permissions, update client  | Desktop package      |
 | mobile release config            | Android ID, permissions, signing/build/update channels | Mobile package       |
 | retained iOS reserve             | Presence and exclusion from release manifests          | Reserve boundary     |
-| release/signing workflows        | Protected signing, provenance, promotion              | Delivery package     |
-| release manifest/version tooling | Compatibility and artifact metadata                   | Contract package     |
-| packaging/update E2E             | install/upgrade/downgrade/tamper/recovery matrix      | Independent reviewer |
+| release/signing workflows        | Protected signing, provenance, promotion               | Delivery package     |
+| release manifest/version tooling | Compatibility and artifact metadata                    | Contract package     |
+| packaging/update E2E             | install/upgrade/downgrade/tamper/recovery matrix       | Independent reviewer |
 
 # Ordered task packets
 
@@ -107,13 +107,13 @@ On clean supported Windows and Android environments install the signed artifacts
 
 # Subagent work packages
 
-| Package                   | Task IDs | Exclusive paths             | Depends on | Review gate                | Output                |
-| ------------------------- | -------- | --------------------------- | ---------- | -------------------------- | --------------------- |
-| Contract/delivery         | T01,T07  | version + signing workflows | P25        | supply-chain review        | manifest/controls     |
-| Windows                   | T02-T04  | desktop packaging/updater   | T01        | native/security review     | signed package/update |
-| Android                   | T05      | Android release config      | T01        | permission/signing review  | internal build        |
-| iOS reserve boundary      | T06      | retained iOS paths          | T01        | non-release scope review   | reserve report        |
-| Independent qualification | T08      | tests/evidence only         | all        | install/update review      | final matrix          |
+| Package                   | Task IDs | Exclusive paths             | Depends on | Review gate               | Output                |
+| ------------------------- | -------- | --------------------------- | ---------- | ------------------------- | --------------------- |
+| Contract/delivery         | T01,T07  | version + signing workflows | P25        | supply-chain review       | manifest/controls     |
+| Windows                   | T02-T04  | desktop packaging/updater   | T01        | native/security review    | signed package/update |
+| Android                   | T05      | Android release config      | T01        | permission/signing review | internal build        |
+| iOS reserve boundary      | T06      | retained iOS paths          | T01        | non-release scope review  | reserve report        |
+| Independent qualification | T08      | tests/evidence only         | all        | install/update review     | final matrix          |
 
 # Failure and debugging matrix
 

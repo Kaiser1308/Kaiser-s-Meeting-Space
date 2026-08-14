@@ -28,6 +28,14 @@ P05/P11 are `VERIFIED`; supported Windows build, at least default/USB/Bluetooth 
 | P05        | Verified outputs and invariants consumed by this packet. | `../evidence/P05/EVIDENCE.md` | VERIFIED          |
 | P11        | Verified outputs and invariants consumed by this packet. | `../evidence/P11/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+P12 implementation may continue while its own physical Windows capture/route
+and two-hour rows are open in
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+Those rows remain mandatory for `VERIFIED`; no device, route, or native-link
+result may be fabricated or inferred.
+
 # Scope firewall
 
 **Allowed:** Rust Windows device/capture/resample/timeline/buffer/mix/level modules, IPC additions, desktop controls/readiness/health, benchmarks/fault/device tests.

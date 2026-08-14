@@ -1,0 +1,23 @@
+{
+  "phase": "P19",
+  "task": "P19-T02",
+  "status": "IMPLEMENTED",
+  "fixturePolicy": "synthetic-only",
+  "directChecks": {
+    "integrationFile": "packages/database/test/minutes-editor-repository.test.ts",
+    "testsPassed": 6,
+    "typechecks": ["@kms/database", "@kms/api"]
+  },
+  "invariants": [
+    "owner scope",
+    "immutable snapshots",
+    "CAS conflict",
+    "idempotency",
+    "content hash and size bounds",
+    "atomic outbox rollback",
+    "source transcript unchanged",
+    "restore-as-new",
+    "cursor pagination"
+  ],
+  "open": ["full API contract/E2E gate", "rate-limit qualification"]
+}

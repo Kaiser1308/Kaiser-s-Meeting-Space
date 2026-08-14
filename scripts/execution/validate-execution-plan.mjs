@@ -2,7 +2,7 @@ import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { renderPhasePrompts } from './generate-phase-prompts.mjs';
+import { renderFormattedPhasePrompts } from './generate-phase-prompts.mjs';
 import { canonicalPhaseIds, extractSection, loadExecutionModel } from './plan-model.mjs';
 
 const REQUIRED_SECTIONS = [
@@ -77,7 +77,7 @@ export async function validateExecutionPlan(rootDir) {
       path.join(rootDir, 'docs', 'execution', 'PHASE_PROMPTS.md'),
       'utf8',
     );
-    if (promptMarkdown !== renderPhasePrompts(model)) {
+    if (promptMarkdown !== (await renderFormattedPhasePrompts(model))) {
       errors.push(
         issue(
           'PROMPT_STALE',

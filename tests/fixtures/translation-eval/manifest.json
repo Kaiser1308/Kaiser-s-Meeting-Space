@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "kind": "synthetic_translation_corpus",
+  "entries": [
+    "synthetic-vi-terminology",
+    "synthetic-en-name",
+    "synthetic-vi-number",
+    "synthetic-en-negation",
+    "synthetic-vi-alignment"
+  ],
+  "live_quality": "OPEN: provider approval/key and reviewed bilingual corpus are not available"
+}

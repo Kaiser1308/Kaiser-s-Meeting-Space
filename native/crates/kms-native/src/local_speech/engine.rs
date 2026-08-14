@@ -1,11 +1,10 @@
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-
-use thiserror::Error;
-use tokio::sync::mpsc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::protocol::NativeEventV1;
+use crate::runtime::NativeEventSender;
+use thiserror::Error;
 
 use super::manifest::ManifestEntry;
 use super::{audio, model};
@@ -77,7 +76,9 @@ impl LocalSpeechEngine {
             return Err(EngineError::ModelNotLoaded);
         }
         if language != "vi" && language != "en" {
-            return Err(EngineError::InvalidWindow("language must be vi or en".into()));
+            return Err(EngineError::InvalidWindow(
+                "language must be vi or en".into(),
+            ));
         }
 
         let model_path = opts.model_root.join(&entry.path);
@@ -104,13 +105,15 @@ impl LocalSpeechEngine {
         _plan_hash: &str,
         source_path: PathBuf,
         source_sha256: String,
-        event_tx: &mpsc::UnboundedSender<NativeEventV1>,
+        event_tx: &NativeEventSender,
     ) -> Result<Vec<model::SyntheticSegment>, EngineError> {
         if self.stop_signal.load(Ordering::Relaxed) {
             return Err(EngineError::Cancelled);
         }
         if start_ms >= end_ms {
-            return Err(EngineError::InvalidWindow("start_ms must be < end_ms".into()));
+            return Err(EngineError::InvalidWindow(
+                "start_ms must be < end_ms".into(),
+            ));
         }
 
         self.active = true;
@@ -235,6 +238,7 @@ impl LocalSpeechEngine {
 mod tests {
     use super::*;
     use crate::protocol::NativeEventV1;
+    use crate::runtime::BoundedEventDispatcher;
 
     fn make_entry(lang: &str) -> ManifestEntry {
         ManifestEntry {
@@ -266,11 +270,19 @@ mod tests {
 
     #[tokio::test]
     async fn transcribe_requires_verified_audio() {
-        let mut engine = LocalSpeechEngine::init(make_entry("vi"), "vi".into(), EngineOpts::default()).unwrap();
-        let (tx, _rx) = mpsc::unbounded_channel::<NativeEventV1>();
+        let mut engine =
+            LocalSpeechEngine::init(make_entry("vi"), "vi".into(), EngineOpts::default()).unwrap();
+        let (tx, _rx) = BoundedEventDispatcher::new(4);
         let result = engine
             .transcribe_window(
-                "run-1", 0, 0, 60_000, "hash", PathBuf::from("missing.wav"), "a".repeat(64), &tx,
+                "run-1",
+                0,
+                0,
+                60_000,
+                "hash",
+                PathBuf::from("missing.wav"),
+                "a".repeat(64),
+                &tx,
             )
             .await;
         assert!(matches!(result, Err(EngineError::AudioUnavailable)));
@@ -278,12 +290,20 @@ mod tests {
 
     #[tokio::test]
     async fn cancel_is_observed_before_io() {
-        let mut engine = LocalSpeechEngine::init(make_entry("en"), "en".into(), EngineOpts::default()).unwrap();
-        let (tx, _rx) = mpsc::unbounded_channel::<NativeEventV1>();
+        let mut engine =
+            LocalSpeechEngine::init(make_entry("en"), "en".into(), EngineOpts::default()).unwrap();
+        let (tx, _rx) = BoundedEventDispatcher::new(4);
         engine.cancel();
         let result = engine
             .transcribe_window(
-                "run-2", 0, 0, 300_000, "hash", PathBuf::from("missing.wav"), "a".repeat(64), &tx,
+                "run-2",
+                0,
+                0,
+                300_000,
+                "hash",
+                PathBuf::from("missing.wav"),
+                "a".repeat(64),
+                &tx,
             )
             .await;
         assert!(matches!(result, Err(EngineError::Cancelled)));
@@ -291,10 +311,31 @@ mod tests {
 
     #[test]
     fn state_is_content_free_and_real() {
-        let engine = LocalSpeechEngine::init(make_entry("vi"), "vi".into(), EngineOpts::default()).unwrap();
+        let engine =
+            LocalSpeechEngine::init(make_entry("vi"), "vi".into(), EngineOpts::default()).unwrap();
         let state = engine.get_state().to_string();
         assert!(state.contains("\"isSimulated\":false"));
         assert!(!state.contains("audio"));
         assert!(!state.contains("transcript"));
+    }
+
+    #[test]
+    fn local_speech_event_sink_records_backpressure_without_changing_engine_state() {
+        let (tx, _rx) = BoundedEventDispatcher::new(1);
+        assert!(
+            tx.send(NativeEventV1::new(
+                "local_speech_event",
+                serde_json::json!({})
+            ))
+            .is_ok()
+        );
+        assert!(
+            tx.send(NativeEventV1::new(
+                "local_speech_event",
+                serde_json::json!({})
+            ))
+            .is_err()
+        );
+        assert_eq!(tx.dropped_events(), 1);
     }
 }

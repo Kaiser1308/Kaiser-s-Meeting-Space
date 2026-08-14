@@ -28,6 +28,15 @@ P05/P09 are `VERIFIED`; real local API/PostgreSQL/MinIO/OIDC stack and supported
 | P05        | Verified outputs and invariants consumed by this packet. | `../evidence/P05/EVIDENCE.md` | VERIFIED          |
 | P09        | Verified outputs and invariants consumed by this packet. | `../evidence/P09/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+For implementation only, P10 may consume P09 recording contracts at
+`IMPLEMENTED` under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+Its run record must identify the consumed P09 contract and inherited open P09
+row. P10 cannot claim `VERIFIED` until that row and its own recovery/upload
+qualification are closed.
+
 # Scope firewall
 
 **Allowed:** mobile sync transport/scheduler/state UI, Recovery Inbox screens/actions, meeting end request boundary, library/detail/cache, audio playback, and mobile integration/E2E/security/fault tests.

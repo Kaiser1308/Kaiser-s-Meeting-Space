@@ -2,6 +2,7 @@ export const REQUIRED_SUITES = {
   unit: [
     { workspace: 'packages/domain', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
     { workspace: 'packages/ai', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
+    { workspace: 'packages/translation', script: 'test:unit', testFiles: ['src/**/*.test.ts'] },
     {
       workspace: 'packages/auth',
       script: 'test:unit',
@@ -97,6 +98,7 @@ export const REQUIRED_SUITES = {
   build: [
     { workspace: 'packages/domain', script: 'typecheck' },
     { workspace: 'packages/ai', script: 'typecheck' },
+    { workspace: 'packages/translation', script: 'typecheck' },
     { workspace: 'packages/auth', script: 'typecheck' },
     { workspace: 'packages/config', script: 'typecheck' },
     { workspace: 'packages/database', script: 'typecheck' },

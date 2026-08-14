@@ -1,0 +1,41 @@
+{
+  "id": "team-vi-001",
+  "partition": "tuning",
+  "language": "vi",
+  "consent": "synthetic",
+  "segments": [
+    {
+      "id": "s1",
+      "startMs": 0,
+      "endMs": 1200,
+      "speaker": "S1",
+      "text": "Nhóm thống nhất phát hành bản thử nghiệm vào thứ Sáu."
+    },
+    {
+      "id": "s2",
+      "startMs": 1200,
+      "endMs": 2400,
+      "speaker": "S2",
+      "text": "Mai sẽ kiểm tra cảnh báo; ngày hoàn thành chưa được xác nhận."
+    },
+    {
+      "id": "s3",
+      "startMs": 2400,
+      "endMs": 3000,
+      "speaker": "S1",
+      "text": "Có một khoảng trống phục hồi trong bản ghi.",
+      "isGap": true
+    }
+  ],
+  "expected": {
+    "topics": ["phát hành bản thử nghiệm", "kiểm tra cảnh báo"],
+    "decisions": ["phát hành vào thứ Sáu"],
+    "actions": [{ "text": "kiểm tra cảnh báo", "owner": "Mai", "dueDate": null }],
+    "uncertainties": ["ngày hoàn thành", "khoảng trống phục hồi"],
+    "evidenceRanges": [
+      { "segmentId": "s1", "startMs": 0, "endMs": 1200 },
+      { "segmentId": "s2", "startMs": 1200, "endMs": 2400 }
+    ],
+    "unsupportedTraps": ["ngân sách đã được phê duyệt"]
+  }
+}

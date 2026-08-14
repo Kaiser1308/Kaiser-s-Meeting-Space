@@ -27,6 +27,14 @@ P14 is `VERIFIED`; P00-approved first production translation provider, region/re
 | ---------- | -------------------------------------------------------- | ----------------------------- | ----------------- |
 | P14        | Verified outputs and invariants consumed by this packet. | `../evidence/P14/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+For implementation only, P15 may consume P14's directly evidenced final
+projection contract at `IMPLEMENTED` under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+Its run record must carry every inherited open row. P15 cannot claim `VERIFIED`
+until its dependencies and the inherited qualification rows are closed.
+
 # Scope firewall
 
 **Allowed:** `packages/translation/`, translation jobs/adapter/persistence/API, mobile/desktop source+translation display, evaluation fixtures/reports.

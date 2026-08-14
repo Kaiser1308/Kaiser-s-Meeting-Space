@@ -10,14 +10,14 @@
 
 ## Requirement and acceptance mapping
 
-| Acceptance ID | Test or scenario                                                                                                     | Result                     | Artifact                                                                                                                                                                                                    |
-| ------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P13-A01       | Policy/run/part/event contracts versioned, owner-scoped, immutable, idempotent, no SDK leakage                       | VERIFIED (CI grade)        | Domain 356 tests, 100% coverage; DB schema 20 tests; migration 0007 with immutability triggers + idempotency unique index; no @deepgram/sdk in domain/database                                              |
-| P13-A02       | stt-window-v1 deterministic, capture-chunk independent, exact range/overlap lineage                                  | VERIFIED (CI grade)        | `packages/speech/src/core/window-planner.ts`: 41 property tests, 100% coverage, stable SHA-256 hash, no chunkId/chunkIndex reads                                                                            |
+| Acceptance ID | Test or scenario                                                                                                     | Result                     | Artifact                                                                                                                                                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P13-A01       | Policy/run/part/event contracts versioned, owner-scoped, immutable, idempotent, no SDK leakage                       | VERIFIED (CI grade)        | Domain 356 tests, 100% coverage; DB schema 20 tests; migration 0007 with immutability triggers + idempotency unique index; no @deepgram/sdk in domain/database                                                                |
+| P13-A02       | stt-window-v1 deterministic, capture-chunk independent, exact range/overlap lineage                                  | VERIFIED (CI grade)        | `packages/speech/src/core/window-planner.ts`: 41 property tests, 100% coverage, stable SHA-256 hash, no chunkId/chunkIndex reads                                                                                              |
 | P13-A03       | Windows local file STT explicit-language, bounded, cancellable, network-independent, cannot interfere with recording | PARTIAL                    | TS IPC + manifest (81 tests); real `whisper-rs` local_speech engine; verified vi/en model manifests; `cargo check` pass; native vi/en inference smoke pass; **WER/timestamp quality and Rust test executable remain pending** |
-| P13-A04       | Real Deepgram cloud-live vi/en matrix, consent/session/security controls, provider failure cannot stop capture       | PARTIAL                    | Real `/v1/listen` WebSocket adapter + broker session client; speech package 98/98 tests; owner-scoped token; secret server-side only; **live provider qualification remains pending a rotated server key** |
-| P13-A05       | Frozen bilingual quality/resource thresholds on minimum Windows                                                      | PARTIAL                    | Corpus frozen (10 entries, vi/en, clean/noisy); evaluation harness; verified local model loading/inference smoke; safe metrics (no content fields); **WER/RtF/timestamp and RTF measurements remain pending** |
-| P13-A06       | No local→cloud work; credentials absent from clients/domain/logs/telemetry; two-owner controls                       | VERIFIED at contract level | Grep scan clean (no DEEPGRAM_API_KEY in source); broker returns opaque token, not API key; two-owner isolation in adapter test; in-memory persistence filters by ownerId; **live-provider portion BLOCKED** |
+| P13-A04       | Real Deepgram cloud-live vi/en matrix, consent/session/security controls, provider failure cannot stop capture       | PARTIAL                    | Real `/v1/listen` WebSocket adapter + broker session client; speech package 98/98 tests; owner-scoped token; secret server-side only; **live provider qualification remains pending a rotated server key**                    |
+| P13-A05       | Frozen bilingual quality/resource thresholds on minimum Windows                                                      | PARTIAL                    | Corpus frozen (10 entries, vi/en, clean/noisy); evaluation harness; verified local model loading/inference smoke; safe metrics (no content fields); **WER/RtF/timestamp and RTF measurements remain pending**                 |
+| P13-A06       | No local→cloud work; credentials absent from clients/domain/logs/telemetry; two-owner controls                       | VERIFIED at contract level | Grep scan clean (no DEEPGRAM_API_KEY in source); broker returns opaque token, not API key; two-owner isolation in adapter test; in-memory persistence filters by ownerId; **live-provider portion BLOCKED**                   |
 
 ## Dependency-consumption evidence
 
@@ -60,14 +60,14 @@ Consumes from:
 
 ## Manual, device, and provider matrix
 
-| Scenario                          | Environment              | Result                 | Artifact                                                           |
-| --------------------------------- | ------------------------ | ---------------------- | ------------------------------------------------------------------ |
-| Real Deepgram cloud-live vi/en    | Windows + Deepgram API   | BLOCKED                | DEEPGRAM_API_KEY unavailable                                       |
+| Scenario                          | Environment              | Result                 | Artifact                                                                                                                |
+| --------------------------------- | ------------------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Real Deepgram cloud-live vi/en    | Windows + Deepgram API   | BLOCKED                | DEEPGRAM_API_KEY unavailable                                                                                            |
 | Real local file STT (whisper.cpp) | Minimum Windows hardware | PARTIAL                | Verified vi/en model files load and pass native inference smoke; quality, RTF, and full Windows IPC gate remain pending |
-| Physical device integration       | Android 12+ / iOS 17+    | BLOCKED (out of scope) | Physical devices not available; mobile local STT forbidden         |
-| Docker PostgreSQL integration     | Docker 29.6.2            | BLOCKED                | Docker daemon offline                                              |
-| Synthetic adapter conformance     | All CI-grade             | PASS                   | 98 speech + 81 native-contract tests; native Rust test executable unavailable in this host |
-| Bundle/log/secret scan            | Windows grep             | PASS                   | No DEEPGRAM_API_KEY, audio bytes, or meeting content in P13 source |
+| Physical device integration       | Android 12+ / iOS 17+    | BLOCKED (out of scope) | Physical devices not available; mobile local STT forbidden                                                              |
+| Docker PostgreSQL integration     | Docker 29.6.2            | BLOCKED                | Docker daemon offline                                                                                                   |
+| Synthetic adapter conformance     | All CI-grade             | PASS                   | 98 speech + 81 native-contract tests; native Rust test executable unavailable in this host                              |
+| Bundle/log/secret scan            | Windows grep             | PASS                   | No DEEPGRAM_API_KEY, audio bytes, or meeting content in P13 source                                                      |
 
 ## Security, privacy, and data-integrity review
 
@@ -100,13 +100,13 @@ Consumes from:
 
 ## Residual risks and owner actions
 
-| Risk                                                                              | Severity | Owner       | Action required                                                                          |
-| --------------------------------------------------------------------------------- | -------- | ----------- | ---------------------------------------------------------------------------------------- |
-| Real Deepgram API key unavailable                                                 | HIGH     | Engineering | Provision DEEPGRAM_API_KEY in server secret storage for P13-A04 verification             |
+| Risk                                                                              | Severity | Owner       | Action required                                                                                               |
+| --------------------------------------------------------------------------------- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| Real Deepgram API key unavailable                                                 | HIGH     | Engineering | Provision DEEPGRAM_API_KEY in server secret storage for P13-A04 verification                                  |
 | Frozen-corpus quality and Windows IPC qualification incomplete                    | HIGH     | Engineering | Run WER/RtF/timestamp/RTF gates and complete the native Rust executable/Windows qualification for P13-A03/A05 |
-| Docker daemon offline                                                             | MEDIUM   | Engineering | Start Docker Desktop for PostgreSQL integration tests; update t07 migration count assert |
-| Pre-existing t07 migration test count stale                                       | LOW      | Engineering | t07 expects 6 journal entries; actual is 8 (0000-0007); fix count assertion              |
-| `drizzle-kit generate` for next migration affected by missing 0004-0007 snapshots | LOW      | Engineering | Pre-existing for 0004-0006; 0007 adds to gap                                             |
+| Docker daemon offline                                                             | MEDIUM   | Engineering | Start Docker Desktop for PostgreSQL integration tests; update t07 migration count assert                      |
+| Pre-existing t07 migration test count stale                                       | LOW      | Engineering | t07 expects 6 journal entries; actual is 8 (0000-0007); fix count assertion                                   |
+| `drizzle-kit generate` for next migration affected by missing 0004-0007 snapshots | LOW      | Engineering | Pre-existing for 0004-0006; 0007 adds to gap                                                                  |
 
 ## Final state rationale
 
@@ -122,18 +122,18 @@ Run record: `RUN-20260729-1200.md`.
 
 The later native/toolchain continuation is recorded in `RUN-20260729-2300.md`: model manifest hashes match; reproducible `cargo check -p kms-native` passes with exit 0; native test-link exits 101 on duplicate `libstdc++`/`libc++` ABI symbols; the quality and Deepgram runners remain blocked on their real prerequisites. The dependency rehydrate timed out and does not count as a package-gate result.
 
- P13 is **IMPLEMENTED, not VERIFIED**. CI-grade work completed for all 7 tasks:
+P13 is **IMPLEMENTED, not VERIFIED**. CI-grade work completed for all 7 tasks:
 
- ### 2026-07-28 real local-speech closure continuation
+### 2026-07-28 real local-speech closure continuation
 
- - Commit `94f0050` replaces the native local-speech stub with a real `whisper-rs` engine for fixed `vi`/`en` language selection.
- - The runtime now requires `modelSha256`, `sourcePath`, and `sourceSha256`; the audio boundary validates the allowlisted root, WAV structure, exact range, and source checksum before inference.
- - Direct verification: `cargo check -p kms-native` completed successfully on Windows using the portable LLVM-MinGW toolchain (three non-blocking dead-code/unused-field warnings).
- - Native `cargo test -p kms-native` was attempted but could not produce a test executable in this host: CMake/MinGW initially failed to quote the apostrophe in the workspace path, and the short-path retry exceeded the build timeout while compiling the native dependency. No test or real transcription result is claimed from that attempt.
- - Direct native backend smoke subsequently passed for both verified model files using `whisper.cpp` with one second of generated silence: `ggml-small-q5_1.bin` (`vi`) and `ggml-small.en-q5_1.bin` (`en`) each returned inference result `0` and exit code `0`. This proves model loading and native inference availability only; it is not a WER, timestamp, or real-meeting quality result.
- - Commit `1231bff` adds the real Deepgram `/v1/listen` WebSocket adapter: brokered token via the `token` subprotocol, fixed `linear16`/16 kHz/mono settings, explicit `vi|en`, diarization, safe normalized interim/final events, and `Finalize` close. Package typecheck passes and the full speech suite passes 96/96 with a fake socket transport; no provider call or live qualification is claimed.
- - Commit `33b4baf` adds the broker session client: owner-scoped POST, strict credential/meeting/language validation, token handoff only to the adapter, and content-free provider failure mapping. The full speech suite now passes 98/98.
- - P13 remains `IMPLEMENTED`, not `VERIFIED`. Real model inference, frozen-corpus WER/RTF/timestamp thresholds, Deepgram live qualification, and the complete Windows gate still require their external prerequisites.
+- Commit `94f0050` replaces the native local-speech stub with a real `whisper-rs` engine for fixed `vi`/`en` language selection.
+- The runtime now requires `modelSha256`, `sourcePath`, and `sourceSha256`; the audio boundary validates the allowlisted root, WAV structure, exact range, and source checksum before inference.
+- Direct verification: `cargo check -p kms-native` completed successfully on Windows using the portable LLVM-MinGW toolchain (three non-blocking dead-code/unused-field warnings).
+- Native `cargo test -p kms-native` was attempted but could not produce a test executable in this host: CMake/MinGW initially failed to quote the apostrophe in the workspace path, and the short-path retry exceeded the build timeout while compiling the native dependency. No test or real transcription result is claimed from that attempt.
+- Direct native backend smoke subsequently passed for both verified model files using `whisper.cpp` with one second of generated silence: `ggml-small-q5_1.bin` (`vi`) and `ggml-small.en-q5_1.bin` (`en`) each returned inference result `0` and exit code `0`. This proves model loading and native inference availability only; it is not a WER, timestamp, or real-meeting quality result.
+- Commit `1231bff` adds the real Deepgram `/v1/listen` WebSocket adapter: brokered token via the `token` subprotocol, fixed `linear16`/16 kHz/mono settings, explicit `vi|en`, diarization, safe normalized interim/final events, and `Finalize` close. Package typecheck passes and the full speech suite passes 96/96 with a fake socket transport; no provider call or live qualification is claimed.
+- Commit `33b4baf` adds the broker session client: owner-scoped POST, strict credential/meeting/language validation, token handoff only to the adapter, and content-free provider failure mapping. The full speech suite now passes 98/98.
+- P13 remains `IMPLEMENTED`, not `VERIFIED`. Real model inference, frozen-corpus WER/RTF/timestamp thresholds, Deepgram live qualification, and the complete Windows gate still require their external prerequisites.
 
 The older aggregate test-count bullets immediately below are retained as historical baseline context only; they are not current verification claims. Current verified results are the 98 speech tests, 81 native-contract tests, successful native `cargo check`, and the direct vi/en model inference smoke recorded above.
 
@@ -165,3 +165,7 @@ API speech gate rerun: direct Vitest invocation from `apps/api` passed 3 files /
 Native test follow-up: a temporary reversible `K:` mapping removed the workspace apostrophe path failure, and `WHISPER_DONT_GENERATE_BINDINGS=1` bypassed bindgen correctly. The next build blocker is the upstream `whisper-rs-sys` CMake script adding `/utf-8` for the GNU target; LLVM-MinGW clang treats it as an input path. The mapping was removed afterward, and no external dependency source was modified.
 
 MSVC fallback attempt: the `x86_64-pc-windows-msvc` Rust target is installed, but the host has no Visual C++ `link.exe`; the MSVC build therefore stops before native tests. No Visual Studio Build Tools installation was performed.
+
+## Verification attempt — 2026-07-30
+
+Fresh verification is recorded in `RUN-20260730-verify-attempt.md`. The local-quality and Deepgram runners again failed closed before any unverifiable work (`missing_audio_asset` and `missing_rotated_server_key`). The shared Vitest/Vite resolution defect was repaired and fresh speech (101), native-contract (81), and API speech (17) regressions passed. The native `cargo test -p kms-native` build exceeded the bounded run window, so no Rust test pass is claimed. P13 remains **IMPLEMENTED, not VERIFIED**.

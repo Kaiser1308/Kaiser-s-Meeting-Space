@@ -1,7 +1,19 @@
 # P09 Evidence
 
+> Latest run supersedes the earlier no-device continuation: Android CPH2699/API
+> 36 now has fresh native-start evidence, but P09 remains IMPLEMENTED until
+> the physical interruption matrix and mandatory two-hour qualification pass.
+
+Latest run: [`RUN-20260806-1615.md`](RUN-20260806-1615.md).
+
+The latest physical run directly verified native start and durable End
+finalization through the Expo event bridge: the app reached `idle`, committed
+one chunk, and reported a finalized local manifest. The interruption/route
+matrix and mandatory two-hour qualification remain open, so P09 remains
+IMPLEMENTED.
+
 - Phase/state: P09 — IMPLEMENTED
-- Latest qualification run: [`RUN-20260729-2338.md`](RUN-20260729-2338.md) — Android registration static checks passed, but native build/install and physical qualification were blocked by missing Android toolchain/adb and broken local Expo/JS dependency execution. P09 remains IMPLEMENTED.
+- Latest qualification run: [`RUN-20260806-1325.md`](RUN-20260806-1325.md) — Android SDK/ADB is present but no physical device is attached; the physical interruption/route/background matrix and continuous two-hour session could not start. P09 remains IMPLEMENTED.
 - Run record: `RUN-20260725-2150.md`
 - Date/timezone: 2026-07-26 UTC+7
 - Environment and exact tool versions: Node.js v24.18.0, pnpm 10.14.0, TypeScript 5.9.3, Vitest 4.1.10, React Native 0.81.4, Expo ~54.0.0, Zod 3.25.76, Windows 11 Pro 10.0.26200
@@ -43,6 +55,16 @@ Consumes:
 | `pnpm --filter @kms/mobile-audio typecheck` |         0 |            All |            All |      <5s | Clean                                                                                  |
 | `pnpm --filter @kms/mobile typecheck`       |         0 |            All |            All |      <5s | Clean                                                                                  |
 
+### Verification continuation — 2026-08-06
+
+The package-local rerun recorded in [`RUN-20260806-1325.md`](RUN-20260806-1325.md)
+passed `@kms/mobile-audio` 46/46 contract tests, `@kms/mobile` 247/247 tests,
+and both package typechecks. It did not close the phase: `adb devices -l` had no
+attached Android device, the Gradle wrapper could not download its requested
+distribution, and `pnpm` could not open the workspace store SQLite database.
+Therefore the required P09-T07 physical matrix and the integrated `pnpm verify`
+gate remain unverified.
+
 ## Manual, device, and provider matrix
 
 | Scenario                           | Environment/version                         | Result  | Artifact                                                         | Reviewer |
@@ -81,6 +103,14 @@ Consumes:
 - Rollback: remove `@kms/mobile-audio` dependency from mobile, remove `features/recording/` directory, revert `CaptureStarter` to fake
 - Recovery Inbox integration (P10): `RecordingService.getState()` and `RecordingService.subscribe()` expose state for recovery UI
 
+## Latest physical End fix
+
+`RUN-20260806-1615.md` directly verifies the CPH2699 End/event bridge smoke:
+the native chunk was finalized at 2,072,576 bytes and 21,252 ms, and the app
+reached `idle` with one committed chunk and a finalized local manifest. This
+does not close the phone-call/Bluetooth/full interruption matrix or P09-A05's
+two-hour run; P09 remains IMPLEMENTED.
+
 ## Residual risks and owner actions
 
 | Risk                                                     | Severity | Owner       | Action required                                                                                                               |
@@ -106,9 +136,16 @@ P10 is unblocked: P09 provides the `RecordingService` state/subscription surface
 
 ## Latest qualification run
 
+- [RUN-20260806-1615](RUN-20260806-1615.md): fixed the detached Expo event emitter and native writer finalization ordering. CPH2699/API 36 produced a durable 2,072,576-byte chunk and returned the UI to `idle` with one committed chunk and a finalized local manifest. P09 remains IMPLEMENTED because the phone-call/Bluetooth/full interruption matrix and P09-A05 two-hour run are still open.
+
+- Continuation of [RUN-20260806-1615](RUN-20260806-1615.md): CPH2699 directly verified real camera microphone contention (focus loss -> paused -> focus gain -> Resume), repeated End with durable finalization, Bluetooth disable/enable route changes, and force-stop/relaunch truthful recovery. Wired route was not run because no wired/USB audio device was attached. Lock/unlock was not closed because the device remained on keyguard during the automated unlock attempt. P09-A05 two-hour capture remains NOT RUN; phase stays IMPLEMENTED, not VERIFIED.
+
+- A05 retry (2026-08-07), appended to [RUN-20260806-1615](RUN-20260806-1615.md): after explicit recovery-discard authorization, a fresh synthetic `P09_A05_2h` capture ran on CPH2699. Native capture and writer progress were directly observed for approximately 44 minutes, reaching 277,909,504 accepted bytes, before two successive ADB checks returned no device. The two-hour duration, clean End, finalized manifest, and post-run budget checks remain unverified; no PASS claim was added.
+
 - [RUN-20260730-1024](RUN-20260730-1024.md): Android SDK/JDK/ADB and authorized `CPH2699` verified; Expo autolinking recognized `audio-recorder (0.1.0)` and the focused native Kotlin compile passed. The full APK build failed in `expo-modules-core` CMake/Ninja due canonical pnpm path length; no APK was installed and no physical matrix was run. P09 remains IMPLEMENTED.
 - [RUN-20260730-1047](RUN-20260730-1047.md): hoisted dependency layout resolved the CMake path blocker; native APK build, split ADB push/Package Manager install, and `MainActivity` launch passed on `CPH2699`. Runtime recording invocation and all physical qualification gates remain pending, so P09 remains IMPLEMENTED.
 - [RUN-20260730-1100](RUN-20260730-1100.md): automated follow-up confirmed the UI preview/native wiring and dependency-runner blockers. No automated test pass or physical qualification claim was added; P09 remains IMPLEMENTED.
 - [RUN-20260730-1133](RUN-20260730-1133.md): UI/native wiring, truthful PCM/raw contract handling, dependency-runner repair, automated tests, typechecks, and focused Kotlin compilation passed. A fresh full APK build remains blocked by Expo `expo-modules-core` CMake/Ninja path handling; no physical qualification claim was added and P09 remains IMPLEMENTED.
 - [RUN-20260730-1155](RUN-20260730-1155.md): short-checkout/project-directory workaround produced a fresh APK with autolinked `audio-recorder`; installation was attempted but CPH2699 was disconnected/not visible to ADB. No runtime or physical qualification claim was added; P09 remains IMPLEMENTED.
 - [RUN-20260730-1535](RUN-20260730-1535.md): CPH2699 reconnected and accepted the native debug APK; Metro bundle reached the app, but Expo dev-runtime errors left the UI blank. No recording or physical qualification claim was added; P09 remains IMPLEMENTED.
+- [RUN-20260730-2212](RUN-20260730-2212.md): ADB enumerated CPH2699 as `unauthorized`; device property access and all physical recording scenarios were blocked before invocation. No physical qualification claim was added; P09 remains IMPLEMENTED.

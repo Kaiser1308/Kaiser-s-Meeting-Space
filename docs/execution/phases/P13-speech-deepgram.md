@@ -29,6 +29,14 @@ P06/P09/P12 are `VERIFIED`; a Deepgram test account/key in approved server secre
 | P09        | Verified outputs and invariants consumed by this packet. | `../evidence/P09/EVIDENCE.md` | VERIFIED          |
 | P12        | Verified outputs and invariants consumed by this packet. | `../evidence/P12/EVIDENCE.md` | VERIFIED          |
 
+## Deferred end-to-end qualification lane
+
+For implementation only, P13 may consume the named P09/P12 capture contracts
+at `IMPLEMENTED` under
+[`../DEFERRED_END_TO_END_QUALIFICATION.md`](../DEFERRED_END_TO_END_QUALIFICATION.md).
+The run record must carry inherited capture rows and P13's own real-provider,
+quality, and native-link rows. P13 cannot claim `VERIFIED` while any is open.
+
 # Scope firewall
 
 **Allowed:** versioned policy/run/part/segment contracts, `packages/speech/`, deterministic window planner, Deepgram cloud-live adapter and broker, mobile/desktop derived-feed stream, Windows Rust local file-STT adapter, one minimal verified language-model boundary, immutable raw event persistence, bilingual evaluation harness, safe metrics, conformance/live/fault tests.

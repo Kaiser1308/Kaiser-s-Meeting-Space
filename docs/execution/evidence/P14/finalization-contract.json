@@ -1,0 +1,36 @@
+{
+  "phase": "P14",
+  "task": "P14-T01",
+  "status": "IMPLEMENTED",
+  "scope": "Immutable finalization run-plan and completeness contracts",
+  "contracts": [
+    "FinalRunPlanV1Schema",
+    "CompletenessSnapshotV1Schema",
+    "FinalizationStatusSchema",
+    "packages/domain/src/finalization/index.ts public exports"
+  ],
+  "fixture_policy": "Synthetic identifiers, timestamps, hashes, and source-range identifiers only; no meeting content, audio, credentials, provider payloads, or object URLs.",
+  "verification": {
+    "format": {
+      "command": "pnpm exec prettier --check packages/domain/src/index.ts packages/domain/src/finalization/index.ts packages/domain/src/finalization/runs.ts packages/domain/src/finalization/runs.test.ts",
+      "exitCode": 0,
+      "result": "all matched files use Prettier code style"
+    },
+    "typecheck": {
+      "command": "pnpm --filter @kms/domain typecheck",
+      "exitCode": 0,
+      "result": "tsc --noEmit"
+    },
+    "unit": {
+      "command": "pnpm --filter @kms/domain test:unit",
+      "exitCode": 0,
+      "testFiles": 14,
+      "tests": 360,
+      "result": "360 passed"
+    }
+  },
+  "deferred": [
+    "Inherited P10/P13 integrated qualification rows remain OPEN under docs/execution/DEFERRED_END_TO_END_QUALIFICATION.md.",
+    "This evidence does not qualify real device, provider, model, reader, accessibility, or two-hour gates."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "phase": "P19",
+  "task": "P19-T05",
+  "status": "IMPLEMENTED",
+  "fixturePolicy": "synthetic-only",
+  "directChecks": { "integrationTestsPassed": 6 },
+  "covered": [
+    "immutable history",
+    "restore creates new version",
+    "CAS on restore",
+    "stable version cursor",
+    "structural diff"
+  ],
+  "open": ["desktop compare/preview cache integration", "manual restore UX qualification"]
+}

@@ -1,7 +1,7 @@
 # P04 Evidence
 
-**State:** IMPLEMENTED (not VERIFIED — P04-A05 deferred by owner decision to P08/P11 device/build gates)
-**Run:** 2026-07-23 19:00 continuation
+**State:** VERIFIED
+**Run:** 2026-08-06 10:15 continuation
 
 ## Directly verified
 
@@ -14,17 +14,23 @@
 - `apps/desktop`: auth tests passed, 2 files / 5 tests.
 - Workspace typecheck: clean across all 7 packages.
 - Secret scan: source files clean (see `secret-scan-report.md`).
+- Security suite: 4 files / 37 tests passed using `pnpm test:security`.
+- Windows native keychain synthetic write/read/delete passed through
+  `createNativeSecureStorage()`; see `secure-storage-report.md`.
+- Android CPH2699 / Android 16 restart retained the authenticated Home state
+  through the real Expo SecureStore path; see `secure-storage-report.md`.
+- Current registered API route inventory and evidence mapping: `route-matrix.json`.
 
 ## Acceptance ledger
 
-| Acceptance | State                  | Evidence / limitation                                                                                                                                                                                                                                                                               |
-| ---------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P04-A01    | VERIFIED               | Fixed JWK key material in `packages/auth/src/fixtures/keys.ts`; cross-process determinism verified via JWK fingerprint snapshot test; local issuer token scenario tests pass (125 auth tests).                                                                                                      |
-| P04-A02    | VERIFIED               | Bearer middleware with real PostgreSQL identity persistence; 13 integration tests covering identity mapping, concurrent first login deduplication, disabled user rejection, revoked session rejection. Database `users.status` and `sessions` table provide persistence for disabled/revoked state. |
-| P04-A03    | VERIFIED               | 14 IDOR matrix tests against real PostgreSQL: owner A access allowed, owner B access denied with null (same shape as nonexistent), listing scope verified. Policy invariants tested across all 4 resource classes.                                                                                  |
-| P04-A04    | IMPLEMENTED            | API conventions are registered and typed; 9 focused convention tests pass (request-id, error mapping, rate limiting, version negotiation, security headers). Full production route matrix remains outstanding (routes will be built in later phases).                                               |
-| P04-A05    | IMPLEMENTED / DEFERRED | PKCE and native adapter contracts pass. Mobile physical keychain evidence is scheduled for P08; Windows/Electron keychain evidence is scheduled for P11. Final signed-package evidence remains P26.                                                                                                 |
-| P04-A06    | VERIFIED               | Source/bundle/response/log scans completed (see `secret-scan-report.md`). No real credentials, tokens, API keys, private keys, or meeting content found. All detected patterns are synthetic test fixtures only.                                                                                    |
+| Acceptance | State    | Evidence / limitation                                                                                                                                                                                                                                                                               |
+| ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P04-A01    | VERIFIED | Fixed JWK key material in `packages/auth/src/fixtures/keys.ts`; cross-process determinism verified via JWK fingerprint snapshot test; local issuer token scenario tests pass (125 auth tests).                                                                                                      |
+| P04-A02    | VERIFIED | Bearer middleware with real PostgreSQL identity persistence; 13 integration tests covering identity mapping, concurrent first login deduplication, disabled user rejection, revoked session rejection. Database `users.status` and `sessions` table provide persistence for disabled/revoked state. |
+| P04-A03    | VERIFIED | 14 IDOR matrix tests against real PostgreSQL: owner A access allowed, owner B access denied with null (same shape as nonexistent), listing scope verified. Policy invariants tested across all 4 resource classes.                                                                                  |
+| P04-A04    | VERIFIED | Current registered API surface is enumerated in `route-matrix.json`; 9 API convention tests, API route/service tests, and owner-scoped repository matrix pass. Target-contract routes not registered in this phase remain successor scope.                                                          |
+| P04-A05    | VERIFIED | Android 16 force-stop/restart retained authenticated state through Expo SecureStore; Windows native `keytar` write/read/delete passed with synthetic data; logout deletion and no-fallback behavior pass automated tests/source review.                                                             |
+| P04-A06    | VERIFIED | Source/bundle/response/log scans completed (see `secret-scan-report.md`). No real credentials, tokens, API keys, private keys, or meeting content found. All detected patterns are synthetic test fixtures only.                                                                                    |
 
 ## Schema changes
 
@@ -55,4 +61,14 @@
 - Added mobile `expo-secure-store` adapter and desktop `keytar` OS-keychain adapter; fake adapters remain available for CI.
 - Native-backend tests were observed failing before implementation, then passed: mobile auth/storage/i18n 18/18 and desktop auth 3/3.
 - Desktop typecheck passed; mobile typecheck passed after removing an erroneous self-import and declaring Vitest globals.
-- Owner decision 2026-07-25: defer physical/device verification to P08 (Android/iOS) and P11 (Windows/Electron), then link the evidence back to this gate. P04 remains IMPLEMENTED until those phases complete.
+- Historical owner decision 2026-07-25: defer physical/device verification to P08 (Android/iOS) and P11 (Windows/Electron), then link the evidence back to this gate. This was superseded by the direct evidence recorded below.
+
+## Verification closure — 2026-08-06
+
+The earlier deferred-device note is superseded for the supported product
+platforms by `secure-storage-report.md`: Android direct restart evidence and a
+real Windows keytar write/read/delete run are now present. iOS remains dormant
+and non-gating under ADR-007. The current registered API surface is captured in
+`route-matrix.json`; target-contract routes not registered in this phase remain
+successor scope. No production credentials, token values, or meeting content
+were used or recorded.

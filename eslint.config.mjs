@@ -7,6 +7,10 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/',
+      '.node_modules.backup*/',
+      '**/.node_modules.backup*/',
+      'node_modules.corrupt/',
+      'node_modules.hardlink-acl-backup/',
       '**/dist/',
       '.expo/',
       'coverage/',
@@ -38,7 +42,24 @@ export default tseslint.config(
       globals: {
         console: 'readonly',
         process: 'readonly',
+        URLSearchParams: 'readonly',
+        WebSocket: 'readonly',
+        clearTimeout: 'readonly',
+        setTimeout: 'readonly',
       },
+    },
+  },
+  {
+    files: ['metro.config.js', '**/metro.config.js'],
+    languageOptions: {
+      globals: {
+        __dirname: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   {
