@@ -9,7 +9,7 @@
 
 **Goal:** Make Kaiser's Meeting Space functional for personal local use with real Gemini AI minutes generation, Deepgram speech session brokering, a local development auth bypass, and worker minutes generation job dispatching.
 
-**Architecture:** 
+**Architecture:**
 - Enable `AUTH_MODE=local` in `apps/api/src/plugins/bearer-auth.ts` and `apps/api/src/app.ts` to allow local requests without an OIDC identity provider while preserving the `AuthenticatedOwnerContext`.
 - Configure `OpenAiCompatibleProvider` in `packages/ai` to connect to Google Gemini's OpenAI-compatible endpoint (`gemini-2.0-flash`), verifying response structure compatibility with `MinutesVersionSchema`.
 - Configure Deepgram API credentials in `.env` and verify scoped token minting via `POST /v1/meetings/:id/speech-sessions`.
