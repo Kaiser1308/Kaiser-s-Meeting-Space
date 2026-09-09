@@ -19,6 +19,7 @@ export interface TokenVerifier {
 export interface BearerAuthOptions {
   readonly verifier: TokenVerifier;
   readonly identity: IdentityResolver;
+  readonly authMode?: 'oidc' | 'local';
 }
 
 declare module 'fastify' {
@@ -33,6 +34,21 @@ const bearerAuthPlugin: FastifyPluginAsync<BearerAuthOptions> = async (fastify, 
     null as unknown as AuthenticatedOwnerContext,
   );
   fastify.addHook('onRequest', async (request, reply) => {
+    if (options.authMode === 'local') {
+      try {
+        request.authenticatedOwnerContext = await options.identity.resolve({
+          issuer: 'local',
+          subject: 'local-dev-user',
+        });
+      } catch (error) {
+        if (error instanceof IdentityResolutionError) {
+          return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+        }
+        return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+      }
+      return;
+    }
+
     const authorization = request.headers.authorization;
     const match =
       typeof authorization === 'string' ? /^Bearer ([^\s]+)$/.exec(authorization) : null;

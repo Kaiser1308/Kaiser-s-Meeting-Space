@@ -83,6 +83,7 @@ await app.register(async (protectedRoutes) => {
   await protectedRoutes.register(bearerAuth, {
     verifier: createTokenVerifier(),
     identity: createIdentityResolver(),
+    authMode: process.env.AUTH_MODE === 'local' ? 'local' : 'oidc',
   });
 
   if (dbClient) {
