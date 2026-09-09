@@ -22,3 +22,13 @@ allowBuilds:
 
 onlyBuiltDependencies:
   - esbuild
+  - electron
+  - better-sqlite3
+  - keytar
+
+packageExtensions:
+  vite-plugin-electron:
+    dependencies:
+      vite: '*'
+    peerDependencies:
+      vite: '*'

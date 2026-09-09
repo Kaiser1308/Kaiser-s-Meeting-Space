@@ -12,10 +12,14 @@
  */
 
 import { app, BrowserWindow, session, ipcMain } from 'electron';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { NativeSupervisor } from './supervisor.js';
 import { IpcHandler } from './ipc-handler.js';
 import { NATIVE_EVENT_CHANNEL } from '@kms/native-contract';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /** Content Security Policy — strict, no inline, no eval. */
 const CSP = [
