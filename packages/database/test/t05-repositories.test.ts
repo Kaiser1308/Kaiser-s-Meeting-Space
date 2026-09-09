@@ -173,6 +173,27 @@ describe('P03-T05: Transactional owner-ready repositories', () => {
       });
     });
 
+    it('updateState persists lifecycle timestamps', async () => {
+      await withRollbackTx(testDb, async (tx) => {
+        await seedUser(tx, OWNER_A.ownerId);
+        await seedMeeting(tx, OWNER_A, MEETING_ID_A);
+        const startedAt = '2026-07-28T00:01:00.000Z';
+        const endedAt = '2026-07-28T01:00:00.000Z';
+
+        const started = await meetingRepo.updateState(OWNER_A, tx, MEETING_ID_A, 1, {
+          state: 'recording',
+          startedAt,
+        });
+        expect(started.startedAt).toBe(startedAt);
+
+        const ended = await meetingRepo.updateState(OWNER_A, tx, MEETING_ID_A, 2, {
+          state: 'finalizing',
+          endedAt,
+        });
+        expect(ended.endedAt).toBe(endedAt);
+      });
+    });
+
     it('updateState — stale version throws version_conflict', async () => {
       await withRollbackTx(testDb, async (tx) => {
         await seedUser(tx, OWNER_A.ownerId);

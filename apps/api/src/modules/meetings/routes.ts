@@ -101,6 +101,7 @@ const meetingRoutesPlugin: FastifyPluginAsync<MeetingRoutesOptions> = async (app
         const result = await service.endMeeting(
           request.authenticatedOwnerContext,
           request.params.meetingId,
+          request.headers['idempotency-key'] as string,
         );
         const parsed = EndMeetingResponseSchema.parse(result);
         return reply.code(200).send(parsed);

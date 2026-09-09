@@ -40,7 +40,7 @@ describe('MeetingService', () => {
       expect.anything(),
       meeting.id,
       meeting.version,
-      expect.objectContaining({ state: 'finalizing' }),
+      expect.objectContaining({ state: 'finalizing', endedAt: expect.any(String) }),
     );
     expect(result.state).toBe('finalizing');
   });
@@ -92,7 +92,7 @@ describe('MeetingService', () => {
       expect.anything(),
       meeting.id,
       meeting.version,
-      expect.objectContaining({ state: 'recording' }),
+      expect.objectContaining({ state: 'recording', startedAt: expect.any(String) }),
     );
   });
 
@@ -180,6 +180,62 @@ describe('MeetingService', () => {
       }),
     });
     await expect(service.startMeeting(owner, meeting.id, 'start-key-123')).resolves.toEqual(result);
+    expect(repository.updateState).toHaveBeenCalledTimes(1);
+  });
+
+  it('persists and replays an End response for the idempotency key', async () => {
+    const select = vi.fn().mockReturnValue({
+      from: () => ({
+        where: () => ({ limit: () => Promise.resolve([]) }),
+      }),
+    });
+    const insertValues = vi.fn().mockResolvedValue(undefined);
+    const tx = {
+      execute: vi.fn().mockResolvedValue(undefined),
+      select,
+      insert: vi.fn().mockReturnValue({ values: insertValues }),
+    };
+    const db = {
+      transaction: vi.fn(async (callback: (connection: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+      ),
+    };
+    const repository = {
+      getLifecycle: vi.fn().mockResolvedValue({ ...meeting, state: 'recording' as const }),
+      updateState: vi.fn().mockResolvedValue({
+        ...meeting,
+        endedAt: '2026-07-28T01:00:00.000Z',
+      }),
+    };
+    const service = new MeetingService({ db: db as unknown as Db });
+    Object.defineProperty(service, 'meetingsRepo', { value: repository });
+
+    const result = await service.endMeeting(owner, meeting.id, 'end-key-123');
+
+    expect(result).toMatchObject({ meetingId: meeting.id, state: 'finalizing' });
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'meeting',
+        idempotencyKey: `${meeting.id}:end:end-key-123`,
+        responseCode: '200',
+      }),
+    );
+
+    const stored = insertValues.mock.calls[0]?.[0] as {
+      requestId: string;
+      responseSummary: unknown;
+    };
+    select.mockReturnValue({
+      from: () => ({
+        where: () => ({
+          limit: () =>
+            Promise.resolve([
+              { requestId: stored.requestId, responseSummary: stored.responseSummary },
+            ]),
+        }),
+      }),
+    });
+    await expect(service.endMeeting(owner, meeting.id, 'end-key-123')).resolves.toEqual(result);
     expect(repository.updateState).toHaveBeenCalledTimes(1);
   });
 });

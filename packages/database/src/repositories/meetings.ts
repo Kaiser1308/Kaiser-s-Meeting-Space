@@ -187,10 +187,10 @@ export class MeetingsRepository {
   ): Promise<MeetingSettings> {
     const updates: Record<string, unknown> = { state: update.state };
     if (update.startedAt !== undefined) {
-      updates.started_at = new Date(update.startedAt);
+      updates.startedAt = new Date(update.startedAt);
     }
     if (update.endedAt !== undefined) {
-      updates.ended_at = new Date(update.endedAt);
+      updates.endedAt = new Date(update.endedAt);
     }
 
     try {

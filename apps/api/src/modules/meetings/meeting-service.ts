@@ -256,8 +256,59 @@ export class MeetingService {
   }
 
   /** Finalize a meeting (transition to 'finalizing'). Idempotent. */
-  async endMeeting(ctx: OwnerContext, meetingId: string) {
-    const meeting = await this.meetingsRepo.getLifecycle(ctx, this.options.db, meetingId);
+  async endMeeting(ctx: OwnerContext, meetingId: string, idempotencyKey?: string) {
+    if (idempotencyKey) {
+      const requestHash = createHash('sha256')
+        .update(JSON.stringify({ meetingId, operation: 'end' }))
+        .digest('hex');
+      const storageKey = `${meetingId}:end:${idempotencyKey}`;
+      return this.options.db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtext(${`${ctx.ownerId}:meeting:${storageKey}`}))`,
+        );
+        const cached = await tx
+          .select({
+            requestId: schema.idempotencyRecords.requestId,
+            responseSummary: schema.idempotencyRecords.responseSummary,
+          })
+          .from(schema.idempotencyRecords)
+          .where(
+            and(
+              eq(schema.idempotencyRecords.ownerId, ctx.ownerId),
+              eq(schema.idempotencyRecords.entityType, 'meeting'),
+              eq(schema.idempotencyRecords.idempotencyKey, storageKey),
+              gt(schema.idempotencyRecords.expiresAt, new Date()),
+            ),
+          )
+          .limit(1);
+        if (cached[0]?.responseSummary) {
+          if (cached[0].requestId !== requestHash) throw new DbError('conflict');
+          return cached[0].responseSummary as {
+            meetingId: string;
+            state: string;
+            finalizedAt: string;
+          };
+        }
+
+        const response = await this.endMeetingOnConnection(ctx, tx, meetingId);
+        await tx.insert(schema.idempotencyRecords).values({
+          ownerId: ctx.ownerId,
+          entityType: 'meeting',
+          idempotencyKey: storageKey,
+          requestId: requestHash,
+          responseCode: '200',
+          responseSummary: response,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        });
+        return response;
+      });
+    }
+
+    return this.endMeetingOnConnection(ctx, this.options.db, meetingId);
+  }
+
+  private async endMeetingOnConnection(ctx: OwnerContext, conn: Connection, meetingId: string) {
+    const meeting = await this.meetingsRepo.getLifecycle(ctx, conn, meetingId);
     if (!meeting) {
       throw new DbError('not_found');
     }
@@ -286,7 +337,7 @@ export class MeetingService {
     const now = new Date().toISOString();
     const updated = await this.meetingsRepo.updateState(
       ctx,
-      this.options.db,
+      conn,
       meetingId,
       currentVersion,
       {
