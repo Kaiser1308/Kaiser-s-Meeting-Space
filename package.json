@@ -7,6 +7,7 @@
   "scripts": {
     "dev:api": "pnpm --filter @kms/api dev",
     "dev:desktop": "pnpm --filter @kms/desktop dev",
+    "dev:worker": "pnpm --filter @kms/worker dev",
     "dev:mobile": "pnpm --filter @kms/mobile start",
     "execution:generate": "node scripts/execution/generate-phase-prompts.mjs",
     "execution:generate:check": "node scripts/execution/generate-phase-prompts.mjs --check",

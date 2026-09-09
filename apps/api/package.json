@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --env-file=../../.env src/server.ts",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run --exclude src/modules/audio/routes.test.ts",
     "test:integration": "vitest run src/modules/audio/routes.test.ts",
