@@ -4,6 +4,8 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+packageExtensionsChecksum: sha256-RnqY2wJTf9kfHBeqZW9XjslvbBdxvF+hwo5DFNsT8Hk=
+
 importers:
 
   .:
@@ -84,6 +86,9 @@ importers:
       '@kms/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@kms/translation':
+        specifier: workspace:*
+        version: link:../../packages/translation
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.20.0)(better-sqlite3@11.10.0)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)
@@ -112,9 +117,15 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@kms/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@kms/native-contract':
         specifier: workspace:*
         version: link:../../packages/native-contract
+      '@kms/translation':
+        specifier: workspace:*
+        version: link:../../packages/translation
       '@vitejs/plugin-react':
         specifier: ^5.0.2
         version: 5.2.0(vite@7.3.6(@types/node@24.13.3)(lightningcss@1.33.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))
@@ -148,7 +159,7 @@ importers:
         version: 5.9.3
       vite-plugin-electron:
         specifier: ^0.29.0
-        version: 0.29.1(vite-plugin-electron-renderer@0.14.7)
+        version: 0.29.1(vite-plugin-electron-renderer@0.14.7)(vite@7.3.6(@types/node@24.13.3)(lightningcss@1.33.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))
       vite-plugin-electron-renderer:
         specifier: ^0.14.5
         version: 0.14.7
@@ -164,6 +175,9 @@ importers:
       '@kms/mobile-audio':
         specifier: workspace:*
         version: link:../../packages/mobile-audio
+      '@kms/translation':
+        specifier: workspace:*
+        version: link:../../packages/translation
       expo:
         specifier: ~54.0.0
         version: 54.0.36(@babel/core@7.29.7)(react-native@0.81.4(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
@@ -207,6 +221,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@kms/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@kms/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -292,6 +309,9 @@ importers:
       '@kms/domain':
         specifier: workspace:*
         version: link:../domain
+      '@kms/translation':
+        specifier: workspace:*
+        version: link:../translation
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.20.0)(better-sqlite3@11.10.0)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)
@@ -342,6 +362,9 @@ importers:
 
   packages/jobs:
     dependencies:
+      '@kms/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@kms/auth':
         specifier: workspace:*
         version: link:../auth
@@ -5929,6 +5952,7 @@ packages:
   vite-plugin-electron@0.29.1:
     resolution: {integrity: sha512-AejNed5BgHFnuw8h5puTa61C6vdP4ydbsbo/uVjH1fTdHAlCDz1+o6pDQ/scQj1udDrGvH01+vTbzQh/vMnR9w==}
     peerDependencies:
+      vite: '*'
       vite-plugin-electron-renderer: '*'
     peerDependenciesMeta:
       vite-plugin-electron-renderer:
@@ -12588,7 +12612,9 @@ snapshots:
 
   vite-plugin-electron-renderer@0.14.7: {}
 
-  vite-plugin-electron@0.29.1(vite-plugin-electron-renderer@0.14.7):
+  vite-plugin-electron@0.29.1(vite-plugin-electron-renderer@0.14.7)(vite@7.3.6(@types/node@24.13.3)(lightningcss@1.33.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0)):
+    dependencies:
+      vite: 7.3.6(@types/node@24.13.3)(lightningcss@1.33.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0)
     optionalDependencies:
       vite-plugin-electron-renderer: 0.14.7
 
