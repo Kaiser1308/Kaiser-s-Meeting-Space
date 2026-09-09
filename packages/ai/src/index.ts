@@ -88,7 +88,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
           {
             role: 'system',
             content:
-              'Create exhaustive meeting minutes. Never omit transcript content. Every claim must cite segmentId, startMs, and endMs. Mark uncertain facts as needs_confirmation. Return JSON matching MinutesVersion.',
+              'Create exhaustive meeting minutes. Never omit transcript content. Every claim must cite segmentId, startMs, and endMs. Mark uncertain facts as needs_confirmation. Return valid JSON object with fields: template, detailLevel, outputLanguage, sections, decisions, openQuestions, actionItems.',
           },
           { role: 'user', content: JSON.stringify(input) },
         ],
@@ -100,15 +100,25 @@ export class OpenAiCompatibleProvider implements AiProvider {
     };
     const content = payload.choices?.[0]?.message?.content;
     if (!content) throw new Error('AI provider returned no content');
-    const parsed = JSON.parse(content) as MinutesVersion;
+    const parsed = (JSON.parse(content) || {}) as Partial<MinutesVersion>;
     return {
-      ...parsed,
       id: crypto.randomUUID(),
       documentId: `${input.meeting.id}-doc`,
+      version: parsed.version ?? 1,
+      template: parsed.template ?? input.template ?? 'team',
+      detailLevel: parsed.detailLevel ?? input.detailLevel ?? 'detailed',
+      outputLanguage: parsed.outputLanguage ?? input.meeting.language ?? 'en',
+      transcriptProjection: parsed.transcriptProjection ?? 'current',
+      isComplete: parsed.isComplete ?? true,
       provider: this.id,
       model: this.model,
+      ...(parsed.promptVersion ? { promptVersion: parsed.promptVersion } : {}),
       creatorId: 'system',
       createdAt: new Date().toISOString(),
+      sections: Array.isArray(parsed.sections) ? parsed.sections : [],
+      decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [],
+      openQuestions: Array.isArray(parsed.openQuestions) ? parsed.openQuestions : [],
+      actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
     };
   }
 }
