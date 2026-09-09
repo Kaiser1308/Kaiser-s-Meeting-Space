@@ -350,7 +350,7 @@ export interface EditorDocumentNode {
   readonly endMs?: number;
   readonly quoteHash?: string;
   readonly needsConfirmation?: true;
-  readonly field?: 'owner' | 'deadline' | 'speaker' | 'decision' | 'other';
+  readonly field?: 'owner' | 'deadline' | 'dueDate' | 'speaker' | 'decision' | 'other';
   readonly key?: string;
   readonly value?: string;
 }
