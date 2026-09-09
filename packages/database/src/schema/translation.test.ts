@@ -35,7 +35,7 @@ describe('0010_translation_versions.sql migration', () => {
     expect(migrationSql).toMatch(/CREATE UNIQUE INDEX "translation_versions_idempotency_unique"/);
   });
   it('checks source_text_hash is 64-hex', () => {
-    expect(migrationSql).toMatch(/^[0-9a-fA-F]{64}/);
+    expect(migrationSql).toMatch(/\^\[0-9a-fA-F\]\{64\}/);
   });
   it('is additive (no DROP TABLE)', () => {
     expect(migrationSql).not.toMatch(/DROP TABLE/i);

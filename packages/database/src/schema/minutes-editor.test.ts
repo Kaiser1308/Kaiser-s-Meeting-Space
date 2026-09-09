@@ -25,7 +25,7 @@ describe('0013_minutes_editor.sql migration', () => {
     expect(migrationSql).not.toMatch(/BEFORE UPDATE OR DELETE ON "minutes_editor_current"/);
   });
   it('checks content_hash is 64-hex and is additive', () => {
-    expect(migrationSql).toMatch(/^[0-9a-fA-F]{64}/);
+    expect(migrationSql).toMatch(/\^\[0-9a-fA-F\]\{64\}/);
     expect(migrationSql).not.toMatch(/DROP TABLE/i);
   });
 });

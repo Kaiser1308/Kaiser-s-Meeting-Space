@@ -26,7 +26,7 @@ describe('0012_minutes_provenance.sql migration', () => {
     expect(migrationSql).toMatch(/BEFORE UPDATE OR DELETE ON "minutes_provenance"/);
   });
   it('checks input_hash is 64-hex', () => {
-    expect(migrationSql).toMatch(/^[0-9a-fA-F]{64}/);
+    expect(migrationSql).toMatch(/\^\[0-9a-fA-F\]\{64\}/);
   });
   it('is additive (no DROP TABLE)', () => {
     expect(migrationSql).not.toMatch(/DROP TABLE/i);
