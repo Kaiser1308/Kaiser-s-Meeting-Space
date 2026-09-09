@@ -169,7 +169,7 @@ function applyWindowSecurity(win: BrowserWindow): void {
 /**
  * Initialize the native runtime supervisor.
  */
-function initNativeRuntime(): void {
+async function initNativeRuntime(): Promise<void> {
   supervisor = new NativeSupervisor({
     maxRestarts: 3,
     restartWindowMs: 60_000,
@@ -185,6 +185,8 @@ function initNativeRuntime(): void {
 
   ipcHandler = new IpcHandler(supervisor);
   ipcHandler.register(ipcMain);
+
+  await supervisor.start();
 }
 
 /**
@@ -211,7 +213,9 @@ async function bootstrap(): Promise<void> {
   applySecurityPolicies();
 
   // Initialize native runtime
-  initNativeRuntime();
+  void initNativeRuntime().catch((error: unknown) => {
+    console.error('Native runtime failed to start', error);
+  });
 
   // Create the main window
   mainWindow = createMainWindow();
@@ -274,4 +278,13 @@ if (!process.env.VITEST) {
 }
 
 // Export for testing
-export { CSP, isDev, isAllowedUrl, createMainWindow, applySecurityPolicies, applyWindowSecurity };
+export {
+  CSP,
+  isDev,
+  isAllowedUrl,
+  createMainWindow,
+  applySecurityPolicies,
+  applyWindowSecurity,
+  bootstrap,
+  initNativeRuntime,
+};
