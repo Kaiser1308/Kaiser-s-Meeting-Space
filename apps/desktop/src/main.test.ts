@@ -83,4 +83,76 @@ describe('@kms/desktop', () => {
       expect(typeof App).toBe('function');
     });
   });
+
+  describe('M4 Task 3: post-recording transcription workflow, prerequisite banner, and immutable transcript card', () => {
+    const mainContent = readFileSync(resolve(__dirname, 'main.tsx'), 'utf-8');
+
+    it('imports transcribeMeeting, TranscriptionWorkflowError, and type TranscriptSegment from transcription-workflow', () => {
+      expect(mainContent).toMatch(
+        /import\s*\{[^}]*transcribeMeeting[^}]*TranscriptionWorkflowError[^}]*TranscriptSegment[^}]*\}\s*from\s*['"]\.\/transcription-workflow\.js['"]/,
+      );
+    });
+
+    it('manages transcriptState, transcriptSegments, and transcriptDiagnostic states and resets them on meeting start', () => {
+      expect(mainContent).toContain('const [transcriptState, setTranscriptState] = useState<');
+      expect(mainContent).toContain(
+        'const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);',
+      );
+      expect(mainContent).toContain(
+        'const [transcriptDiagnostic, setTranscriptDiagnostic] = useState<string | null>(null);',
+      );
+      expect(mainContent).toContain("setTranscriptState('idle');");
+      expect(mainContent).toContain('setTranscriptSegments([]);');
+      expect(mainContent).toContain('setTranscriptDiagnostic(null);');
+    });
+
+    it('implements handleTranscribeMeeting calling transcribeMeeting and setting transcribing and completion states', () => {
+      expect(mainContent).toContain('const handleTranscribeMeeting = async () => {');
+      expect(mainContent).toContain("setTranscriptState('transcribing');");
+      expect(mainContent).toContain('setTranscriptDiagnostic(null);');
+      expect(mainContent).toContain('await transcribeMeeting(');
+      expect(mainContent).toContain('setTranscriptSegments(result.segments);');
+      expect(mainContent).toContain("setTranscriptState('completed');");
+      expect(mainContent).toContain("setTranscriptState('failed');");
+      expect(mainContent).toContain('if (err instanceof TranscriptionWorkflowError) {');
+      expect(mainContent).toContain('setTranscriptDiagnostic(err.message);');
+      expect(mainContent).toContain(
+        "setTranscriptDiagnostic('An unexpected error occurred during transcription.');",
+      );
+    });
+
+    it('renders Transcribe meeting (Local Whisper) button when session summary exists and disables during transcribing', () => {
+      expect(mainContent).toContain('lastSessionSummary &&');
+      expect(mainContent).toContain('Transcribe meeting (Local Whisper)');
+      expect(mainContent).toContain('onClick={handleTranscribeMeeting}');
+      expect(mainContent).toContain("disabled={transcriptState === 'transcribing'}");
+    });
+
+    it('renders progress indicator when transcriptState is transcribing', () => {
+      expect(mainContent).toContain("transcriptState === 'transcribing'");
+      expect(mainContent).toContain('Running local Whisper model inference...');
+    });
+
+    it('renders diagnostic prerequisite banner when transcriptDiagnostic is not null', () => {
+      expect(mainContent).toContain('transcriptDiagnostic && (');
+      expect(mainContent).toContain('role="alert"');
+      expect(mainContent).toContain('className="diagnostic-banner"');
+      expect(mainContent).toContain('Transcription Prerequisite:');
+      expect(mainContent).toContain('{transcriptDiagnostic}');
+    });
+
+    it('renders immutable source transcript card with language badge, notice, and segments', () => {
+      expect(mainContent).toContain('transcriptSegments.length > 0 && (');
+      expect(mainContent).toContain('data-testid="source-transcript-card"');
+      expect(mainContent).toContain('SOURCE TRANSCRIPT (LOCAL MODEL)');
+      expect(mainContent).toContain('meetingLanguage.toUpperCase()');
+      expect(mainContent).toContain('Read-only. Source transcript is immutable.');
+      expect(mainContent).toContain('className="transcript-segments"');
+      expect(mainContent).toContain('className="transcript-segment"');
+      expect(mainContent).toContain('Math.floor(seg.startMs / 1000)');
+      expect(mainContent).toContain('Math.floor(seg.endMs / 1000)');
+      expect(mainContent).toContain('{seg.speaker &&');
+      expect(mainContent).toContain('{seg.text}');
+    });
+  });
 });

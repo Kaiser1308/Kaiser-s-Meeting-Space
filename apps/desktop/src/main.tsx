@@ -8,6 +8,11 @@ import {
   EndMeetingError,
   type EndPhysicalMeetingResult,
 } from './end-meeting-workflow.js';
+import {
+  transcribeMeeting,
+  TranscriptionWorkflowError,
+  type TranscriptSegment,
+} from './transcription-workflow.js';
 import './styles.css';
 
 type Mode = 'record' | 'translate';
@@ -48,6 +53,11 @@ export function App() {
   const [lastSessionSummary, setLastSessionSummary] = useState<EndPhysicalMeetingResult | null>(
     null,
   );
+  const [transcriptState, setTranscriptState] = useState<
+    'idle' | 'transcribing' | 'completed' | 'failed'
+  >('idle');
+  const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
+  const [transcriptDiagnostic, setTranscriptDiagnostic] = useState<string | null>(null);
 
   // Capture mode configuration
   const [captureType, setCaptureType] = useState<'physical' | 'simulated'>('physical');
@@ -241,6 +251,9 @@ export function App() {
         setStartError(null);
         setStopError(null);
         setLastSessionSummary(null);
+        setTranscriptState('idle');
+        setTranscriptSegments([]);
+        setTranscriptDiagnostic(null);
         log('Physical capture started successfully.');
       } else {
         if (!nativeClient) {
@@ -248,6 +261,9 @@ export function App() {
           setStartError(null);
           setStopError(null);
           setLastSessionSummary(null);
+          setTranscriptState('idle');
+          setTranscriptSegments([]);
+          setTranscriptDiagnostic(null);
           log('Started mock recording session.');
           return;
         }
@@ -259,6 +275,9 @@ export function App() {
           setStartError(null);
           setStopError(null);
           setLastSessionSummary(null);
+          setTranscriptState('idle');
+          setTranscriptSegments([]);
+          setTranscriptDiagnostic(null);
           log(`Capture started. Session ID: ${payload.sessionId}`);
 
           // Add entry to manifest for durability tracking
@@ -347,6 +366,33 @@ export function App() {
         setStopError('An error occurred while ending the meeting.');
       }
       log(`Failed to end meeting: ${err}`);
+    }
+  };
+
+  const handleTranscribeMeeting = async () => {
+    if (!lastSessionSummary || !nativeClient) return;
+    setTranscriptState('transcribing');
+    setTranscriptDiagnostic(null);
+    try {
+      log(`Starting post-recording transcription for meeting ${lastSessionSummary.meetingId}...`);
+      const result = await transcribeMeeting(
+        { native: nativeClient },
+        {
+          meetingId: lastSessionSummary.meetingId,
+          language: meetingLanguage,
+        },
+      );
+      setTranscriptSegments(result.segments);
+      setTranscriptState('completed');
+      log(`Transcription completed: ${result.segments.length} segments received.`);
+    } catch (err) {
+      setTranscriptState('failed');
+      if (err instanceof TranscriptionWorkflowError) {
+        setTranscriptDiagnostic(err.message);
+      } else {
+        setTranscriptDiagnostic('An unexpected error occurred during transcription.');
+      }
+      log(`Transcription failed: ${err}`);
     }
   };
 
@@ -729,6 +775,108 @@ export function App() {
                 >
                   All audio chunks committed locally. Source audio is immutable.
                 </p>
+
+                {(['idle', 'failed'] as string[]).includes(transcriptState) && (
+                  <button
+                    className="btn-transcribe"
+                    onClick={handleTranscribeMeeting}
+                    disabled={transcriptState === 'transcribing'}
+                    style={{
+                      marginTop: '16px',
+                      padding: '10px 16px',
+                      background: '#d8ff6a',
+                      color: '#14241e',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Transcribe meeting (Local Whisper)
+                  </button>
+                )}
+
+                {transcriptState === 'transcribing' && (
+                  <p role="status" style={{ color: '#d8ff6a', marginTop: '12px' }}>
+                    Running local Whisper model inference...
+                  </p>
+                )}
+
+                {transcriptDiagnostic && (
+                  <div
+                    role="alert"
+                    className="diagnostic-banner"
+                    style={{
+                      marginTop: '12px',
+                      padding: '12px 14px',
+                      background: '#fff8e1',
+                      border: '1px solid #ffe082',
+                      borderRadius: '8px',
+                      color: '#8d6e63',
+                      fontSize: '13px',
+                      lineHeight: '1.4',
+                    }}
+                  >
+                    <strong>Transcription Prerequisite: </strong>
+                    {transcriptDiagnostic}
+                  </div>
+                )}
+
+                {transcriptSegments.length > 0 && (
+                  <div
+                    className="source-transcript-card"
+                    data-testid="source-transcript-card"
+                    style={{
+                      marginTop: '16px',
+                      padding: '16px',
+                      background: '#12241d',
+                      borderRadius: '10px',
+                      border: '1px solid #2a473a',
+                    }}
+                  >
+                    <p className="eyebrow" style={{ color: '#a8b6af', margin: 0 }}>
+                      SOURCE TRANSCRIPT (LOCAL MODEL) [{meetingLanguage.toUpperCase()}]
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#738079', margin: '4px 0 12px 0' }}>
+                      Read-only. Source transcript is immutable.
+                    </p>
+                    <div className="transcript-segments" style={{ marginTop: '12px' }}>
+                      {transcriptSegments.map((seg, idx) => (
+                        <div
+                          key={idx}
+                          className="transcript-segment"
+                          style={{
+                            padding: '8px 0',
+                            borderBottom: '1px solid #2a473a',
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: '#738079',
+                              fontSize: '11px',
+                              fontFamily: 'monospace',
+                              marginRight: '8px',
+                            }}
+                          >
+                            [{Math.floor(seg.startMs / 1000)}s - {Math.floor(seg.endMs / 1000)}s]
+                          </span>
+                          {seg.speaker && (
+                            <strong
+                              style={{
+                                color: '#d8ff6a',
+                                marginRight: '6px',
+                                fontSize: '12px',
+                              }}
+                            >
+                              {seg.speaker}:
+                            </strong>
+                          )}
+                          <span style={{ color: '#fff', fontSize: '14px' }}>{seg.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </article>

@@ -7,6 +7,8 @@ import {
   type NativeSender,
 } from './local-speech-client.js';
 
+export type { TranscriptSegment };
+
 export type TranscriptionWorkflowErrorCode =
   | 'RUNTIME_PREREQUISITE_MISSING'
   | 'MODEL_NOT_FOUND'
