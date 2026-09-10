@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NativeBridgeClient, type NativeIpcTransport } from '@kms/native-contract';
+import { createMeetingApi, MeetingApiError } from './meeting-api.js';
+import { startPhysicalMeeting, StartMeetingError } from './start-meeting-workflow.js';
 import './styles.css';
 
 type Mode = 'record' | 'translate';
@@ -9,6 +11,9 @@ type RuntimeStatus = 'offline' | 'connecting' | 'healthy' | 'crashed';
 // Safely resolve the preload API
 const kmsNativeApi = (window as unknown as { kmsNative?: NativeIpcTransport }).kmsNative;
 const nativeClient = kmsNativeApi ? new NativeBridgeClient(kmsNativeApi) : null;
+const meetingApi = createMeetingApi();
+const meetingLanguage: 'vi' | 'en' = navigator.language.startsWith('vi') ? 'vi' : 'en';
+const meetingTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 interface IncompleteSession {
   meetingId: string;
@@ -27,6 +32,9 @@ function App() {
   const [devices, setDevices] = useState<any[]>([]);
   const [incompleteSessions, setIncompleteSessions] = useState<IncompleteSession[]>([]);
   const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [meetingTitle, setMeetingTitle] = useState('New meeting');
+  const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   // Capture mode configuration
   const [captureType, setCaptureType] = useState<'physical' | 'simulated'>('physical');
@@ -188,28 +196,35 @@ function App() {
   }, [runtimeStatus]);
 
   const handleStartMeeting = async () => {
-    if (!nativeClient) {
-      setState('recording');
-      log('Started mock recording session.');
-      return;
-    }
-
     try {
       if (captureType === 'physical') {
+        const title = meetingTitle.trim();
+        if (!title) {
+          setStartError('Enter a meeting title.');
+          return;
+        }
+        if (!nativeClient) {
+          setStartError('Meeting started in the service but local capture did not start.');
+          return;
+        }
         log('Starting physical audio capture session...');
-        await nativeClient.send('storage_init');
-        const resp = await nativeClient.send('capture_start', {
-          meetingId: 'active-session',
+        const { meetingId } = await startPhysicalMeeting({ api: meetingApi, native: nativeClient }, {
+          title,
+          language: meetingLanguage,
+          timezone: meetingTimezone,
           micDeviceId: selectedMicId,
           systemDeviceId: selectedSysId,
         });
-        if (resp.success) {
-          setState('recording');
-          log('Physical capture started successfully.');
-        } else {
-          log(`Failed to start physical capture: ${resp.error?.message || 'Unknown error'}`);
-        }
+        setCurrentMeetingId(meetingId);
+        setState('recording');
+        setStartError(null);
+        log('Physical capture started successfully.');
       } else {
+        if (!nativeClient) {
+          setState('recording');
+          log('Started mock recording session.');
+          return;
+        }
         log('Starting simulated capture session...');
         const resp = await nativeClient.send('simulator_start_capture');
         if (resp.success) {
@@ -228,6 +243,17 @@ function App() {
         }
       }
     } catch (err) {
+      setState('idle');
+      setCurrentMeetingId(null);
+      if (err instanceof MeetingApiError) {
+        setStartError(err.code === 'API_UNAVAILABLE'
+          ? 'Local meeting service is unavailable.'
+          : 'Local meeting service returned an invalid response.');
+      } else if (err instanceof StartMeetingError) {
+        setStartError('Meeting started in the service but local capture did not start.');
+      } else {
+        setStartError('Meeting started in the service but local capture did not start.');
+      }
       log(`Failed to start capture: ${err}`);
     }
   };
@@ -423,6 +449,14 @@ function App() {
           <article className="start-card">
             <p className="eyebrow">NEW MEETING</p>
             <h2>Ready when you are.</h2>
+            <label className="eyebrow" htmlFor="meeting-title">MEETING TITLE</label>
+            <input
+              id="meeting-title"
+              value={meetingTitle}
+              onChange={(event) => setMeetingTitle(event.target.value)}
+              disabled={active}
+              required
+            />
             <div className="modes">
               <button
                 className={mode === 'record' ? 'active' : ''}
@@ -556,6 +590,7 @@ function App() {
                 </button>
               )}
             </div>
+            {startError && <p role="alert">{startError}</p>}
           </article>
 
           {/* Simulator Panel */}
