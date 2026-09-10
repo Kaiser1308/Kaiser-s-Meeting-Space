@@ -1,6 +1,6 @@
 # Windows M4: Local Post-Recording Transcript Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Enable the Windows desktop application to invoke the local Whisper speech engine for post-recording transcription of a completed meeting, render the immutable source transcript in the UI, or report precise, truthful model/runtime prerequisite failures without fabricating claims.
 
@@ -35,7 +35,7 @@
   - `LocalSpeechError` with codes: `'NOT_AVAILABLE'` | `'ENGINE_INIT_FAILED'` | `'MISSING_MODEL'` | `'TRANSCRIBE_FAILED'` | `'INVALID_RESPONSE'`.
   - Type `TranscriptSegment = { startMs: number; endMs: number; text: string; speaker?: string }`.
 
-- [ ] **Step 1: Write failing unit tests for `local-speech-client`**
+- [x] **Step 1: Write failing unit tests for `local-speech-client`**
 
 Create `apps/desktop/src/local-speech-client.test.ts`:
 
@@ -127,7 +127,7 @@ describe('local speech client', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
 
 Run:
 ```powershell
@@ -135,7 +135,7 @@ pnpm --filter @kms/desktop exec vitest run src/local-speech-client.test.ts
 ```
 Expected: FAIL due to missing `local-speech-client.ts`.
 
-- [ ] **Step 3: Implement `apps/desktop/src/local-speech-client.ts`**
+- [x] **Step 3: Implement `apps/desktop/src/local-speech-client.ts`**
 
 Implement the types, known model registry, and IPC helpers:
 
@@ -274,7 +274,7 @@ export async function cancelLocalSpeech(native: NativeSender): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Run unit tests and typecheck**
+- [x] **Step 4: Run unit tests and typecheck**
 
 Run:
 ```powershell
@@ -283,7 +283,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Stage and commit Task 1**
+- [x] **Step 5: Stage and commit Task 1**
 
 ```powershell
 git add apps/desktop/src/local-speech-client.ts apps/desktop/src/local-speech-client.test.ts
@@ -307,7 +307,7 @@ git commit -m "feat(desktop): add local speech native bridge client and model de
   - `TranscriptionWorkflowResult = { meetingId: string; language: 'vi' | 'en'; segments: TranscriptSegment[]; isSimulated: boolean; isPrerequisiteMissing?: boolean; diagnosticMessage?: string }`
   - `TranscriptionWorkflowError` with actionable diagnostic messages for the UI.
 
-- [ ] **Step 1: Write failing unit tests for `transcription-workflow`**
+- [x] **Step 1: Write failing unit tests for `transcription-workflow`**
 
 Create `apps/desktop/src/transcription-workflow.test.ts`:
 
@@ -389,7 +389,7 @@ describe('transcriptionWorkflow', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to confirm failure**
+- [x] **Step 2: Run test to confirm failure**
 
 Run:
 ```powershell
@@ -397,7 +397,7 @@ pnpm --filter @kms/desktop exec vitest run src/transcription-workflow.test.ts
 ```
 Expected: FAIL due to missing `transcription-workflow.ts`.
 
-- [ ] **Step 3: Implement `apps/desktop/src/transcription-workflow.ts`**
+- [x] **Step 3: Implement `apps/desktop/src/transcription-workflow.ts`**
 
 ```ts
 import {
@@ -512,7 +512,7 @@ export async function transcribeMeeting(
 }
 ```
 
-- [ ] **Step 4: Run unit tests and typecheck**
+- [x] **Step 4: Run unit tests and typecheck**
 
 Run:
 ```powershell
@@ -521,7 +521,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Stage and commit Task 2**
+- [x] **Step 5: Stage and commit Task 2**
 
 ```powershell
 git add apps/desktop/src/transcription-workflow.ts apps/desktop/src/transcription-workflow.test.ts
@@ -542,7 +542,7 @@ git commit -m "feat(desktop): add post-recording transcription workflow and prer
 - Consumes: `transcribeMeeting`, `TranscriptionWorkflowError` from `./transcription-workflow.js`.
 - Produces: UI states `transcriptState: 'idle' | 'transcribing' | 'completed' | 'failed'`, `transcriptSegments: TranscriptSegment[]`, `transcriptDiagnostic: string | null`, and immutable transcript card.
 
-- [ ] **Step 1: Check GitNexus impact analysis before editing `main.tsx`**
+- [x] **Step 1: Check GitNexus impact analysis before editing `main.tsx`**
 
 Run:
 ```powershell
@@ -550,7 +550,7 @@ node .gitnexus/run.cjs impact App -r Kaiser-s-Meeting-Space
 ```
 Confirm blast radius risk is LOW.
 
-- [ ] **Step 2: Update `main.tsx` with transcription trigger and transcript panel**
+- [x] **Step 2: Update `main.tsx` with transcription trigger and transcript panel**
 
 In `apps/desktop/src/main.tsx`:
 1. Import `transcribeMeeting, TranscriptionWorkflowError, type TranscriptSegment` from `./transcription-workflow.js`.
@@ -604,14 +604,14 @@ In `apps/desktop/src/main.tsx`:
      - Header: `"SOURCE TRANSCRIPT (LOCAL MODEL)"` + language tag (`meetingLanguage.toUpperCase()`) + notice: `"Read-only. Source transcript is immutable."`
      - Chronological list of segments with formatted timestamp `[mm:ss]`, text, and optional speaker.
 
-- [ ] **Step 3: Update `main.test.ts` to assert transcription workflow wiring and UI components**
+- [x] **Step 3: Update `main.test.ts` to assert transcription workflow wiring and UI components**
 
 In `apps/desktop/src/main.test.ts`, add test cases:
 - Verify `handleTranscribeMeeting` initiates transcription and updates UI state.
 - Verify prerequisite diagnostic error banner is shown when local speech runtime is unavailable (`NOT_AVAILABLE`).
 - Verify transcript segments render with timestamps and immutable notice.
 
-- [ ] **Step 4: Run unit tests and typecheck**
+- [x] **Step 4: Run unit tests and typecheck**
 
 Run:
 ```powershell
@@ -620,7 +620,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: PASS (all tests pass, typecheck exits 0).
 
-- [ ] **Step 5: Stage and commit Task 3**
+- [x] **Step 5: Stage and commit Task 3**
 
 ```powershell
 git add apps/desktop/src/main.tsx apps/desktop/src/main.test.ts
@@ -635,7 +635,7 @@ git commit -m "feat(desktop): integrate post-recording transcription UI and immu
 
 - Test: `apps/desktop/src/local-speech-client.test.ts`, `apps/desktop/src/transcription-workflow.test.ts`, `apps/desktop/src/main.test.ts`, `apps/desktop/src/meeting-api.test.ts`.
 
-- [ ] **Step 1: Run the complete automated M4 gate**
+- [x] **Step 1: Run the complete automated M4 gate**
 
 Run:
 ```powershell
@@ -644,7 +644,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: Every desktop test passes; typecheck exits 0.
 
-- [ ] **Step 2: Verify truthful diagnostic reporting against the live native sidecar**
+- [x] **Step 2: Verify truthful diagnostic reporting against the live native sidecar**
 
 Run:
 ```powershell
@@ -658,7 +658,7 @@ pnpm --filter @kms/desktop dev
    - Confirm no private audio content or meeting title is leaked into logs.
    - Confirm state remains truthful and uncorrupted.
 
-- [ ] **Step 3: Run GitNexus detect-changes and final review**
+- [x] **Step 3: Run GitNexus detect-changes and final review**
 
 Run:
 ```powershell
