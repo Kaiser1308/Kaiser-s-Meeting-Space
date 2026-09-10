@@ -17,6 +17,14 @@
 - GitNexus reports `handle_local_speech_command` as CRITICAL (10 impacted nodes, 8 processes). Before edits, report this risk and run impact on the exact dispatch symbol; do not change callers outside `runtime.rs`.
 - Preserve existing unrelated dirty/untracked build artifacts. Commit only task files after direct evidence and `detect-changes()`.
 
+## Build Unblocking Prerequisite: Restore the existing capture dispatcher borrow boundary
+
+`cargo check -p kms-native --no-default-features` currently reaches native source and stops on four `E0502` borrow-checker errors in `CaptureManager::start` (`capture/manager.rs`): the Gap and nonfatal Error recovery branches borrow `mgr.meeting_id` immutably in the same call that mutably drains packet provenance from `mgr`.
+
+This prerequisite is a compilation repair, not a capture-behavior change. GitNexus classifies both `CaptureManager::start` and `take_packet_provenance` as **CRITICAL**. Do not alter `take_packet_provenance`, protocol contracts, storage schema, capture producer behavior, or recovery semantics. Before each write, run and record impact for `start`; preserve the existing CRITICAL warning. In each of the four affected prefix-commit paths, snapshot the meeting ID, session ID, source format, and drained packet provenance into locals before the async writer call, then pass only those locals to the writer.
+
+Add or extend focused regression coverage proving that a synthetic microphone and system-audio Gap, and each corresponding nonfatal Error, still commit the contiguous buffered prefix before recording its durable gap. Run the focused tests and `cargo check -p kms-native --no-default-features` with the documented short-path/GNU runtime environment. Commit this repair as its own task-scoped commit before Task 2. If the compile gate exposes a distinct root cause after this repair, stop and record it; do not broaden the fix.
+
 ## File Structure
 
 - `native/crates/kms-native/Cargo.toml` — declares feature/dependency ownership.
