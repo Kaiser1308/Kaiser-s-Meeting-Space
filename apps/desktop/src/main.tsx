@@ -3,16 +3,25 @@ import { createRoot } from 'react-dom/client';
 import { NativeBridgeClient, type NativeIpcTransport } from '@kms/native-contract';
 import { createMeetingApi, MeetingApiError } from './meeting-api.js';
 import { startPhysicalMeeting, StartMeetingError } from './start-meeting-workflow.js';
+import {
+  endPhysicalMeeting,
+  EndMeetingError,
+  type EndPhysicalMeetingResult,
+} from './end-meeting-workflow.js';
 import './styles.css';
 
 type Mode = 'record' | 'translate';
 type RuntimeStatus = 'offline' | 'connecting' | 'healthy' | 'crashed';
 
 // Safely resolve the preload API
-const kmsNativeApi = (window as unknown as { kmsNative?: NativeIpcTransport }).kmsNative;
+const kmsNativeApi =
+  typeof window !== 'undefined'
+    ? (window as unknown as { kmsNative?: NativeIpcTransport }).kmsNative
+    : undefined;
 const nativeClient = kmsNativeApi ? new NativeBridgeClient(kmsNativeApi) : null;
 const meetingApi = createMeetingApi();
-const meetingLanguage: 'vi' | 'en' = navigator.language.startsWith('vi') ? 'vi' : 'en';
+const meetingLanguage: 'vi' | 'en' =
+  typeof navigator !== 'undefined' && navigator.language?.startsWith('vi') ? 'vi' : 'en';
 const meetingTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 interface IncompleteSession {
@@ -23,7 +32,7 @@ interface IncompleteSession {
   uploadStatus: string;
 }
 
-function App() {
+export function App() {
   const [mode, setMode] = useState<Mode>('record');
   const [state, setState] = useState<'idle' | 'recording' | 'paused'>('idle');
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>('offline');
@@ -35,6 +44,10 @@ function App() {
   const [meetingTitle, setMeetingTitle] = useState('New meeting');
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const [stopError, setStopError] = useState<string | null>(null);
+  const [lastSessionSummary, setLastSessionSummary] = useState<EndPhysicalMeetingResult | null>(
+    null,
+  );
 
   // Capture mode configuration
   const [captureType, setCaptureType] = useState<'physical' | 'simulated'>('physical');
@@ -226,10 +239,15 @@ function App() {
         setCurrentMeetingId(meetingId);
         setState('recording');
         setStartError(null);
+        setStopError(null);
+        setLastSessionSummary(null);
         log('Physical capture started successfully.');
       } else {
         if (!nativeClient) {
           setState('recording');
+          setStartError(null);
+          setStopError(null);
+          setLastSessionSummary(null);
           log('Started mock recording session.');
           return;
         }
@@ -238,6 +256,9 @@ function App() {
         if (resp.success) {
           const payload = resp.payload as Record<string, unknown>;
           setState('recording');
+          setStartError(null);
+          setStopError(null);
+          setLastSessionSummary(null);
           log(`Capture started. Session ID: ${payload.sessionId}`);
 
           // Add entry to manifest for durability tracking
@@ -278,18 +299,24 @@ function App() {
 
     try {
       if (captureType === 'physical') {
-        log('Stopping physical capture...');
-        const resp = await nativeClient.send('capture_stop');
-        if (resp.success) {
-          const payload = resp.payload as Record<string, unknown>;
+        if (!currentMeetingId) {
+          log('Cannot end meeting: no active meeting ID.');
           setState('idle');
-          log(
-            `Capture stopped. Total Mic Chunks: ${payload.totalMicChunks}, Sys Chunks: ${payload.totalSysChunks}`,
-          );
-          checkRecoveryInbox();
-        } else {
-          log(`Failed to stop physical capture: ${resp.error?.message || 'Unknown error'}`);
+          return;
         }
+        log('Stopping physical capture and finalizing meeting...');
+        const result = await endPhysicalMeeting(
+          { api: meetingApi, native: nativeClient! },
+          { meetingId: currentMeetingId },
+        );
+        setState('idle');
+        setCurrentMeetingId(null);
+        setStopError(null);
+        setLastSessionSummary(result);
+        log(
+          `Meeting finalized: ${result.meetingId}. Mic Chunks: ${result.totalMicChunks}, Sys Chunks: ${result.totalSysChunks}, Status: ${result.commitStatus}`,
+        );
+        checkRecoveryInbox();
       } else {
         log('Stopping simulated capture...');
         const resp = await nativeClient.send('simulator_stop_capture');
@@ -309,7 +336,17 @@ function App() {
         }
       }
     } catch (err) {
-      log(`Failed to stop capture: ${err}`);
+      setState('idle');
+      if (err instanceof EndMeetingError) {
+        if (err.code === 'CAPTURE_STOP_FAILED') {
+          setStopError('Capture stopped with an error. Audio data is preserved locally.');
+        } else if (err.code === 'API_END_FAILED') {
+          setStopError('Local capture stopped, but meeting finalization failed in the API.');
+        }
+      } else {
+        setStopError('An error occurred while ending the meeting.');
+      }
+      log(`Failed to end meeting: ${err}`);
     }
   };
 
@@ -562,9 +599,9 @@ function App() {
               </div>
             )}
 
-            {/* Real-time level meters for physical hardware streams */}
-            {active && captureType === 'physical' && (
-              <div className="level-meters">
+            {/* Real-time capture health indicators */}
+            {state === 'recording' && (
+              <div className="level-meters" data-testid="capture-health-indicators">
                 <div className="level-meter-track">
                   <label>
                     MIC LEVEL ({micLevel}%) — GAPS: {micGapCount}
@@ -582,14 +619,19 @@ function App() {
                   </div>
                 </div>
                 <div
+                  className="capture-health-stats"
                   style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     fontSize: '11px',
                     color: '#738079',
                     marginTop: '8px',
-                    textAlign: 'right',
                   }}
                 >
-                  Drift: {driftSamples} samples
+                  <span>
+                    Gap indicator: Mic ({micGapCount}) / Sys ({sysGapCount})
+                  </span>
+                  <span>Drift indicator: {driftSamples} samples</span>
                 </div>
               </div>
             )}
@@ -606,6 +648,89 @@ function App() {
               )}
             </div>
             {startError && <p role="alert">{startError}</p>}
+            {stopError && (
+              <div
+                role="alert"
+                className="error-banner"
+                style={{
+                  marginTop: '12px',
+                  padding: '12px 14px',
+                  background: '#fdf2f2',
+                  border: '1px solid #f8b4b4',
+                  borderRadius: '8px',
+                  color: '#9b1c1c',
+                  fontSize: '13px',
+                  lineHeight: '1.4',
+                }}
+              >
+                {stopError}
+              </div>
+            )}
+
+            {/* Session Completion Evidence Card */}
+            {lastSessionSummary && (
+              <div
+                className="session-evidence-card"
+                data-testid="session-evidence-card"
+                style={{
+                  marginTop: '20px',
+                  padding: '20px',
+                  background: '#193128',
+                  color: '#fff',
+                  borderRadius: '14px',
+                }}
+              >
+                <p className="eyebrow" style={{ color: '#a8b6af' }}>
+                  SESSION EVIDENCE
+                </p>
+                <h3 style={{ color: '#fff', margin: '4px 0 16px 0', fontSize: '18px' }}>
+                  Session Finalized
+                </h3>
+                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
+                  <span>
+                    <small>Meeting ID (UUID)</small>
+                    <strong style={{ wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                      {lastSessionSummary.meetingId}
+                    </strong>
+                  </span>
+                </div>
+                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
+                  <span>
+                    <small>Mic Chunks count</small>
+                    <strong>{lastSessionSummary.totalMicChunks}</strong>
+                  </span>
+                </div>
+                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
+                  <span>
+                    <small>Sys Chunks count</small>
+                    <strong>{lastSessionSummary.totalSysChunks}</strong>
+                  </span>
+                </div>
+                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
+                  <span>
+                    <small>Commit Status</small>
+                    <strong>{lastSessionSummary.commitStatus}</strong>
+                  </span>
+                </div>
+                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
+                  <span>
+                    <small>Finalized At</small>
+                    <strong>{new Date(lastSessionSummary.finalizedAt).toLocaleTimeString()}</strong>
+                  </span>
+                </div>
+                <p
+                  style={{
+                    fontSize: '12px',
+                    color: '#d8ff6a',
+                    marginTop: '16px',
+                    marginBottom: 0,
+                    fontWeight: 500,
+                  }}
+                >
+                  All audio chunks committed locally. Source audio is immutable.
+                </p>
+              </div>
+            )}
           </article>
 
           {/* Simulator Panel */}
@@ -682,4 +807,7 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+const rootElement = typeof document !== 'undefined' ? document.getElementById('root') : null;
+if (rootElement) {
+  createRoot(rootElement).render(<App />);
+}
