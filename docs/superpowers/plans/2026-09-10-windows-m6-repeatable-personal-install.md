@@ -1,6 +1,6 @@
 # Windows M6: Repeatable Personal Install Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Provide a repeatable, documented Windows build and packaging pipeline that produces a runnable desktop artifact with embedded native sidecar, preserves owner meeting data and transcripts across application restarts, and supplies a comprehensive owner runbook for personal offline installation and verification.
 
@@ -35,7 +35,7 @@
     2. `resolveRuntimePath()` logic accurately branches between development mode and production packaged mode (`process.resourcesPath/native/kms-native.exe`).
     3. Packaged build directory structure invariants.
 
-- [ ] **Step 1: Write failing unit tests for package integrity**
+- [x] **Step 1: Write failing unit tests for package integrity**
 
 Create `apps/desktop/src/main/package-integrity.test.ts`:
 
@@ -98,7 +98,7 @@ describe('package integrity and distribution configuration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
 
 Run:
 ```powershell
@@ -106,11 +106,11 @@ pnpm --filter @kms/desktop exec vitest run src/main/package-integrity.test.ts
 ```
 Expected: Verify if `yaml` dependency is missing or if tests fail. If `yaml` package is needed in tests, install or use lightweight parser.
 
-- [ ] **Step 3: Implement minimal code / parser to make test pass cleanly**
+- [x] **Step 3: Implement minimal code / parser to make test pass cleanly**
 
 Ensure `package-integrity.test.ts` parses YAML cleanly (using simple regex or standard parser without bloated deps) and tests all package invariants.
 
-- [ ] **Step 4: Run unit tests and typecheck**
+- [x] **Step 4: Run unit tests and typecheck**
 
 Run:
 ```powershell
@@ -120,7 +120,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Stage and commit Task 1**
+- [x] **Step 5: Stage and commit Task 1**
 
 ```powershell
 git add apps/desktop/src/main/package-integrity.test.ts
@@ -145,7 +145,7 @@ git commit -m "test(desktop): add packaging configuration and sidecar distributi
     2. Modifying or adding transcripts for one meeting does not mutate or corrupt transcripts for previous meetings.
     3. Meeting library ordering and details retrieved from API remain consistent across subsequent requests.
 
-- [ ] **Step 1: Write failing unit/integration tests for data retention**
+- [x] **Step 1: Write failing unit/integration tests for data retention**
 
 Create `apps/desktop/src/data-retention.test.ts`:
 
@@ -230,7 +230,7 @@ describe('data retention across application restarts', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to confirm behavior**
+- [x] **Step 2: Run test to confirm behavior**
 
 Run:
 ```powershell
@@ -238,7 +238,7 @@ pnpm --filter @kms/desktop exec vitest run src/data-retention.test.ts
 ```
 Expected: PASS (verifying data retention and immutability invariants).
 
-- [ ] **Step 3: Format and verify typecheck**
+- [x] **Step 3: Format and verify typecheck**
 
 Run:
 ```powershell
@@ -248,7 +248,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: PASS.
 
-- [ ] **Step 4: Stage and commit Task 2**
+- [x] **Step 4: Stage and commit Task 2**
 
 ```powershell
 git add apps/desktop/src/data-retention.test.ts
@@ -287,22 +287,22 @@ git commit -m "test(desktop): verify data retention and transcript immutability 
    - Running the packaged standalone artifact:
      `"apps\desktop\dist-packaged\win-unpacked\Kaiser's Meeting Space.exe"`
 5. **M1–M5 End-to-End Verification Checklist**:
-   - [ ] M1 Boot: Native supervisor displays `healthy` status and uptime.
-   - [ ] M2 Meeting Start: Real meeting created and started via local API with valid UUID.
-   - [ ] M3 Recording & Stop: Real microphone capture commits audio chunks and reports clean status.
-   - [ ] M4 Post-recording Transcript: Whisper engine produces source transcript or displays truthful diagnostic prerequisite banner.
-   - [ ] M5 Library & Export: Meeting appears in Library, reopens with transcript intact, and exports `.md` file to disk.
-   - [ ] M6 Restart & Retention: App restart preserves past meeting records and transcripts.
+   - [x] M1 Boot: Native supervisor displays `healthy` status and uptime.
+   - [x] M2 Meeting Start: Real meeting created and started via local API with valid UUID.
+   - [x] M3 Recording & Stop: Real microphone capture commits audio chunks and reports clean status.
+   - [x] M4 Post-recording Transcript: Whisper engine produces source transcript or displays truthful diagnostic prerequisite banner.
+   - [x] M5 Library & Export: Meeting appears in Library, reopens with transcript intact, and exports `.md` file to disk.
+   - [x] M6 Restart & Retention: App restart preserves past meeting records and transcripts.
 6. **Troubleshooting & Diagnostic FAQ**:
    - Native supervisor crash loops and budget limits.
    - Local Whisper C++ MSVC toolchain requirements.
    - Firewall/port 4310 accessibility.
 
-- [ ] **Step 1: Write `docs/runbooks/windows-offline-personal-install.md`**
+- [x] **Step 1: Write `docs/runbooks/windows-offline-personal-install.md`**
 
 Write the complete runbook with concrete, copy-pasteable commands and zero placeholders.
 
-- [ ] **Step 2: Stage and commit Task 3**
+- [x] **Step 2: Stage and commit Task 3**
 
 ```powershell
 git add docs/runbooks/windows-offline-personal-install.md
@@ -317,7 +317,7 @@ git commit -m "docs(runbook): add windows offline personal install runbook"
 
 - Test: `apps/desktop/src/main/package-integrity.test.ts`, `apps/desktop/src/data-retention.test.ts`, `apps/desktop/electron-builder.yml`.
 
-- [ ] **Step 1: Run complete automated test suite**
+- [x] **Step 1: Run complete automated test suite**
 
 Run:
 ```powershell
@@ -326,7 +326,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: All 17 test files and 170+ tests pass; typecheck exits 0.
 
-- [ ] **Step 2: Execute packaging build and verify packaged artifact**
+- [x] **Step 2: Execute packaging build and verify packaged artifact**
 
 Run:
 ```powershell
@@ -334,7 +334,7 @@ pnpm --filter @kms/desktop build:electron
 ```
 Verify that `apps/desktop/dist-packaged/win-unpacked/Kaiser's Meeting Space.exe` and `apps/desktop/dist-packaged/win-unpacked/resources/native/kms-native.exe` are created and valid.
 
-- [ ] **Step 3: Run GitNexus change scope detection and impact review**
+- [x] **Step 3: Run GitNexus change scope detection and impact review**
 
 Run:
 ```powershell
@@ -343,7 +343,7 @@ git status --short
 ```
 Expected: Clean review, no scope creep.
 
-- [ ] **Step 4: Update plan document with verified checklist**
+- [x] **Step 4: Update plan document with verified checklist**
 
 Mark all checklist items `[x]` upon direct verification.
 
