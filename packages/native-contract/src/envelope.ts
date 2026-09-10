@@ -56,6 +56,7 @@ export const SafeErrorSchema = z
       'runtime',
       'storage',
       'device',
+      'capture',
       'timeout',
       'cancelled',
       'internal',
@@ -75,7 +76,10 @@ export const NativeResponseV1Schema = z
     correlationId: CorrelationIdSchema,
     command: NativeCommandSchema,
     success: z.boolean(),
-    payload: z.record(z.unknown()).optional().default({}),
+    payload: z
+      .union([z.record(z.unknown()), z.array(z.unknown())])
+      .optional()
+      .default({}),
     error: SafeErrorSchema.optional(),
   })
   .strict();

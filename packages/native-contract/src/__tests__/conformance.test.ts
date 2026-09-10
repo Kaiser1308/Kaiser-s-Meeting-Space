@@ -162,6 +162,20 @@ describe('Envelope parsing', () => {
 // ─── Response Parsing ──────────────────────────────────────────────────
 
 describe('Response parsing', () => {
+  it('parses a device enumeration response with an array payload', () => {
+    const result = parseResponse(
+      JSON.stringify({
+        version: 1,
+        correlationId: '550e8400-e29b-41d4-a716-446655440000',
+        command: 'device_enumerate',
+        success: true,
+        payload: [],
+      }),
+    );
+
+    expect(result.payload).toEqual([]);
+  });
+
   it('parses success response with error field absent', () => {
     const json = JSON.stringify({
       version: 1,
@@ -191,6 +205,25 @@ describe('Response parsing', () => {
     const result = parseResponse(json);
     expect(result.success).toBe(false);
     expect(result.error?.code).toBe('DISK_FULL');
+  });
+
+  it('parses a capture-category error emitted by the native runtime', () => {
+    const result = parseResponse(
+      JSON.stringify({
+        version: 1,
+        correlationId: '550e8400-e29b-41d4-a716-446655440000',
+        command: 'capture_stop',
+        success: false,
+        error: {
+          code: 'CAPTURE_STOP_FAILED',
+          message: 'Capture stream stopped unexpectedly',
+          category: 'capture',
+          retryable: false,
+        },
+      }),
+    );
+
+    expect(result.error?.category).toBe('capture');
   });
 
   it('rejects response with extra error fields', () => {
