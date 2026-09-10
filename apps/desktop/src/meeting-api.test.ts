@@ -147,6 +147,29 @@ describe('local meeting API adapter', () => {
       .rejects.toEqual(new MeetingApiError('INVALID_RESPONSE'));
   });
 
+  it.each(['2026-02-30T00:00:00Z', '2025-02-29T00:00:00Z'])('rejects invalid calendar create timestamp: %s', async (createdAt) => {
+    const api = createMeetingApi({
+      fetch: vi.fn().mockResolvedValue(jsonResponse(201, {
+        id: createdId, title: 'Weekly sync', language: 'en', mode: 'meeting_only',
+        captureSources: ['mic', 'system'], state: 'draft', version: 1, createdAt,
+      })),
+      newId: () => 'create-key-0001',
+    });
+    await expect(api.createLocalMeeting({ title: 'Weekly sync', language: 'en', timezone: 'Asia/Ho_Chi_Minh' }))
+      .rejects.toEqual(new MeetingApiError('INVALID_RESPONSE'));
+  });
+
+  it('accepts a UTC timestamp without seconds as the API DTO does', async () => {
+    const api = createMeetingApi({
+      fetch: vi.fn().mockResolvedValue(jsonResponse(201, {
+        id: createdId, title: 'Weekly sync', language: 'en', mode: 'meeting_only',
+        captureSources: ['mic', 'system'], state: 'draft', version: 1, createdAt: '2026-09-10T00:00Z',
+      })),
+      newId: () => 'create-key-0001',
+    });
+    await expect(api.createLocalMeeting({ title: 'Weekly sync', language: 'en', timezone: 'Asia/Ho_Chi_Minh' })).resolves.toMatchObject({ id: createdId });
+  });
+
   it.each([401, 409, 500])('maps start HTTP %s to a safe error', async (status) => {
     const api = createMeetingApi({
       fetch: vi.fn().mockResolvedValue(jsonResponse(status, { error: { message: 'private server detail' } })),
