@@ -12,6 +12,7 @@ mod runtime;
 mod storage;
 mod simulator;
 mod capture;
+#[cfg(feature = "local-speech")]
 mod local_speech;
 
 use runtime::{Runtime, RuntimeConfig};

@@ -4,6 +4,7 @@
 // Reads requests from stdin, writes responses/events to stdout.
 // Structured logging to stderr.
 
+#[cfg(feature = "local-speech")]
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -122,6 +123,7 @@ pub struct Runtime {
     storage: Arc<Mutex<Option<StorageManager>>>,
     simulator: Arc<Mutex<Option<Simulator>>>,
     capture_manager: Arc<Mutex<Option<Arc<Mutex<CaptureManager>>>>>,
+    #[cfg(feature = "local-speech")]
     local_speech: Arc<Mutex<Option<crate::local_speech::LocalSpeechEngine>>>,
     event_tx: NativeEventSender,
     event_rx: Arc<Mutex<Option<mpsc::Receiver<NativeEventV1>>>>,
@@ -137,6 +139,7 @@ impl Runtime {
             storage: Arc::new(Mutex::new(None)),
             simulator: Arc::new(Mutex::new(None)),
             capture_manager: Arc::new(Mutex::new(None)),
+            #[cfg(feature = "local-speech")]
             local_speech: Arc::new(Mutex::new(None)),
             event_tx,
             event_rx: Arc::new(Mutex::new(Some(event_rx))),
@@ -360,9 +363,19 @@ impl Runtime {
             }
 
             // Local Speech commands (P13)
+            #[cfg(feature = "local-speech")]
             cmd if cmd.starts_with("local_speech_") => {
                 self.handle_local_speech_command(request).await
             }
+
+            #[cfg(not(feature = "local-speech"))]
+            cmd if cmd.starts_with("local_speech_") => NativeResponseV1::error(
+                &request.correlation_id,
+                &request.command,
+                "NOT_AVAILABLE",
+                "Local speech was not included in this native build",
+                "runtime",
+            ),
 
             _ => NativeResponseV1::error(
                 &request.correlation_id,
@@ -637,6 +650,7 @@ impl Runtime {
         }
     }
 
+    #[cfg(feature = "local-speech")]
     async fn handle_local_speech_command(
         &self,
         request: &crate::protocol::NativeRequestV1,
@@ -1008,6 +1022,33 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(not(feature = "local-speech"))]
+    async fn dispatch_local_speech_is_not_available_by_default() {
+        let config = RuntimeConfig {
+            storage_root: "/tmp/test".to_string(),
+            protocol_version: PROTOCOL_VERSION,
+        };
+        let rt = Runtime::new(config);
+        let request = crate::protocol::NativeRequestV1 {
+            version: 1,
+            correlation_id: "test-id".to_string(),
+            command: "local_speech_get_state".to_string(),
+            payload: serde_json::Value::Object(serde_json::Map::new()),
+            timeout_ms: None,
+            cancel: false,
+        };
+        let response = rt.dispatch(&request).await;
+        assert!(!response.success);
+        assert_eq!(response.command, "local_speech_get_state");
+        let error = response.error.expect("default build must expose a safe error");
+        assert_eq!(error.code, "NOT_AVAILABLE");
+        assert_eq!(error.category, "runtime");
+        assert!(!error.retryable);
+        assert_eq!(response.payload, serde_json::json!({}));
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "local-speech")]
     async fn dispatch_local_speech_get_state() {
         let config = RuntimeConfig {
             storage_root: "/tmp/test".to_string(),
@@ -1029,6 +1070,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "local-speech")]
     async fn dispatch_local_speech_manifest_load_rejects_bad() {
         let config = RuntimeConfig {
             storage_root: "/tmp/test".to_string(),
@@ -1050,6 +1092,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "local-speech")]
     async fn dispatch_local_speech_engine_init_then_transcribe() {
         let config = RuntimeConfig {
             storage_root: "/tmp/test".to_string(),
