@@ -233,6 +233,13 @@ git status --short
 
 Expected: no uncommitted source/config changes from Task 2. Record the M1 result in the SDD handoff, not historical phase ledger. If visual launch fails after a successful sidecar build, stop M1 as IMPLEMENTED with the observed desktop blocker.
 
+## Execution Status â€” 2026-09-10
+
+- Native prerequisite completed in commits `06881dab` and `f742da55`: default-feature compile passes; the dispatcher regression covers microphone/system-audio × Gap/nonfatal Error with local SQLite manifest/provenance, durable-gap, and event-order assertions.
+- Task 2 native release completed: `native/target/release/kms-native.exe` exists and is 6,485,504 bytes. The default local-speech unavailable test passes; desktop main/security/supervisor tests pass (28/28); and desktop typecheck passes.
+- A visible development Electron window launched with the real sidecar. The native process emitted `Runtime ready`. No meeting was started and no device/capture action was invoked during the smoke test.
+- Electron Builder copied the sidecar into `dist-packaged/win-unpacked/resources/native/` but did not complete a distributable: Windows denied creation of symlinks while `winCodeSign-2.6.0.7z` was extracted (`A required privilege is not held by the client`). This is an environment packaging blocker, not a source or native-runtime failure. Resolve the user/Developer Mode symlink privilege, then rerun Task 2 packaging; do not change signing sources to mask it.
+
 ## Plan Self-Review
 
 - **Spec coverage:** feature split, default exclusion, truthful unavailable contract, preserved feature path, native release, packaging, and visible Electron smoke map to Tasks 1–2.
