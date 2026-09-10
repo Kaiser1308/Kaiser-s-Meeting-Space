@@ -13,6 +13,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import { session } from 'electron';
 
 vi.mock('electron', () => ({
   app: {
@@ -37,7 +38,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-import { CSP, isAllowedUrl } from '../main/main.js';
+import { applySecurityPolicies, CSP, isAllowedUrl } from '../main/main.js';
 
 describe('Electron security configuration', () => {
   describe('Content Security Policy', () => {
@@ -67,6 +68,26 @@ describe('Electron security configuration', () => {
 
     it('restricts base-uri to self', () => {
       expect(CSP).toContain("base-uri 'self'");
+    });
+
+    it("permits Vite's development preamble without weakening the production CSP", () => {
+      applySecurityPolicies();
+      const handler = vi
+        .mocked(session.defaultSession.webRequest.onHeadersReceived)
+        .mock.calls.at(-1)?.[0];
+      const callback = vi.fn();
+
+      handler?.({ responseHeaders: {} } as never, callback);
+
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          responseHeaders: expect.objectContaining({
+            'Content-Security-Policy': [
+              expect.stringContaining("script-src 'self' 'unsafe-inline'"),
+            ],
+          }),
+        }),
+      );
     });
   });
 

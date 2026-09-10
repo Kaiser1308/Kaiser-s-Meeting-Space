@@ -6,16 +6,16 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import { NATIVE_IPC_CHANNEL, NATIVE_EVENT_CHANNEL, NATIVE_COMMANDS } from '@kms/native-contract';
+import { NATIVE_IPC_CHANNEL, NATIVE_COMMANDS } from '@kms/native-contract';
 import type { NativeRequestV1 } from '@kms/native-contract';
 
 /** Typed API exposed to renderer via window.kmsNative. */
 export interface KmsNativeApi {
   /** Send a validated command to the native runtime. */
-  invoke(request: NativeRequestV1): Promise<unknown>;
+  invoke(channel: string, request: NativeRequestV1): Promise<unknown>;
 
   /** Subscribe to native runtime events. Returns unsubscribe function. */
-  onEvent(callback: (event: unknown) => void): () => void;
+  on(channel: string, callback: (event: unknown) => void): () => void;
 
   /** Get the list of allowed commands (read-only). */
   getAllowedCommands(): readonly string[];
@@ -35,21 +35,24 @@ contextBridge.exposeInMainWorld('kmsNative', {
    * Invoke a native runtime command via IPC.
    * The main process validates the command against the allowlist.
    */
-  invoke: (request: NativeRequestV1): Promise<unknown> => {
-    return ipcRenderer.invoke(NATIVE_IPC_CHANNEL, request);
+  invoke: (channel: string, request: NativeRequestV1): Promise<unknown> => {
+    if (channel !== NATIVE_IPC_CHANNEL) {
+      return Promise.reject(new Error('Unsupported IPC channel'));
+    }
+    return ipcRenderer.invoke(channel, request);
   },
 
   /**
    * Subscribe to native runtime events.
    * Returns an unsubscribe function.
    */
-  onEvent: (callback: (event: unknown) => void): (() => void) => {
+  on: (channel: string, callback: (event: unknown) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: unknown): void => {
       callback(data);
     };
-    ipcRenderer.on(NATIVE_EVENT_CHANNEL, handler);
+    ipcRenderer.on(channel, handler);
     return () => {
-      ipcRenderer.removeListener(NATIVE_EVENT_CHANNEL, handler);
+      ipcRenderer.removeListener(channel, handler);
     };
   },
 

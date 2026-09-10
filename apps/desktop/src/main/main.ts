@@ -35,6 +35,10 @@ const CSP = [
   "frame-ancestors 'none'",
 ].join('; ');
 
+// Vite injects an inline React-refresh preamble only in local development.
+// Packaged builds retain the strict CSP above.
+const DEV_CSP = CSP.replace("script-src 'self'", "script-src 'self' 'unsafe-inline'");
+
 /** Allowed dev server origins. */
 const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
@@ -53,7 +57,7 @@ function isDev(): boolean {
  * Get the preload script path.
  */
 function getPreloadPath(): string {
-  return join(__dirname, 'preload.js');
+  return join(__dirname, 'preload.mjs');
 }
 
 /**
@@ -133,7 +137,7 @@ function applySecurityPolicies(): void {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        'Content-Security-Policy': [CSP],
+        'Content-Security-Policy': [isDev() ? DEV_CSP : CSP],
       },
     });
   });
@@ -181,6 +185,9 @@ async function initNativeRuntime(): Promise<void> {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(NATIVE_EVENT_CHANNEL, event);
     }
+  });
+  supervisor.on('error', (error) => {
+    console.error('Native runtime error', error);
   });
 
   ipcHandler = new IpcHandler(supervisor);

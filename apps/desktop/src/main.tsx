@@ -72,9 +72,10 @@ function App() {
         if (!active) return;
 
         if (resp.success) {
+          const payload = resp.payload as Record<string, unknown>;
           setRuntimeStatus('healthy');
-          setUptime(resp.payload.uptimeMs as number);
-          setIsSimulated(resp.payload.simulatorActive as boolean);
+          setUptime(payload.uptimeMs as number);
+          setIsSimulated(payload.simulatorActive as boolean);
         } else {
           setRuntimeStatus('crashed');
         }
@@ -134,9 +135,10 @@ function App() {
         try {
           await nativeClient.send('simulator_configure', { seed: 42, deviceCount: 2 });
           const resp = await nativeClient.send('simulator_enumerate_devices');
-          if (resp.success && resp.payload.devices) {
-            setDevices(resp.payload.devices as any[]);
-            log(`Loaded ${(resp.payload.devices as any[]).length} simulated devices.`);
+          const payload = resp.payload as Record<string, unknown>;
+          if (resp.success && payload.devices) {
+            setDevices(payload.devices as any[]);
+            log(`Loaded ${(payload.devices as any[]).length} simulated devices.`);
           }
         } catch (err) {
           log(`Failed to fetch simulated devices: ${err}`);
@@ -183,8 +185,9 @@ function App() {
       const resp = await nativeClient.send('manifest_get_incomplete', {
         meetingId: 'active-session',
       });
-      if (resp.success && resp.payload.entries) {
-        setIncompleteSessions(resp.payload.entries as IncompleteSession[]);
+      const payload = resp.payload as Record<string, unknown>;
+      if (resp.success && payload.entries) {
+        setIncompleteSessions(payload.entries as IncompleteSession[]);
       }
     } catch (err) {
       log(`Recovery inbox check failed: ${err}`);
@@ -210,13 +213,16 @@ function App() {
           return;
         }
         log('Starting physical audio capture session...');
-        const { meetingId } = await startPhysicalMeeting({ api: meetingApi, native: nativeClient }, {
-          title,
-          language: meetingLanguage,
-          timezone: meetingTimezone,
-          micDeviceId: selectedMicId,
-          systemDeviceId: selectedSysId,
-        });
+        const { meetingId } = await startPhysicalMeeting(
+          { api: meetingApi, native: nativeClient },
+          {
+            title,
+            language: meetingLanguage,
+            timezone: meetingTimezone,
+            micDeviceId: selectedMicId,
+            systemDeviceId: selectedSysId,
+          },
+        );
         setCurrentMeetingId(meetingId);
         setState('recording');
         setStartError(null);
@@ -230,8 +236,9 @@ function App() {
         log('Starting simulated capture session...');
         const resp = await nativeClient.send('simulator_start_capture');
         if (resp.success) {
+          const payload = resp.payload as Record<string, unknown>;
           setState('recording');
-          log(`Capture started. Session ID: ${resp.payload.sessionId}`);
+          log(`Capture started. Session ID: ${payload.sessionId}`);
 
           // Add entry to manifest for durability tracking
           await nativeClient.send('manifest_add_entry', {
@@ -248,9 +255,11 @@ function App() {
       setState('idle');
       setCurrentMeetingId(null);
       if (err instanceof MeetingApiError) {
-        setStartError(err.code === 'API_UNAVAILABLE'
-          ? 'Local meeting service is unavailable.'
-          : 'Local meeting service returned an invalid response.');
+        setStartError(
+          err.code === 'API_UNAVAILABLE'
+            ? 'Local meeting service is unavailable.'
+            : 'Local meeting service returned an invalid response.',
+        );
       } else if (err instanceof StartMeetingError) {
         setStartError('Meeting started in the service but local capture did not start.');
       } else {
@@ -272,9 +281,10 @@ function App() {
         log('Stopping physical capture...');
         const resp = await nativeClient.send('capture_stop');
         if (resp.success) {
+          const payload = resp.payload as Record<string, unknown>;
           setState('idle');
           log(
-            `Capture stopped. Total Mic Chunks: ${resp.payload.totalMicChunks}, Sys Chunks: ${resp.payload.totalSysChunks}`,
+            `Capture stopped. Total Mic Chunks: ${payload.totalMicChunks}, Sys Chunks: ${payload.totalSysChunks}`,
           );
           checkRecoveryInbox();
         } else {
@@ -284,8 +294,9 @@ function App() {
         log('Stopping simulated capture...');
         const resp = await nativeClient.send('simulator_stop_capture');
         if (resp.success) {
+          const payload = resp.payload as Record<string, unknown>;
           setState('idle');
-          log(`Capture stopped. Total chunks: ${resp.payload.totalChunks}`);
+          log(`Capture stopped. Total chunks: ${payload.totalChunks}`);
 
           // Mark chunks completed
           await nativeClient.send('manifest_update_upload_status', {
@@ -451,7 +462,9 @@ function App() {
           <article className="start-card">
             <p className="eyebrow">NEW MEETING</p>
             <h2>Ready when you are.</h2>
-            <label className="eyebrow" htmlFor="meeting-title">MEETING TITLE</label>
+            <label className="eyebrow" htmlFor="meeting-title">
+              MEETING TITLE
+            </label>
             <input
               id="meeting-title"
               value={meetingTitle}

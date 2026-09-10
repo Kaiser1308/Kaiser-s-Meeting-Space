@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { startMock, consoleErrorMock, loadURLMock, BrowserWindowMock } =
+const { startMock, supervisorOnMock, consoleErrorMock, loadURLMock, BrowserWindowMock } =
   vi.hoisted(() => ({
     startMock: vi.fn(),
+    supervisorOnMock: vi.fn(),
     consoleErrorMock: vi.fn(),
     loadURLMock: vi.fn(),
     BrowserWindowMock: vi.fn(),
@@ -30,7 +31,7 @@ vi.mock('electron', () => ({
 vi.mock('./supervisor.js', () => ({
   NativeSupervisor: vi.fn().mockImplementation(() => ({
     start: startMock,
-    on: vi.fn(),
+    on: supervisorOnMock,
     getState: vi.fn(() => ({ status: 'starting' })),
     shutdown: vi.fn(() => Promise.resolve()),
   })),
@@ -74,6 +75,13 @@ describe('desktop bootstrap native startup', () => {
     expect(startMock).toHaveBeenCalledTimes(1);
     expect(BrowserWindowMock).toHaveBeenCalledTimes(1);
     expect(loadURLMock).toHaveBeenCalledWith('http://localhost:5173');
+    expect(BrowserWindowMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        webPreferences: expect.objectContaining({
+          preload: expect.stringMatching(/preload\.mjs$/),
+        }),
+      }),
+    );
   });
 
   it('keeps the desktop shell available when native startup rejects', async () => {
@@ -86,9 +94,19 @@ describe('desktop bootstrap native startup', () => {
 
     expect(BrowserWindowMock).toHaveBeenCalledTimes(1);
     expect(loadURLMock).toHaveBeenCalledWith('http://localhost:5173');
-    expect(consoleErrorMock).toHaveBeenCalledWith(
-      'Native runtime failed to start',
-      error,
-    );
+    expect(consoleErrorMock).toHaveBeenCalledWith('Native runtime failed to start', error);
+  });
+
+  it('handles native supervisor errors without throwing from the main process', async () => {
+    const runtimeError = new Error('malformed native response');
+    const { initNativeRuntime } = await import('./main.js');
+    await initNativeRuntime();
+
+    const errorRegistration = supervisorOnMock.mock.calls.find(([event]) => event === 'error');
+    expect(errorRegistration).toBeDefined();
+    const handler = errorRegistration?.[1] as (error: Error) => void;
+
+    expect(() => handler(runtimeError)).not.toThrow();
+    expect(consoleErrorMock).toHaveBeenCalledWith('Native runtime error', runtimeError);
   });
 });
