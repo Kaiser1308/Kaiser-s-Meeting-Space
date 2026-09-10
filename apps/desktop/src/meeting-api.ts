@@ -41,9 +41,11 @@ export type CreateLocalMeetingInput = {
 };
 
 type FetchLike = typeof globalThis.fetch;
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
+const RFC3339_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function isDateTime(value: unknown): value is string {
-  return typeof value === 'string' && Number.isFinite(Date.parse(value));
+  return typeof value === 'string' && RFC3339_DATETIME_PATTERN.test(value) && Number.isFinite(Date.parse(value));
 }
 
 function parseCreatedMeeting(value: unknown): CreatedMeeting | undefined {
@@ -91,6 +93,19 @@ export function createMeetingApi(options: {
   const baseUrl = options.baseUrl ?? 'http://127.0.0.1:4310';
   const newId = options.newId ?? (() => crypto.randomUUID());
 
+  function newIdempotencyKey(): string {
+    let key: string;
+    try {
+      key = newId();
+    } catch {
+      throw new MeetingApiError('INVALID_RESPONSE');
+    }
+    if (typeof key !== 'string' || !IDEMPOTENCY_KEY_PATTERN.test(key)) {
+      throw new MeetingApiError('INVALID_RESPONSE');
+    }
+    return key;
+  }
+
   async function request<T>(
     path: string,
     init: RequestInit,
@@ -101,7 +116,11 @@ export function createMeetingApi(options: {
     try {
       response = await fetcher(`${baseUrl}${path}`, init);
     } catch {
-      throw new MeetingApiError('API_UNAVAILABLE');
+      try {
+        response = await fetcher(`${baseUrl}${path}`, init);
+      } catch {
+        throw new MeetingApiError('API_UNAVAILABLE');
+      }
     }
 
     if (!response.ok) {
@@ -125,15 +144,16 @@ export function createMeetingApi(options: {
   }
 
   return {
-    createLocalMeeting(input: CreateLocalMeetingInput): Promise<CreatedMeeting> {
+    async createLocalMeeting(input: CreateLocalMeetingInput): Promise<CreatedMeeting> {
       const policy = TranscriptionPolicyV1Schema.parse({ ...LOCAL_POLICY, language: input.language });
+      const idempotencyKey = newIdempotencyKey();
       return request(
         '/v1/meetings',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': newId(),
+            'Idempotency-Key': idempotencyKey,
           },
           body: JSON.stringify({
             title: input.title,
@@ -155,13 +175,19 @@ export function createMeetingApi(options: {
       if (!parsedId.success) {
         return Promise.reject(new MeetingApiError('INVALID_RESPONSE'));
       }
+      let idempotencyKey: string;
+      try {
+        idempotencyKey = newIdempotencyKey();
+      } catch (error) {
+        return Promise.reject(error);
+      }
       return request(
         `/v1/meetings/${encodeURIComponent(parsedId.data)}/start`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': newId(),
+            'Idempotency-Key': idempotencyKey,
           },
         },
         parseStartedMeeting,

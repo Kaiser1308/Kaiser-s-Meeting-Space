@@ -121,4 +121,74 @@ describe('local meeting API adapter', () => {
     await expect(api.startLocalMeeting('not-a-uuid')).rejects.toEqual(new MeetingApiError('INVALID_RESPONSE'));
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it.each(['2026-09-10', '2026-09-10 00:00:00'])('rejects non-RFC3339 create timestamps: %s', async (createdAt) => {
+    const api = createMeetingApi({
+      fetch: vi.fn().mockResolvedValue(jsonResponse(201, {
+        id: createdId, title: 'Weekly sync', language: 'en', mode: 'meeting_only',
+        captureSources: ['mic', 'system'], state: 'draft', version: 1, createdAt,
+      })),
+      newId: () => 'create-key-0001',
+    });
+    await expect(api.createLocalMeeting({ title: 'Weekly sync', language: 'en', timezone: 'Asia/Ho_Chi_Minh' }))
+      .rejects.toEqual(new MeetingApiError('INVALID_RESPONSE'));
+  });
+
+  it.each([401, 409, 500])('maps start HTTP %s to a safe error', async (status) => {
+    const api = createMeetingApi({
+      fetch: vi.fn().mockResolvedValue(jsonResponse(status, { error: { message: 'private server detail' } })),
+      newId: () => 'start-key-0001',
+    });
+    await expect(api.startLocalMeeting(createdId)).rejects.toEqual(new MeetingApiError('API_UNAVAILABLE'));
+  });
+
+  it('maps start network failures to a safe unavailable error', async () => {
+    const api = createMeetingApi({ fetch: vi.fn().mockRejectedValue(new Error('private detail')), newId: () => 'start-key-0001' });
+    await expect(api.startLocalMeeting(createdId)).rejects.toEqual(new MeetingApiError('API_UNAVAILABLE'));
+  });
+
+  it('rejects malformed successful start responses and non-RFC3339 timestamps', async () => {
+    const api = createMeetingApi({
+      fetch: vi.fn().mockResolvedValue(jsonResponse(200, {
+        meetingId: createdId, state: 'recording', startedAt: '2026-09-10', policyVersion: 1,
+      })),
+      newId: () => 'start-key-0001',
+    });
+    await expect(api.startLocalMeeting(createdId)).rejects.toEqual(new MeetingApiError('INVALID_RESPONSE'));
+  });
+
+  it('retries an ambiguous create with the same idempotency key', async () => {
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new Error('connection reset'))
+      .mockResolvedValueOnce(jsonResponse(201, {
+        id: createdId, title: 'Weekly sync', language: 'en', mode: 'meeting_only',
+        captureSources: ['mic', 'system'], state: 'draft', version: 1, createdAt: '2026-09-10T00:00:00Z',
+      }));
+    const api = createMeetingApi({ fetch: fetchMock, newId: () => 'create-key-0001' });
+    await api.createLocalMeeting({ title: 'Weekly sync', language: 'en', timezone: 'Asia/Ho_Chi_Minh' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[1].headers).toEqual(fetchMock.mock.calls[1]?.[1].headers);
+  });
+
+  it('retries an ambiguous start with the same idempotency key', async () => {
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new Error('connection reset'))
+      .mockResolvedValueOnce(jsonResponse(200, {
+        meetingId: createdId, state: 'recording', startedAt: '2026-09-10T00:00:01Z', policyVersion: 1,
+      }));
+    const api = createMeetingApi({ fetch: fetchMock, newId: () => 'start-key-0001' });
+    await api.startLocalMeeting(createdId);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[1].headers).toEqual(fetchMock.mock.calls[1]?.[1].headers);
+  });
+
+  it.each([
+    ['too-short', () => 'short'],
+    ['invalid characters', () => 'bad key!!'],
+    ['factory throws', () => { throw new Error('private factory detail'); }],
+  ])('maps invalid idempotency key factory behavior (%s) to a safe error', async (_name, newId) => {
+    const api = createMeetingApi({ fetch: vi.fn(), newId });
+    await expect(api.createLocalMeeting({ title: 'Weekly sync', language: 'en', timezone: 'Asia/Ho_Chi_Minh' }))
+      .rejects.toEqual(new MeetingApiError('INVALID_RESPONSE'));
+  });
 });
