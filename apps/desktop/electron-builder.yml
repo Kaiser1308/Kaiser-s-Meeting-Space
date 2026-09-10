@@ -13,6 +13,7 @@ extraResources:
       - kms-native.exe
 win:
   target: dir
+  signAndEditExecutable: false
 mac:
   target: dir
 linux:
