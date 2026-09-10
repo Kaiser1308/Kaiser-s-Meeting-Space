@@ -1135,235 +1135,22 @@ impl CaptureManager {
                         }
                     }
                     CaptureMessage::Gap { source, gap } => {
-                        let missing_frames = gap.frames;
-                        if source == "microphone" && !mgr.mic_buffer.is_empty() {
-                            let chunk = std::mem::take(&mut mgr.mic_buffer);
-                            let index = mgr.mic_chunk_index;
-                            mgr.mic_chunk_index += 1;
-                            let range = SourceRange::new(
-                                mgr.mic_buffer_start_sample,
-                                mgr.mic_buffer_start_sample + chunk.len() as u64,
-                            );
-                            mgr.mic_buffer_start_sample = range.end_sample;
-                            let meeting_id = mgr.meeting_id.clone();
-                            let source_format = mgr.mic_source_format;
-                            let session_id = mgr.session_id.clone();
-                            let packet_provenance = take_packet_provenance(
-                                &mut mgr.mic_packet_segments,
-                                chunk.len() as u64,
-                            )
-                            .unwrap_or_default();
-                            if Self::write_chunk_or_record_recovery_gap(
-                                &meeting_id,
-                                "microphone",
-                                index,
-                                &chunk,
-                                source_format,
-                                range,
-                                packet_provenance,
-                                storage.clone(),
-                                event_sender.clone(),
-                                session_id,
-                            )
-                            .await
-                            .is_err()
-                            {
-                                mgr.commit_recovery_required = true;
-                            }
-                        } else if source == "system_audio" && !mgr.sys_buffer.is_empty() {
-                            let chunk = std::mem::take(&mut mgr.sys_buffer);
-                            let index = mgr.sys_chunk_index;
-                            mgr.sys_chunk_index += 1;
-                            let range = SourceRange::new(
-                                mgr.sys_buffer_start_sample,
-                                mgr.sys_buffer_start_sample + chunk.len() as u64,
-                            );
-                            mgr.sys_buffer_start_sample = range.end_sample;
-                            let meeting_id = mgr.meeting_id.clone();
-                            let source_format = mgr.sys_source_format;
-                            let session_id = mgr.session_id.clone();
-                            let packet_provenance = take_packet_provenance(
-                                &mut mgr.sys_packet_segments,
-                                chunk.len() as u64,
-                            )
-                            .unwrap_or_default();
-                            if Self::write_chunk_or_record_recovery_gap(
-                                &meeting_id,
-                                "system_audio",
-                                index,
-                                &chunk,
-                                source_format,
-                                range,
-                                packet_provenance,
-                                storage.clone(),
-                                event_sender.clone(),
-                                session_id,
-                            )
-                            .await
-                            .is_err()
-                            {
-                                mgr.commit_recovery_required = true;
-                            }
-                        }
-                        let (gap_range, format) = if source == "microphone" {
-                            let range = gap_range_after_accepted_samples(
-                                mgr.mic_source_next_sample,
-                                missing_frames,
-                            );
-                            mgr.mic_source_next_sample = range.end_sample;
-                            mgr.mic_buffer_start_sample = range.end_sample;
-                            (range, mgr.mic_source_format)
-                        } else {
-                            let range = gap_range_after_accepted_samples(
-                                mgr.sys_source_next_sample,
-                                missing_frames,
-                            );
-                            mgr.sys_source_next_sample = range.end_sample;
-                            mgr.sys_buffer_start_sample = range.end_sample;
-                            (range, mgr.sys_source_format)
-                        };
-                        let reason = overflow_reason("CAPTURE_OVERFLOW", gap.flags);
-                        if Self::record_durable_capture_gap(
-                            &mgr.meeting_id,
-                            &source,
-                            gap_range,
-                            format,
-                            &reason,
-                            Some(gap.device_start),
-                            Some(gap.device_end),
-                            Some(gap.qpc_start),
-                            Some(gap.qpc_end),
+                        Self::dispatch_message(
+                            &mut mgr,
+                            CaptureMessage::Gap { source, gap },
                             storage.clone(),
                             event_sender.clone(),
-                            mgr.session_id.clone(),
                         )
-                        .await
-                        .is_err()
-                        {
-                            mgr.commit_recovery_required = true;
-                        }
+                        .await;
                     }
                     CaptureMessage::Error { source, error } => {
-                        let nonfatal = is_nonfatal_capture_error(&error);
-                        if nonfatal && let Some(missing_frames) = capture_error_frames(&error) {
-                            // A discontinuity cannot live inside a chunk
-                            // range. Commit the contiguous prefix first, then
-                            // make the missing interval durable.
-                            if source == "microphone" && !mgr.mic_buffer.is_empty() {
-                                let chunk = std::mem::take(&mut mgr.mic_buffer);
-                                let index = mgr.mic_chunk_index;
-                                mgr.mic_chunk_index += 1;
-                                let range = SourceRange::new(
-                                    mgr.mic_buffer_start_sample,
-                                    mgr.mic_buffer_start_sample + chunk.len() as u64,
-                                );
-                                mgr.mic_buffer_start_sample = range.end_sample;
-                                let meeting_id = mgr.meeting_id.clone();
-                                let source_format = mgr.mic_source_format;
-                                let session_id = mgr.session_id.clone();
-                                let packet_provenance = take_packet_provenance(
-                                    &mut mgr.mic_packet_segments,
-                                    chunk.len() as u64,
-                                )
-                                .unwrap_or_default();
-                                if Self::write_chunk_or_record_recovery_gap(
-                                    &meeting_id,
-                                    "microphone",
-                                    index,
-                                    &chunk,
-                                    source_format,
-                                    range,
-                                    packet_provenance,
-                                    storage.clone(),
-                                    event_sender.clone(),
-                                    session_id,
-                                )
-                                .await
-                                .is_err()
-                                {
-                                    mgr.commit_recovery_required = true;
-                                }
-                            } else if source == "system_audio" && !mgr.sys_buffer.is_empty() {
-                                let chunk = std::mem::take(&mut mgr.sys_buffer);
-                                let index = mgr.sys_chunk_index;
-                                mgr.sys_chunk_index += 1;
-                                let range = SourceRange::new(
-                                    mgr.sys_buffer_start_sample,
-                                    mgr.sys_buffer_start_sample + chunk.len() as u64,
-                                );
-                                mgr.sys_buffer_start_sample = range.end_sample;
-                                let meeting_id = mgr.meeting_id.clone();
-                                let source_format = mgr.sys_source_format;
-                                let session_id = mgr.session_id.clone();
-                                let packet_provenance = take_packet_provenance(
-                                    &mut mgr.sys_packet_segments,
-                                    chunk.len() as u64,
-                                )
-                                .unwrap_or_default();
-                                if Self::write_chunk_or_record_recovery_gap(
-                                    &meeting_id,
-                                    "system_audio",
-                                    index,
-                                    &chunk,
-                                    source_format,
-                                    range,
-                                    packet_provenance,
-                                    storage.clone(),
-                                    event_sender.clone(),
-                                    session_id,
-                                )
-                                .await
-                                .is_err()
-                                {
-                                    mgr.commit_recovery_required = true;
-                                }
-                            }
-                            let (gap_range, format) = if source == "microphone" {
-                                let range = gap_range_after_accepted_samples(
-                                    mgr.mic_source_next_sample,
-                                    missing_frames,
-                                );
-                                mgr.mic_source_next_sample = range.end_sample;
-                                mgr.mic_buffer_start_sample = range.end_sample;
-                                (range, mgr.mic_source_format)
-                            } else {
-                                let range = gap_range_after_accepted_samples(
-                                    mgr.sys_source_next_sample,
-                                    missing_frames,
-                                );
-                                mgr.sys_source_next_sample = range.end_sample;
-                                mgr.sys_buffer_start_sample = range.end_sample;
-                                (range, mgr.sys_source_format)
-                            };
-                            if Self::record_durable_capture_gap(
-                                &mgr.meeting_id,
-                                &source,
-                                gap_range,
-                                format,
-                                &error,
-                                None,
-                                None,
-                                None,
-                                None,
-                                storage.clone(),
-                                event_sender.clone(),
-                                mgr.session_id.clone(),
-                            )
-                            .await
-                            .is_err()
-                            {
-                                mgr.commit_recovery_required = true;
-                            }
-                        }
-                        let _ = event_sender.try_send(NativeEventV1::new(
-                            if nonfatal { "capture_event" } else { "error" },
-                            serde_json::json!({
-                                "code": if nonfatal { "CAPTURE_GAP" } else { "CAPTURE_ERROR" },
-                                "message": format!("Error in capture source {}: {}", source, error),
-                                "category": "capture",
-                                "fatal": !nonfatal
-                            }),
-                        ));
+                        Self::dispatch_message(
+                            &mut mgr,
+                            CaptureMessage::Error { source, error },
+                            storage.clone(),
+                            event_sender.clone(),
+                        )
+                        .await;
                     }
                 }
             }
@@ -1371,6 +1158,244 @@ impl CaptureManager {
         });
 
         Ok(manager)
+    }
+
+    async fn dispatch_message(
+        mgr: &mut Self,
+        message: CaptureMessage,
+        storage: Arc<Mutex<Option<StorageManager>>>,
+        event_sender: NativeEventSender,
+    ) {
+        match message {
+            CaptureMessage::Gap { source, gap } => {
+                let missing_frames = gap.frames;
+                if source == "microphone" && !mgr.mic_buffer.is_empty() {
+                    let chunk = std::mem::take(&mut mgr.mic_buffer);
+                    let index = mgr.mic_chunk_index;
+                    mgr.mic_chunk_index += 1;
+                    let range = SourceRange::new(
+                        mgr.mic_buffer_start_sample,
+                        mgr.mic_buffer_start_sample + chunk.len() as u64,
+                    );
+                    mgr.mic_buffer_start_sample = range.end_sample;
+                    let meeting_id = mgr.meeting_id.clone();
+                    let source_format = mgr.mic_source_format;
+                    let session_id = mgr.session_id.clone();
+                    let packet_provenance =
+                        take_packet_provenance(&mut mgr.mic_packet_segments, chunk.len() as u64)
+                            .unwrap_or_default();
+                    if Self::write_chunk_or_record_recovery_gap(
+                        &meeting_id,
+                        "microphone",
+                        index,
+                        &chunk,
+                        source_format,
+                        range,
+                        packet_provenance,
+                        storage.clone(),
+                        event_sender.clone(),
+                        session_id,
+                    )
+                    .await
+                    .is_err()
+                    {
+                        mgr.commit_recovery_required = true;
+                    }
+                } else if source == "system_audio" && !mgr.sys_buffer.is_empty() {
+                    let chunk = std::mem::take(&mut mgr.sys_buffer);
+                    let index = mgr.sys_chunk_index;
+                    mgr.sys_chunk_index += 1;
+                    let range = SourceRange::new(
+                        mgr.sys_buffer_start_sample,
+                        mgr.sys_buffer_start_sample + chunk.len() as u64,
+                    );
+                    mgr.sys_buffer_start_sample = range.end_sample;
+                    let meeting_id = mgr.meeting_id.clone();
+                    let source_format = mgr.sys_source_format;
+                    let session_id = mgr.session_id.clone();
+                    let packet_provenance =
+                        take_packet_provenance(&mut mgr.sys_packet_segments, chunk.len() as u64)
+                            .unwrap_or_default();
+                    if Self::write_chunk_or_record_recovery_gap(
+                        &meeting_id,
+                        "system_audio",
+                        index,
+                        &chunk,
+                        source_format,
+                        range,
+                        packet_provenance,
+                        storage.clone(),
+                        event_sender.clone(),
+                        session_id,
+                    )
+                    .await
+                    .is_err()
+                    {
+                        mgr.commit_recovery_required = true;
+                    }
+                }
+                let (gap_range, format) = if source == "microphone" {
+                    let range = gap_range_after_accepted_samples(
+                        mgr.mic_source_next_sample,
+                        missing_frames,
+                    );
+                    mgr.mic_source_next_sample = range.end_sample;
+                    mgr.mic_buffer_start_sample = range.end_sample;
+                    (range, mgr.mic_source_format)
+                } else {
+                    let range = gap_range_after_accepted_samples(
+                        mgr.sys_source_next_sample,
+                        missing_frames,
+                    );
+                    mgr.sys_source_next_sample = range.end_sample;
+                    mgr.sys_buffer_start_sample = range.end_sample;
+                    (range, mgr.sys_source_format)
+                };
+                let reason = overflow_reason("CAPTURE_OVERFLOW", gap.flags);
+                if Self::record_durable_capture_gap(
+                    &mgr.meeting_id,
+                    &source,
+                    gap_range,
+                    format,
+                    &reason,
+                    Some(gap.device_start),
+                    Some(gap.device_end),
+                    Some(gap.qpc_start),
+                    Some(gap.qpc_end),
+                    storage,
+                    event_sender.clone(),
+                    mgr.session_id.clone(),
+                )
+                .await
+                .is_err()
+                {
+                    mgr.commit_recovery_required = true;
+                }
+            }
+            CaptureMessage::Error { source, error } => {
+                let nonfatal = is_nonfatal_capture_error(&error);
+                if nonfatal && let Some(missing_frames) = capture_error_frames(&error) {
+                    // A discontinuity cannot live inside a chunk range.
+                    // Commit the contiguous prefix first, then make the
+                    // missing interval durable.
+                    if source == "microphone" && !mgr.mic_buffer.is_empty() {
+                        let chunk = std::mem::take(&mut mgr.mic_buffer);
+                        let index = mgr.mic_chunk_index;
+                        mgr.mic_chunk_index += 1;
+                        let range = SourceRange::new(
+                            mgr.mic_buffer_start_sample,
+                            mgr.mic_buffer_start_sample + chunk.len() as u64,
+                        );
+                        mgr.mic_buffer_start_sample = range.end_sample;
+                        let meeting_id = mgr.meeting_id.clone();
+                        let source_format = mgr.mic_source_format;
+                        let session_id = mgr.session_id.clone();
+                        let packet_provenance = take_packet_provenance(
+                            &mut mgr.mic_packet_segments,
+                            chunk.len() as u64,
+                        )
+                        .unwrap_or_default();
+                        if Self::write_chunk_or_record_recovery_gap(
+                            &meeting_id,
+                            "microphone",
+                            index,
+                            &chunk,
+                            source_format,
+                            range,
+                            packet_provenance,
+                            storage.clone(),
+                            event_sender.clone(),
+                            session_id,
+                        )
+                        .await
+                        .is_err()
+                        {
+                            mgr.commit_recovery_required = true;
+                        }
+                    } else if source == "system_audio" && !mgr.sys_buffer.is_empty() {
+                        let chunk = std::mem::take(&mut mgr.sys_buffer);
+                        let index = mgr.sys_chunk_index;
+                        mgr.sys_chunk_index += 1;
+                        let range = SourceRange::new(
+                            mgr.sys_buffer_start_sample,
+                            mgr.sys_buffer_start_sample + chunk.len() as u64,
+                        );
+                        mgr.sys_buffer_start_sample = range.end_sample;
+                        let meeting_id = mgr.meeting_id.clone();
+                        let source_format = mgr.sys_source_format;
+                        let session_id = mgr.session_id.clone();
+                        let packet_provenance = take_packet_provenance(
+                            &mut mgr.sys_packet_segments,
+                            chunk.len() as u64,
+                        )
+                        .unwrap_or_default();
+                        if Self::write_chunk_or_record_recovery_gap(
+                            &meeting_id,
+                            "system_audio",
+                            index,
+                            &chunk,
+                            source_format,
+                            range,
+                            packet_provenance,
+                            storage.clone(),
+                            event_sender.clone(),
+                            session_id,
+                        )
+                        .await
+                        .is_err()
+                        {
+                            mgr.commit_recovery_required = true;
+                        }
+                    }
+                    let (gap_range, format) = if source == "microphone" {
+                        let range = gap_range_after_accepted_samples(
+                            mgr.mic_source_next_sample,
+                            missing_frames,
+                        );
+                        mgr.mic_source_next_sample = range.end_sample;
+                        mgr.mic_buffer_start_sample = range.end_sample;
+                        (range, mgr.mic_source_format)
+                    } else {
+                        let range = gap_range_after_accepted_samples(
+                            mgr.sys_source_next_sample,
+                            missing_frames,
+                        );
+                        mgr.sys_source_next_sample = range.end_sample;
+                        mgr.sys_buffer_start_sample = range.end_sample;
+                        (range, mgr.sys_source_format)
+                    };
+                    if Self::record_durable_capture_gap(
+                        &mgr.meeting_id,
+                        &source,
+                        gap_range,
+                        format,
+                        &error,
+                        None,
+                        None,
+                        None,
+                        None,
+                        storage,
+                        event_sender.clone(),
+                        mgr.session_id.clone(),
+                    )
+                    .await
+                    .is_err()
+                    {
+                        mgr.commit_recovery_required = true;
+                    }
+                }
+                let _ = event_sender.try_send(NativeEventV1::new(
+                    if nonfatal { "capture_event" } else { "error" },
+                    serde_json::json!({
+                        "code": if nonfatal { "CAPTURE_GAP" } else { "CAPTURE_ERROR" },
+                        "message": format!("Error in capture source {}: {}", source, error),
+                        "category": "capture",
+                        "fatal": !nonfatal
+                    }),
+                ));
+            }
+            CaptureMessage::Packet { .. } => unreachable!("packet handled by the start loop"),
+        }
     }
 
     /// Stops producer ownership, then returns the drain acknowledgement.  The
@@ -1826,6 +1851,165 @@ impl CaptureManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::TempDir;
+
+    fn test_manager() -> CaptureManager {
+        CaptureManager {
+            session_id: "session-test".to_string(),
+            meeting_id: "meeting-test".to_string(),
+            mic_stream: None,
+            sys_stream: None,
+            device_monitor: None,
+            stop_signal: Arc::new(AtomicBool::new(false)),
+            dispatcher_drain_ack: None,
+            mic_aligner: TimelineAligner::new(),
+            sys_aligner: TimelineAligner::new(),
+            mic_resampler: AudioResampler::new(48_000, 48_000).unwrap(),
+            sys_resampler: AudioResampler::new(48_000, 48_000).unwrap(),
+            mic_source_format: SourceFormat::pcm_float(48_000, 1),
+            sys_source_format: SourceFormat::pcm_float(48_000, 1),
+            mic_source_next_sample: 0,
+            sys_source_next_sample: 0,
+            mic_buffer_start_sample: 0,
+            sys_buffer_start_sample: 0,
+            mic_packet_provenance: PacketProvenance::default(),
+            sys_packet_provenance: PacketProvenance::default(),
+            mic_packet_segments: VecDeque::new(),
+            sys_packet_segments: VecDeque::new(),
+            mic_unreported_overflow: Vec::new(),
+            sys_unreported_overflow: Vec::new(),
+            unreported_worker_error: false,
+            mic_buffer: Vec::new(),
+            sys_buffer: Vec::new(),
+            mic_chunk_index: 0,
+            sys_chunk_index: 0,
+            commit_recovery_required: false,
+            mic_level: LevelMeter::compute(&[]),
+            sys_level: LevelMeter::compute(&[]),
+        }
+    }
+
+    async fn assert_dispatcher_recovery_case(
+        source: &str,
+        message: CaptureMessage,
+        expected_reason: &str,
+    ) {
+        let temp = TempDir::new().unwrap();
+        let storage = Arc::new(Mutex::new(Some(
+            StorageManager::new(temp.path().to_str().unwrap()).unwrap(),
+        )));
+        let (event_sender, mut events) = NativeEventSender::new(32);
+        let mut manager = test_manager();
+        let format = CaptureFormat::pcm(48_000, 1, 16);
+        let mut packet = CapturePacket::for_test(&[0; 1_920], format, 960, 1_000);
+        packet.device_position = 10_000;
+        let prefix = vec![0.25; 960];
+
+        if source == "microphone" {
+            manager.mic_buffer = prefix;
+            manager.mic_source_next_sample = 960;
+            manager
+                .mic_packet_segments
+                .push_back(PacketSegment::from_packet(&packet));
+        } else {
+            manager.sys_buffer = prefix;
+            manager.sys_source_next_sample = 960;
+            manager
+                .sys_packet_segments
+                .push_back(PacketSegment::from_packet(&packet));
+        }
+
+        CaptureManager::dispatch_message(&mut manager, message, storage.clone(), event_sender)
+            .await;
+
+        let db_path = temp.path().join("manifest.db");
+        let db = rusqlite::Connection::open(db_path).unwrap();
+        let manifest: (String, i64) = db
+            .query_row(
+                "SELECT source, chunk_index FROM manifest_entries WHERE meeting_id = 'meeting-test'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(manifest, (source.to_string(), 0));
+        let provenance_count: i64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM capture_provenance WHERE meeting_id = 'meeting-test' AND source = ?1 AND chunk_index = 0",
+                [source],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(provenance_count, 1);
+        let gap: (i64, i64, String) = db
+            .query_row(
+                "SELECT start_frame, end_frame, reason FROM capture_gaps WHERE meeting_id = 'meeting-test' AND source = ?1",
+                [source],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(gap, (960, 963, expected_reason.to_string()));
+
+        let first = events.try_recv().unwrap();
+        let second = events.try_recv().unwrap();
+        assert_eq!(first.event_type, "capture_event");
+        assert_eq!(first.payload["eventKind"], "chunk_committed");
+        assert_eq!(second.event_type, "capture_event");
+        assert_eq!(second.payload["eventKind"], "gap_recorded");
+    }
+
+    #[tokio::test]
+    async fn dispatcher_commits_prefix_then_durable_gap_for_mic_and_system_recovery() {
+        for (source, message, expected_reason) in [
+            (
+                "microphone",
+                Box::new(CaptureMessage::Gap {
+                    source: "microphone".to_string(),
+                    gap: CaptureGapRecord {
+                        frames: 3,
+                        flags: 1,
+                        device_start: 10_960,
+                        device_end: 10_963,
+                        qpc_start: 2_000,
+                        qpc_end: 2_062,
+                    },
+                }),
+                "CAPTURE_OVERFLOW:flags=data_discontinuity",
+            ),
+            (
+                "microphone",
+                Box::new(CaptureMessage::Error {
+                    source: "microphone".to_string(),
+                    error: "CAPTURE_FLAG:data_discontinuity:frames=3".to_string(),
+                }),
+                "CAPTURE_FLAG:data_discontinuity:frames=3",
+            ),
+            (
+                "system_audio",
+                Box::new(CaptureMessage::Gap {
+                    source: "system_audio".to_string(),
+                    gap: CaptureGapRecord {
+                        frames: 3,
+                        flags: 1,
+                        device_start: 10_960,
+                        device_end: 10_963,
+                        qpc_start: 2_000,
+                        qpc_end: 2_062,
+                    },
+                }),
+                "CAPTURE_OVERFLOW:flags=data_discontinuity",
+            ),
+            (
+                "system_audio",
+                Box::new(CaptureMessage::Error {
+                    source: "system_audio".to_string(),
+                    error: "CAPTURE_FLAG:data_discontinuity:frames=3".to_string(),
+                }),
+                "CAPTURE_FLAG:data_discontinuity:frames=3",
+            ),
+        ] {
+            assert_dispatcher_recovery_case(source, *message, expected_reason).await;
+        }
+    }
 
     #[test]
     fn source_chunk_is_independently_marked_as_webm_opus_48k_mono() {
