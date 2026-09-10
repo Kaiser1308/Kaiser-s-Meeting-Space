@@ -1,6 +1,6 @@
 # Windows M5: Personal Library and Markdown Export Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Enable the desktop owner to browse past local meetings with stable ordering, reopen a completed meeting to inspect its status and transcript, and export the meeting transcript and metadata to a local Markdown (`.md`) file with safe error reporting.
 
@@ -66,7 +66,7 @@
     };
     ```
 
-- [ ] **Step 1: Write failing unit tests for `listLocalMeetings` and `getLocalMeeting`**
+- [x] **Step 1: Write failing unit tests for `listLocalMeetings` and `getLocalMeeting`**
 
 Add tests to `apps/desktop/src/meeting-api.test.ts`:
 
@@ -158,7 +158,7 @@ describe('getLocalMeeting', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
 
 Run:
 ```powershell
@@ -166,7 +166,7 @@ pnpm --filter @kms/desktop exec vitest run src/meeting-api.test.ts
 ```
 Expected: FAIL (methods `listLocalMeetings` and `getLocalMeeting` do not exist).
 
-- [ ] **Step 3: Implement `listLocalMeetings` and `getLocalMeeting` in `meeting-api.ts`**
+- [x] **Step 3: Implement `listLocalMeetings` and `getLocalMeeting` in `meeting-api.ts`**
 
 In `apps/desktop/src/meeting-api.ts`:
 1. Define `MeetingSummary`, `MeetingListResult`, `MeetingDetailResult`.
@@ -178,7 +178,7 @@ In `apps/desktop/src/meeting-api.ts`:
    - Validates `meetingId` with `MeetingIdSchema.safeParse`.
    - Calls `request(`/v1/meetings/${encodeURIComponent(meetingId)}`, { method: 'GET' }, parseMeetingDetail, 200)`.
 
-- [ ] **Step 4: Run unit tests and typecheck**
+- [x] **Step 4: Run unit tests and typecheck**
 
 Run:
 ```powershell
@@ -188,7 +188,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Stage and commit Task 1**
+- [x] **Step 5: Stage and commit Task 1**
 
 ```powershell
 git add apps/desktop/src/meeting-api.ts apps/desktop/src/meeting-api.test.ts
@@ -213,7 +213,7 @@ git commit -m "feat(desktop): add listLocalMeetings and getLocalMeeting read con
   - `clearTranscript(meetingId: string, storage?: StorageLike): void`
   - Interface `StorageLike { getItem(key: string): string | null; setItem(key: string, value: string): void; removeItem(key: string): void }`.
 
-- [ ] **Step 1: Write failing unit tests for `transcript-storage`**
+- [x] **Step 1: Write failing unit tests for `transcript-storage`**
 
 Create `apps/desktop/src/transcript-storage.test.ts`:
 
@@ -273,7 +273,7 @@ describe('transcriptStorage', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to confirm failure**
+- [x] **Step 2: Run test to confirm failure**
 
 Run:
 ```powershell
@@ -281,7 +281,7 @@ pnpm --filter @kms/desktop exec vitest run src/transcript-storage.test.ts
 ```
 Expected: FAIL due to missing module `transcript-storage.ts`.
 
-- [ ] **Step 3: Implement `apps/desktop/src/transcript-storage.ts`**
+- [x] **Step 3: Implement `apps/desktop/src/transcript-storage.ts`**
 
 ```ts
 import type { TranscriptSegment } from './transcription-workflow.js';
@@ -346,7 +346,7 @@ export function clearTranscript(meetingId: string, customStorage?: StorageLike):
 }
 ```
 
-- [ ] **Step 4: Run unit tests and typecheck**
+- [x] **Step 4: Run unit tests and typecheck**
 
 Run:
 ```powershell
@@ -356,7 +356,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Stage and commit Task 2**
+- [x] **Step 5: Stage and commit Task 2**
 
 ```powershell
 git add apps/desktop/src/transcript-storage.ts apps/desktop/src/transcript-storage.test.ts
@@ -400,7 +400,7 @@ git commit -m "feat(desktop): add client-side transcript persistence manager"
     }
     ```
 
-- [ ] **Step 1: Write failing unit tests for `markdown-export`**
+- [x] **Step 1: Write failing unit tests for `markdown-export`**
 
 Create `apps/desktop/src/markdown-export.test.ts`:
 
@@ -478,7 +478,7 @@ describe('markdownExport', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
 
 Run:
 ```powershell
@@ -486,7 +486,7 @@ pnpm --filter @kms/desktop exec vitest run src/markdown-export.test.ts
 ```
 Expected: FAIL due to missing module `markdown-export.ts`.
 
-- [ ] **Step 3: Implement `apps/desktop/src/markdown-export.ts`**
+- [x] **Step 3: Implement `apps/desktop/src/markdown-export.ts`**
 
 ```ts
 import type { TranscriptSegment } from './transcription-workflow.js';
@@ -623,7 +623,7 @@ export function exportMeetingMarkdown(
 }
 ```
 
-- [ ] **Step 4: Run unit tests and typecheck**
+- [x] **Step 4: Run unit tests and typecheck**
 
 Run:
 ```powershell
@@ -633,7 +633,7 @@ pnpm --filter @kms/desktop typecheck
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Stage and commit Task 3**
+- [x] **Step 5: Stage and commit Task 3**
 
 ```powershell
 git add apps/desktop/src/markdown-export.ts apps/desktop/src/markdown-export.test.ts
@@ -662,7 +662,7 @@ git commit -m "feat(desktop): add pure Markdown export formatter and download ha
   - "Export Markdown" button triggering Markdown generation and saving
   - Safe export error reporting and feedback alert.
 
-- [ ] **Step 1: Run GitNexus impact analysis before modifying `main.tsx`**
+- [x] **Step 1: Run GitNexus impact analysis before modifying `main.tsx`**
 
 Run:
 ```powershell
@@ -670,7 +670,7 @@ node .gitnexus/run.cjs impact App -r Kaiser-s-Meeting-Space
 ```
 Confirm blast radius risk.
 
-- [ ] **Step 2: Update `main.tsx` with Library navigation, reopen workflow, and Markdown export**
+- [x] **Step 2: Update `main.tsx` with Library navigation, reopen workflow, and Markdown export**
 
 In `apps/desktop/src/main.tsx`:
 1. Import:
@@ -766,7 +766,7 @@ In `apps/desktop/src/main.tsx`:
        - List of meetings with Title, State badge, Creation date, and "View / Reopen" button (`data-testid="open-meeting-btn"`).
        - When `selectedMeeting` is opened: render reopened meeting detail card, status, transcript segments, and Export button.
 
-- [ ] **Step 3: Update `main.test.ts` to assert Library, meeting reopen, and Markdown export wiring**
+- [x] **Step 3: Update `main.test.ts` to assert Library, meeting reopen, and Markdown export wiring**
 
 In `apps/desktop/src/main.test.ts`, add tests:
 - Verifies tab navigation between 'record' and 'library'.
@@ -774,7 +774,7 @@ In `apps/desktop/src/main.test.ts`, add tests:
 - Verifies reopening a meeting loads details and displays transcript segments.
 - Verifies "Export Markdown" button calls `exportMeetingMarkdown` and displays status/error.
 
-- [ ] **Step 4: Run unit tests and typecheck**
+- [x] **Step 4: Run unit tests and typecheck**
 
 Run:
 ```powershell
@@ -785,7 +785,7 @@ pnpm --filter @kms/desktop exec vite build
 ```
 Expected: All tests pass, typecheck exits 0, build succeeds.
 
-- [ ] **Step 5: Stage and commit Task 4**
+- [x] **Step 5: Stage and commit Task 4**
 
 ```powershell
 git add apps/desktop/src/main.tsx apps/desktop/src/main.test.ts
@@ -800,7 +800,7 @@ git commit -m "feat(desktop): integrate personal library view, meeting reopen, a
 
 - Test: `apps/desktop/src/meeting-api.test.ts`, `apps/desktop/src/transcript-storage.test.ts`, `apps/desktop/src/markdown-export.test.ts`, `apps/desktop/src/main.test.ts`.
 
-- [ ] **Step 1: Run the complete automated M5 regression gate**
+- [x] **Step 1: Run the complete automated M5 regression gate**
 
 Run:
 ```powershell
@@ -810,7 +810,7 @@ pnpm --filter @kms/desktop exec vite build
 ```
 Expected: All test suites pass; typecheck exits 0; production build succeeds.
 
-- [ ] **Step 2: Run GitNexus change scope detection and impact verification**
+- [x] **Step 2: Run GitNexus change scope detection and impact verification**
 
 Run:
 ```powershell
@@ -819,7 +819,7 @@ git status --short
 ```
 Expected: Clean review, zero unrelated changes, no scope creep.
 
-- [ ] **Step 3: Update plan document with verified checklist**
+- [x] **Step 3: Update plan document with verified checklist**
 
 Mark all checklist items `[x]` upon direct verification.
 
