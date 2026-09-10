@@ -204,7 +204,9 @@ function App() {
           return;
         }
         if (!nativeClient) {
-          setStartError('Meeting started in the service but local capture did not start.');
+          setState('idle');
+          setCurrentMeetingId(null);
+          setStartError('Local capture runtime is unavailable.');
           return;
         }
         log('Starting physical audio capture session...');

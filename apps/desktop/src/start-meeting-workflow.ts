@@ -1,4 +1,4 @@
-import type { CreateLocalMeetingInput } from './meeting-api.js';
+import { MeetingApiError, type CreateLocalMeetingInput } from './meeting-api.js';
 
 export class StartMeetingError extends Error {
   constructor(readonly code: 'START_FAILED') {
@@ -30,13 +30,21 @@ export async function startPhysicalMeeting(
   deps: StartMeetingDependencies,
   input: PhysicalMeetingInput,
 ): Promise<{ meetingId: string }> {
+  let created: { id: string };
+  let started: { meetingId: string };
   try {
-    const created = await deps.api.createLocalMeeting({
+    created = await deps.api.createLocalMeeting({
       title: input.title,
       language: input.language,
       timezone: input.timezone,
     });
-    const started = await deps.api.startLocalMeeting(created.id);
+    started = await deps.api.startLocalMeeting(created.id);
+  } catch (error) {
+    if (error instanceof MeetingApiError) throw error;
+    throw new StartMeetingError('START_FAILED');
+  }
+
+  try {
     if (started.meetingId !== created.id) throw new Error('meeting identity mismatch');
 
     const storage = await deps.native.send('storage_init');

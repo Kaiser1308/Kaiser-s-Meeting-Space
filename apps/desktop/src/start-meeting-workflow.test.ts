@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { MeetingApiError } from './meeting-api.js';
 import { startPhysicalMeeting, StartMeetingError } from './start-meeting-workflow.js';
 
 const meetingId = '550e8400-e29b-41d4-a716-446655440000';
@@ -47,7 +48,7 @@ describe('physical meeting start workflow', () => {
     expect(calls).toEqual(['create', 'start', 'storage_init', 'capture_start']);
   });
 
-  it.each(['create', 'start', 'storage_init', 'capture_start'] as const)(
+  it.each(['storage_init', 'capture_start'] as const)(
     'rejects safely when %s fails',
     async (failingStep) => {
       const { deps } = successfulDeps();
@@ -63,6 +64,28 @@ describe('physical meeting start workflow', () => {
       }
 
       await expect(startPhysicalMeeting(deps, input)).rejects.toEqual(new StartMeetingError('START_FAILED'));
+    },
+  );
+
+  it.each(['API_UNAVAILABLE', 'INVALID_RESPONSE'] as const)(
+    'propagates create API %s errors without relabeling them',
+    async (code) => {
+      const { deps } = successfulDeps();
+      deps.api.createLocalMeeting.mockRejectedValueOnce(new MeetingApiError(code));
+
+      await expect(startPhysicalMeeting(deps, input)).rejects.toEqual(new MeetingApiError(code));
+      expect(deps.native.send).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['API_UNAVAILABLE', 'INVALID_RESPONSE'] as const)(
+    'propagates start API %s errors without relabeling them',
+    async (code) => {
+      const { deps } = successfulDeps();
+      deps.api.startLocalMeeting.mockRejectedValueOnce(new MeetingApiError(code));
+
+      await expect(startPhysicalMeeting(deps, input)).rejects.toEqual(new MeetingApiError(code));
+      expect(deps.native.send).not.toHaveBeenCalled();
     },
   );
 
