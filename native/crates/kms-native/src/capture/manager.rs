@@ -1145,21 +1145,25 @@ impl CaptureManager {
                                 mgr.mic_buffer_start_sample + chunk.len() as u64,
                             );
                             mgr.mic_buffer_start_sample = range.end_sample;
+                            let meeting_id = mgr.meeting_id.clone();
+                            let source_format = mgr.mic_source_format;
+                            let session_id = mgr.session_id.clone();
+                            let packet_provenance = take_packet_provenance(
+                                &mut mgr.mic_packet_segments,
+                                chunk.len() as u64,
+                            )
+                            .unwrap_or_default();
                             if Self::write_chunk_or_record_recovery_gap(
-                                &mgr.meeting_id,
+                                &meeting_id,
                                 "microphone",
                                 index,
                                 &chunk,
-                                mgr.mic_source_format,
+                                source_format,
                                 range,
-                                take_packet_provenance(
-                                    &mut mgr.mic_packet_segments,
-                                    chunk.len() as u64,
-                                )
-                                .unwrap_or_default(),
+                                packet_provenance,
                                 storage.clone(),
                                 event_sender.clone(),
-                                mgr.session_id.clone(),
+                                session_id,
                             )
                             .await
                             .is_err()
@@ -1175,21 +1179,25 @@ impl CaptureManager {
                                 mgr.sys_buffer_start_sample + chunk.len() as u64,
                             );
                             mgr.sys_buffer_start_sample = range.end_sample;
+                            let meeting_id = mgr.meeting_id.clone();
+                            let source_format = mgr.sys_source_format;
+                            let session_id = mgr.session_id.clone();
+                            let packet_provenance = take_packet_provenance(
+                                &mut mgr.sys_packet_segments,
+                                chunk.len() as u64,
+                            )
+                            .unwrap_or_default();
                             if Self::write_chunk_or_record_recovery_gap(
-                                &mgr.meeting_id,
+                                &meeting_id,
                                 "system_audio",
                                 index,
                                 &chunk,
-                                mgr.sys_source_format,
+                                source_format,
                                 range,
-                                take_packet_provenance(
-                                    &mut mgr.sys_packet_segments,
-                                    chunk.len() as u64,
-                                )
-                                .unwrap_or_default(),
+                                packet_provenance,
                                 storage.clone(),
                                 event_sender.clone(),
-                                mgr.session_id.clone(),
+                                session_id,
                             )
                             .await
                             .is_err()
@@ -1250,21 +1258,25 @@ impl CaptureManager {
                                     mgr.mic_buffer_start_sample + chunk.len() as u64,
                                 );
                                 mgr.mic_buffer_start_sample = range.end_sample;
+                                let meeting_id = mgr.meeting_id.clone();
+                                let source_format = mgr.mic_source_format;
+                                let session_id = mgr.session_id.clone();
+                                let packet_provenance = take_packet_provenance(
+                                    &mut mgr.mic_packet_segments,
+                                    chunk.len() as u64,
+                                )
+                                .unwrap_or_default();
                                 if Self::write_chunk_or_record_recovery_gap(
-                                    &mgr.meeting_id,
+                                    &meeting_id,
                                     "microphone",
                                     index,
                                     &chunk,
-                                    mgr.mic_source_format,
+                                    source_format,
                                     range,
-                                    take_packet_provenance(
-                                        &mut mgr.mic_packet_segments,
-                                        chunk.len() as u64,
-                                    )
-                                    .unwrap_or_default(),
+                                    packet_provenance,
                                     storage.clone(),
                                     event_sender.clone(),
-                                    mgr.session_id.clone(),
+                                    session_id,
                                 )
                                 .await
                                 .is_err()
@@ -1280,21 +1292,25 @@ impl CaptureManager {
                                     mgr.sys_buffer_start_sample + chunk.len() as u64,
                                 );
                                 mgr.sys_buffer_start_sample = range.end_sample;
+                                let meeting_id = mgr.meeting_id.clone();
+                                let source_format = mgr.sys_source_format;
+                                let session_id = mgr.session_id.clone();
+                                let packet_provenance = take_packet_provenance(
+                                    &mut mgr.sys_packet_segments,
+                                    chunk.len() as u64,
+                                )
+                                .unwrap_or_default();
                                 if Self::write_chunk_or_record_recovery_gap(
-                                    &mgr.meeting_id,
+                                    &meeting_id,
                                     "system_audio",
                                     index,
                                     &chunk,
-                                    mgr.sys_source_format,
+                                    source_format,
                                     range,
-                                    take_packet_provenance(
-                                        &mut mgr.sys_packet_segments,
-                                        chunk.len() as u64,
-                                    )
-                                    .unwrap_or_default(),
+                                    packet_provenance,
                                     storage.clone(),
                                     event_sender.clone(),
-                                    mgr.session_id.clone(),
+                                    session_id,
                                 )
                                 .await
                                 .is_err()
@@ -1930,6 +1946,79 @@ mod tests {
             Some(10)
         );
         assert_eq!(capture_error_frames("device disconnected"), None);
+    }
+
+    #[test]
+    fn recovery_prefixes_for_both_sources_preserve_provenance_before_gap() {
+        let format = CaptureFormat::pcm(48_000, 1, 16);
+        let mut packet = CapturePacket::for_test(&[0; 16], format, 8, 1_000);
+        packet.device_position = 1_000;
+
+        for (source, message) in [
+            (
+                "microphone",
+                Box::new(CaptureMessage::Gap {
+                    source: "microphone".to_string(),
+                    gap: CaptureGapRecord {
+                        frames: 3,
+                        flags: 1,
+                        device_start: 8,
+                        device_end: 11,
+                        qpc_start: 2_000,
+                        qpc_end: 2_062,
+                    },
+                }),
+            ),
+            (
+                "microphone",
+                Box::new(CaptureMessage::Error {
+                    source: "microphone".to_string(),
+                    error: "CAPTURE_FLAG:data_discontinuity:frames=3".to_string(),
+                }),
+            ),
+            (
+                "system_audio",
+                Box::new(CaptureMessage::Gap {
+                    source: "system_audio".to_string(),
+                    gap: CaptureGapRecord {
+                        frames: 3,
+                        flags: 1,
+                        device_start: 8,
+                        device_end: 11,
+                        qpc_start: 2_000,
+                        qpc_end: 2_062,
+                    },
+                }),
+            ),
+            (
+                "system_audio",
+                Box::new(CaptureMessage::Error {
+                    source: "system_audio".to_string(),
+                    error: "CAPTURE_FLAG:data_discontinuity:frames=3".to_string(),
+                }),
+            ),
+        ] {
+            let mut segments = VecDeque::from([PacketSegment::from_packet(&packet)]);
+            let prefix = take_packet_provenance(&mut segments, 5).unwrap();
+            assert_eq!(prefix.raw_frames, 5, "{source} prefix must be contiguous");
+            assert_eq!(prefix.device_start, Some(1_000));
+            assert_eq!(prefix.device_end, Some(1_005));
+            assert_eq!(segments.front().map(|segment| segment.frames), Some(3));
+
+            let missing_frames = match *message {
+                CaptureMessage::Gap { gap, .. } => gap.frames,
+                CaptureMessage::Error { error, .. } => {
+                    assert!(is_nonfatal_capture_error(&error));
+                    capture_error_frames(&error).unwrap()
+                }
+                CaptureMessage::Packet { .. } => unreachable!(),
+            };
+            assert_eq!(
+                gap_range_after_accepted_samples(prefix.raw_frames, missing_frames),
+                SourceRange::new(5, 8),
+                "{source} durable gap must begin after the committed prefix"
+            );
+        }
     }
 
     #[test]
