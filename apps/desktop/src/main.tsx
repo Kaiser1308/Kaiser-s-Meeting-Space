@@ -7,6 +7,7 @@ import {
   type MeetingSummary,
   type MeetingDetailResult,
 } from './meeting-api.js';
+import { createLocalMeetingStore } from './local-meeting-store.js';
 import { saveTranscript, getTranscript } from './transcript-storage.js';
 import { exportMeetingMarkdown, type ExportableMeeting } from './markdown-export.js';
 import { startPhysicalMeeting, StartMeetingError } from './start-meeting-workflow.js';
@@ -31,7 +32,7 @@ const kmsNativeApi =
     ? (window as unknown as { kmsNative?: NativeIpcTransport }).kmsNative
     : undefined;
 const nativeClient = kmsNativeApi ? new NativeBridgeClient(kmsNativeApi) : null;
-const meetingApi = createMeetingApi();
+const meetingApi = createLocalMeetingStore();
 const meetingLanguage: 'vi' | 'en' =
   typeof navigator !== 'undefined' && navigator.language?.startsWith('vi') ? 'vi' : 'en';
 const meetingTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -71,6 +72,7 @@ export function App() {
   const [libraryLoading, setLibraryLoading] = useState<boolean>(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetailResult | null>(null);
+  const [activeMeetingRecord, setActiveMeetingRecord] = useState<MeetingDetailResult | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -281,6 +283,12 @@ export function App() {
           },
         );
         setCurrentMeetingId(meetingId);
+        try {
+          const detail = await meetingApi.getLocalMeeting(meetingId);
+          setActiveMeetingRecord(detail);
+        } catch {
+          // ignore
+        }
         setState('recording');
         setStartError(null);
         setStopError(null);
@@ -365,6 +373,12 @@ export function App() {
         setCurrentMeetingId(null);
         setStopError(null);
         setLastSessionSummary(result);
+        try {
+          const detail = await meetingApi.getLocalMeeting(result.meetingId);
+          setActiveMeetingRecord(detail);
+        } catch {
+          // ignore
+        }
         log(
           `Meeting finalized: ${result.meetingId}. Mic Chunks: ${result.totalMicChunks}, Sys Chunks: ${result.totalSysChunks}, Status: ${result.commitStatus}`,
         );
@@ -403,8 +417,10 @@ export function App() {
   };
 
   const handleTranscribeMeeting = async () => {
-    const targetMeetingId = selectedMeeting ? selectedMeeting.id : lastSessionSummary?.meetingId;
+    const targetMeeting = selectedMeeting ?? activeMeetingRecord;
+    const targetMeetingId = targetMeeting ? targetMeeting.id : lastSessionSummary?.meetingId;
     if (!targetMeetingId || !nativeClient) return;
+    const targetLanguage = targetMeeting ? targetMeeting.language : meetingLanguage;
     setTranscriptState('transcribing');
     setTranscriptDiagnostic(null);
     try {
@@ -413,7 +429,7 @@ export function App() {
         { native: nativeClient },
         {
           meetingId: targetMeetingId,
-          language: meetingLanguage,
+          language: targetLanguage,
         },
       );
       setTranscriptSegments(result.segments);
@@ -472,18 +488,20 @@ export function App() {
     setExportStatus(null);
     const targetMeeting: ExportableMeeting | null = selectedMeeting
       ? selectedMeeting
-      : lastSessionSummary
-        ? {
-            id: lastSessionSummary.meetingId,
-            title: meetingTitle,
-            language: meetingLanguage,
-            state: 'finalized',
-            createdAt: new Date().toISOString(),
-            endedAt: lastSessionSummary.finalizedAt,
-            captureSources: ['mic'],
-            timezone: meetingTimezone,
-          }
-        : null;
+      : activeMeetingRecord
+        ? activeMeetingRecord
+        : lastSessionSummary
+          ? {
+              id: lastSessionSummary.meetingId,
+              title: meetingTitle,
+              language: meetingLanguage,
+              state: 'finalized',
+              createdAt: lastSessionSummary.finalizedAt,
+              endedAt: lastSessionSummary.finalizedAt,
+              captureSources: ['mic', 'system'],
+              timezone: meetingTimezone,
+            }
+          : null;
 
     if (!targetMeeting) return;
     const res = exportMeetingMarkdown(targetMeeting, transcriptSegments);
@@ -596,6 +614,12 @@ export function App() {
             <span>API Service:</span>
             <strong className={`status-${apiStatus}`} data-testid="api-status">
               {apiStatus.toUpperCase()}
+            </strong>
+          </div>
+          <div className="diag-row" style={{ marginTop: '8px' }}>
+            <span>Storage:</span>
+            <strong className="status-healthy" data-testid="storage-status">
+              LOCAL PERSISTENT
             </strong>
           </div>
           {runtimeStatus === 'healthy' && (

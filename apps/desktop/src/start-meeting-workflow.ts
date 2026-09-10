@@ -16,6 +16,7 @@ export type StartMeetingDependencies = {
   api: {
     createLocalMeeting(input: CreateLocalMeetingInput): Promise<{ id: string }>;
     startLocalMeeting(meetingId: string): Promise<{ meetingId: string }>;
+    cancelLocalMeeting?(meetingId: string): Promise<void>;
   };
   native: {
     send(
@@ -59,6 +60,13 @@ export async function startPhysicalMeeting(
 
     return { meetingId: created.id };
   } catch {
+    if (deps.api.cancelLocalMeeting) {
+      try {
+        await deps.api.cancelLocalMeeting(created.id);
+      } catch {
+        // preserve original error
+      }
+    }
     throw new StartMeetingError('START_FAILED');
   }
 }
