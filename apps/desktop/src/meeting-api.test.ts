@@ -170,6 +170,53 @@ describe('local meeting API adapter', () => {
     await expect(api.createLocalMeeting({ title: 'Weekly sync', language: 'en', timezone: 'Asia/Ho_Chi_Minh' })).resolves.toMatchObject({ id: createdId });
   });
 
+  it.each([
+    '0000-01-01T00:00Z',
+    '0000-02-29T00:00:00Z',
+    '0001-01-01T00:00Z',
+    '0099-12-31T23:59:59.123456Z',
+  ])('accepts low-year UTC timestamps in create and start responses: %s', async (timestamp) => {
+    const api = createMeetingApi({
+      fetch: vi.fn()
+        .mockResolvedValueOnce(jsonResponse(201, {
+          id: createdId, title: 'Weekly sync', language: 'en', mode: 'meeting_only',
+          captureSources: ['mic', 'system'], state: 'draft', version: 1, createdAt: timestamp,
+        }))
+        .mockResolvedValueOnce(jsonResponse(200, {
+          meetingId: createdId, state: 'recording', startedAt: timestamp, policyVersion: 1,
+        })),
+      newId: sequence('create-key-0001', 'start-key-00002'),
+    });
+
+    await expect(api.createLocalMeeting({ title: 'Weekly sync', language: 'en', timezone: 'Asia/Ho_Chi_Minh' }))
+      .resolves.toMatchObject({ createdAt: timestamp });
+    await expect(api.startLocalMeeting(createdId)).resolves.toMatchObject({ startedAt: timestamp });
+  });
+
+  it.each([
+    '0001-02-29T00:00Z',
+    '0100-02-29T00:00:00Z',
+    '2026-09-10T24:00Z',
+    '2026-09-10T23:60Z',
+    '2026-09-10T23:59:60Z',
+  ])('rejects invalid UTC calendar or clock values in create and start responses: %s', async (timestamp) => {
+    const api = createMeetingApi({
+      fetch: vi.fn()
+        .mockResolvedValueOnce(jsonResponse(201, {
+          id: createdId, title: 'Weekly sync', language: 'en', mode: 'meeting_only',
+          captureSources: ['mic', 'system'], state: 'draft', version: 1, createdAt: timestamp,
+        }))
+        .mockResolvedValueOnce(jsonResponse(200, {
+          meetingId: createdId, state: 'recording', startedAt: timestamp, policyVersion: 1,
+        })),
+      newId: sequence('create-key-0001', 'start-key-00002'),
+    });
+
+    await expect(api.createLocalMeeting({ title: 'Weekly sync', language: 'en', timezone: 'Asia/Ho_Chi_Minh' }))
+      .rejects.toEqual(new MeetingApiError('INVALID_RESPONSE'));
+    await expect(api.startLocalMeeting(createdId)).rejects.toEqual(new MeetingApiError('INVALID_RESPONSE'));
+  });
+
   it.each([401, 409, 500])('maps start HTTP %s to a safe error', async (status) => {
     const api = createMeetingApi({
       fetch: vi.fn().mockResolvedValue(jsonResponse(status, { error: { message: 'private server detail' } })),

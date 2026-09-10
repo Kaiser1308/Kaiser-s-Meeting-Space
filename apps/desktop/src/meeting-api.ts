@@ -42,16 +42,18 @@ export type CreateLocalMeetingInput = {
 
 type FetchLike = typeof globalThis.fetch;
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
-const RFC3339_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z$/;
+const RFC3339_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?Z$/;
 
 function isDateTime(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   const match = RFC3339_DATETIME_PATTERN.exec(value);
-  if (!match || !Number.isFinite(Date.parse(value))) return false;
+  if (!match) return false;
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
+  const date = new Date(0);
+  // Unlike Date.UTC, setUTCFullYear preserves years 0000–0099.
+  date.setUTCFullYear(year, month - 1, day);
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
