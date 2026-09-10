@@ -506,4 +506,190 @@ describe('local meeting API adapter', () => {
       );
     },
   );
+
+  describe('listLocalMeetings', () => {
+    it('fetches meetings list with query parameters and parses items correctly', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          items: [
+            {
+              id: createdId,
+              title: 'Weekly Sync',
+              language: 'vi',
+              mode: 'meeting_only',
+              captureSources: ['mic'],
+              state: 'finalized',
+              createdAt: '2026-09-10T10:00:00.000Z',
+              startedAt: '2026-09-10T10:01:00.000Z',
+              endedAt: '2026-09-10T10:30:00.000Z',
+              timezone: 'Asia/Ho_Chi_Minh',
+              speechMode: 'local',
+            },
+          ],
+          nextCursor: 'cursor-123',
+        }),
+      );
+      const api = createMeetingApi({ fetch: fetchMock });
+      const result = await api.listLocalMeetings({
+        limit: 10,
+        cursor: 'cursor-abc',
+        state: 'finalized',
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:4310/v1/meetings?limit=10&cursor=cursor-abc&state=finalized',
+        expect.objectContaining({ method: 'GET' }),
+      );
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual({
+        id: createdId,
+        title: 'Weekly Sync',
+        language: 'vi',
+        mode: 'meeting_only',
+        captureSources: ['mic'],
+        state: 'finalized',
+        createdAt: '2026-09-10T10:00:00.000Z',
+        startedAt: '2026-09-10T10:01:00.000Z',
+        endedAt: '2026-09-10T10:30:00.000Z',
+        timezone: 'Asia/Ho_Chi_Minh',
+        speechMode: 'local',
+      });
+      expect(result.nextCursor).toBe('cursor-123');
+    });
+
+    it('fetches meetings list without query parameters when none provided', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          items: [],
+          nextCursor: null,
+        }),
+      );
+      const api = createMeetingApi({ fetch: fetchMock });
+      const result = await api.listLocalMeetings();
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:4310/v1/meetings',
+        expect.objectContaining({ method: 'GET' }),
+      );
+      expect(result.items).toEqual([]);
+      expect(result.nextCursor).toBeNull();
+    });
+
+    it('maps network failure to MeetingApiError(API_UNAVAILABLE)', async () => {
+      const fetchMock = vi.fn().mockRejectedValue(new Error('Network offline'));
+      const api = createMeetingApi({ fetch: fetchMock });
+      await expect(api.listLocalMeetings()).rejects.toEqual(new MeetingApiError('API_UNAVAILABLE'));
+    });
+
+    it.each([400, 401, 404, 500])(
+      'maps HTTP %s to MeetingApiError(API_UNAVAILABLE)',
+      async (status) => {
+        const fetchMock = vi
+          .fn()
+          .mockResolvedValue(jsonResponse(status, { error: { message: 'server error' } }));
+        const api = createMeetingApi({ fetch: fetchMock });
+        await expect(api.listLocalMeetings()).rejects.toEqual(
+          new MeetingApiError('API_UNAVAILABLE'),
+        );
+      },
+    );
+
+    it('maps malformed response to MeetingApiError(INVALID_RESPONSE)', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          items: [{ id: 'not-a-uuid' }],
+          nextCursor: null,
+        }),
+      );
+      const api = createMeetingApi({ fetch: fetchMock });
+      await expect(api.listLocalMeetings()).rejects.toEqual(
+        new MeetingApiError('INVALID_RESPONSE'),
+      );
+    });
+  });
+
+  describe('getLocalMeeting', () => {
+    it('fetches meeting detail for valid UUID at GET /v1/meetings/:id and parses response correctly', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          id: createdId,
+          title: 'Board Meeting',
+          language: 'en',
+          mode: 'meeting_only',
+          captureSources: ['mic', 'system'],
+          state: 'finalized',
+          createdAt: '2026-09-10T10:00:00.000Z',
+          startedAt: '2026-09-10T10:01:00.000Z',
+          endedAt: '2026-09-10T10:45:00.000Z',
+          timezone: 'UTC',
+          speechMode: 'local',
+          version: 3,
+        }),
+      );
+      const api = createMeetingApi({ fetch: fetchMock });
+      const result = await api.getLocalMeeting(createdId);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        `http://127.0.0.1:4310/v1/meetings/${createdId}`,
+        expect.objectContaining({ method: 'GET' }),
+      );
+      expect(result).toEqual({
+        id: createdId,
+        title: 'Board Meeting',
+        language: 'en',
+        mode: 'meeting_only',
+        captureSources: ['mic', 'system'],
+        state: 'finalized',
+        createdAt: '2026-09-10T10:00:00.000Z',
+        startedAt: '2026-09-10T10:01:00.000Z',
+        endedAt: '2026-09-10T10:45:00.000Z',
+        timezone: 'UTC',
+        speechMode: 'local',
+        version: 3,
+      });
+    });
+
+    it('rejects with MeetingApiError(INVALID_RESPONSE) when meetingId is not a valid UUID', async () => {
+      const fetchMock = vi.fn();
+      const api = createMeetingApi({ fetch: fetchMock });
+      await expect(api.getLocalMeeting('invalid-uuid')).rejects.toEqual(
+        new MeetingApiError('INVALID_RESPONSE'),
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('maps network failure to MeetingApiError(API_UNAVAILABLE)', async () => {
+      const fetchMock = vi.fn().mockRejectedValue(new Error('Network offline'));
+      const api = createMeetingApi({ fetch: fetchMock });
+      await expect(api.getLocalMeeting(createdId)).rejects.toEqual(
+        new MeetingApiError('API_UNAVAILABLE'),
+      );
+    });
+
+    it.each([400, 401, 404, 500])(
+      'maps HTTP %s to MeetingApiError(API_UNAVAILABLE)',
+      async (status) => {
+        const fetchMock = vi
+          .fn()
+          .mockResolvedValue(jsonResponse(status, { error: { message: 'not found' } }));
+        const api = createMeetingApi({ fetch: fetchMock });
+        await expect(api.getLocalMeeting(createdId)).rejects.toEqual(
+          new MeetingApiError('API_UNAVAILABLE'),
+        );
+      },
+    );
+
+    it('maps malformed response to MeetingApiError(INVALID_RESPONSE)', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          id: createdId,
+          version: 'not-a-number',
+        }),
+      );
+      const api = createMeetingApi({ fetch: fetchMock });
+      await expect(api.getLocalMeeting(createdId)).rejects.toEqual(
+        new MeetingApiError('INVALID_RESPONSE'),
+      );
+    });
+  });
 });

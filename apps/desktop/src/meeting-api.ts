@@ -45,6 +45,40 @@ export type CreateLocalMeetingInput = {
   timezone: string;
 };
 
+export type MeetingSummary = {
+  id: string;
+  title: string;
+  language: 'vi' | 'en';
+  mode: 'meeting_only' | 'meeting_translate';
+  captureSources: Array<'mic' | 'system'>;
+  state: string;
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  timezone: string;
+  speechMode: 'api' | 'local';
+};
+
+export type MeetingListResult = {
+  items: MeetingSummary[];
+  nextCursor: string | null;
+};
+
+export type MeetingDetailResult = {
+  id: string;
+  title: string;
+  language: 'vi' | 'en';
+  mode: 'meeting_only' | 'meeting_translate';
+  captureSources: Array<'mic' | 'system'>;
+  state: string;
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  timezone: string;
+  speechMode: 'api' | 'local';
+  version: number;
+};
+
 type FetchLike = typeof globalThis.fetch;
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
 const RFC3339_DATETIME_PATTERN =
@@ -128,6 +162,74 @@ function parseEndedMeeting(value: unknown): EndedMeeting | undefined {
     meetingId: body.meetingId as string,
     state: body.state,
     finalizedAt: body.finalizedAt,
+  };
+}
+
+function parseMeetingSummary(value: unknown): MeetingSummary | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const body = value as Record<string, unknown>;
+  const sources = body.captureSources;
+  if (
+    !MeetingIdSchema.safeParse(body.id).success ||
+    typeof body.title !== 'string' ||
+    (body.language !== 'vi' && body.language !== 'en') ||
+    (body.mode !== 'meeting_only' && body.mode !== 'meeting_translate') ||
+    !Array.isArray(sources) ||
+    sources.some((source) => source !== 'mic' && source !== 'system') ||
+    typeof body.state !== 'string' ||
+    !isDateTime(body.createdAt) ||
+    (body.startedAt !== null && !isDateTime(body.startedAt)) ||
+    (body.endedAt !== null && !isDateTime(body.endedAt)) ||
+    typeof body.timezone !== 'string' ||
+    (body.speechMode !== 'api' && body.speechMode !== 'local')
+  ) {
+    return undefined;
+  }
+  return {
+    id: body.id as string,
+    title: body.title,
+    language: body.language,
+    mode: body.mode,
+    captureSources: sources as Array<'mic' | 'system'>,
+    state: body.state,
+    createdAt: body.createdAt,
+    startedAt: body.startedAt,
+    endedAt: body.endedAt,
+    timezone: body.timezone,
+    speechMode: body.speechMode,
+  };
+}
+
+function parseMeetingList(value: unknown): MeetingListResult | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const body = value as Record<string, unknown>;
+  if (!Array.isArray(body.items)) return undefined;
+  const items: MeetingSummary[] = [];
+  for (const item of body.items) {
+    const parsedItem = parseMeetingSummary(item);
+    if (!parsedItem) return undefined;
+    items.push(parsedItem);
+  }
+  if (body.nextCursor !== null && typeof body.nextCursor !== 'string') {
+    return undefined;
+  }
+  return {
+    items,
+    nextCursor: body.nextCursor,
+  };
+}
+
+function parseMeetingDetail(value: unknown): MeetingDetailResult | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const body = value as Record<string, unknown>;
+  const summary = parseMeetingSummary(body);
+  if (!summary) return undefined;
+  if (typeof body.version !== 'number' || !Number.isInteger(body.version) || body.version < 0) {
+    return undefined;
+  }
+  return {
+    ...summary,
+    version: body.version,
   };
 }
 
@@ -270,6 +372,39 @@ export function createMeetingApi(
           body: '{}',
         },
         parseEndedMeeting,
+        200,
+      );
+    },
+
+    listLocalMeetings(options?: {
+      limit?: number;
+      cursor?: string;
+      state?: string;
+    }): Promise<MeetingListResult> {
+      const params = new URLSearchParams();
+      if (options?.limit !== undefined) {
+        params.set('limit', String(options.limit));
+      }
+      if (options?.cursor !== undefined) {
+        params.set('cursor', options.cursor);
+      }
+      if (options?.state !== undefined) {
+        params.set('state', options.state);
+      }
+      const qs = params.toString();
+      const query = qs ? `?${qs}` : '';
+      return request(`/v1/meetings${query}`, { method: 'GET' }, parseMeetingList, 200);
+    },
+
+    getLocalMeeting(meetingId: string): Promise<MeetingDetailResult> {
+      const parsedId = MeetingIdSchema.safeParse(meetingId);
+      if (!parsedId.success) {
+        return Promise.reject(new MeetingApiError('INVALID_RESPONSE'));
+      }
+      return request(
+        `/v1/meetings/${encodeURIComponent(parsedId.data)}`,
+        { method: 'GET' },
+        parseMeetingDetail,
         200,
       );
     },
