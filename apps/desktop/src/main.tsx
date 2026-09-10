@@ -48,6 +48,7 @@ export function App() {
   const [mode, setMode] = useState<Mode>('record');
   const [state, setState] = useState<'idle' | 'recording' | 'paused'>('idle');
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>('offline');
+  const [apiStatus, setApiStatus] = useState<'checking' | 'healthy' | 'offline'>('checking');
   const [uptime, setUptime] = useState<number>(0);
   const [isSimulated, setIsSimulated] = useState<boolean>(false);
   const [devices, setDevices] = useState<any[]>([]);
@@ -142,6 +143,25 @@ export function App() {
       active = false;
       clearInterval(timer);
       unsubscribe();
+    };
+  }, []);
+
+  // Monitor local meeting API connectivity
+  useEffect(() => {
+    let active = true;
+    const checkApi = async () => {
+      try {
+        await meetingApi.listLocalMeetings({ limit: 1 });
+        if (active) setApiStatus('healthy');
+      } catch {
+        if (active) setApiStatus('offline');
+      }
+    };
+    checkApi();
+    const interval = setInterval(checkApi, 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
     };
   }, []);
 
@@ -271,14 +291,9 @@ export function App() {
         log('Physical capture started successfully.');
       } else {
         if (!nativeClient) {
-          setState('recording');
-          setStartError(null);
-          setStopError(null);
-          setLastSessionSummary(null);
-          setTranscriptState('idle');
-          setTranscriptSegments([]);
-          setTranscriptDiagnostic(null);
-          log('Started mock recording session.');
+          setState('idle');
+          setCurrentMeetingId(null);
+          setStartError('Local capture runtime is unavailable.');
           return;
         }
         log('Starting simulated capture session...');
@@ -303,6 +318,10 @@ export function App() {
             sha256: '0000000000000000000000000000000000000000000000000000000000000000',
             byteLength: 1024,
           });
+        } else {
+          setState('idle');
+          setCurrentMeetingId(null);
+          setStartError('Failed to start simulated capture.');
         }
       }
     } catch (err) {
@@ -572,6 +591,12 @@ export function App() {
           <div className="diag-row">
             <span>Status:</span>
             <strong className={`status-${runtimeStatus}`}>{runtimeStatus.toUpperCase()}</strong>
+          </div>
+          <div className="diag-row" style={{ marginTop: '8px' }}>
+            <span>API Service:</span>
+            <strong className={`status-${apiStatus}`} data-testid="api-status">
+              {apiStatus.toUpperCase()}
+            </strong>
           </div>
           {runtimeStatus === 'healthy' && (
             <>

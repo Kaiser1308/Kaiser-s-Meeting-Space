@@ -109,4 +109,17 @@ describe('desktop bootstrap native startup', () => {
     expect(() => handler(runtimeError)).not.toThrow();
     expect(consoleErrorMock).toHaveBeenCalledWith('Native runtime error', runtimeError);
   });
+
+  it('resolves correct renderer URL in dev vs packaged production mode', async () => {
+    const { getRendererUrl } = await import('./main.js');
+    const { app } = await import('electron');
+
+    (app as any).isPackaged = false;
+    expect(getRendererUrl()).toBe('http://localhost:5173');
+
+    (app as any).isPackaged = true;
+    const prodUrl = getRendererUrl();
+    expect(prodUrl).toMatch(/^file:\/\/\/.+\/dist\/index\.html$/);
+    expect(prodUrl).not.toContain('renderer/index.html');
+  });
 });

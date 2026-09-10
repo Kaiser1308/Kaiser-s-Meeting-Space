@@ -13,7 +13,7 @@
 
 import { app, BrowserWindow, session, ipcMain } from 'electron';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { NativeSupervisor } from './supervisor.js';
 import { IpcHandler } from './ipc-handler.js';
 import { NATIVE_EVENT_CHANNEL } from '@kms/native-contract';
@@ -70,7 +70,7 @@ function getRendererUrl(): string {
   if (isDev()) {
     return 'http://localhost:5173';
   }
-  return `file://${join(__dirname, '../renderer/index.html')}`;
+  return pathToFileURL(join(__dirname, '../dist/index.html')).href;
 }
 
 /**
@@ -297,4 +297,5 @@ export {
   applyWindowSecurity,
   bootstrap,
   initNativeRuntime,
+  getRendererUrl,
 };
