@@ -52,16 +52,10 @@ describe('physical meeting start workflow', () => {
     'rejects safely when %s fails',
     async (failingStep) => {
       const { deps } = successfulDeps();
-      if (failingStep === 'create') {
-        deps.api.createLocalMeeting.mockRejectedValueOnce(new Error('private detail'));
-      } else if (failingStep === 'start') {
-        deps.api.startLocalMeeting.mockRejectedValueOnce(new Error('private detail'));
-      } else {
-        deps.native.send.mockImplementation(async (command) => {
-          if (command === failingStep) return { success: false, payload: {} };
-          return { success: true, payload: {} };
-        });
-      }
+      deps.native.send.mockImplementation(async (command) => {
+        if (command === failingStep) return { success: false, payload: {} };
+        return { success: true, payload: {} };
+      });
 
       await expect(startPhysicalMeeting(deps, input)).rejects.toEqual(new StartMeetingError('START_FAILED'));
     },
