@@ -42,7 +42,8 @@ export type CreateLocalMeetingInput = {
 
 type FetchLike = typeof globalThis.fetch;
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
-const RFC3339_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?Z$/;
+const RFC3339_DATETIME_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?Z$/;
 
 function isDateTime(value: unknown): value is string {
   if (typeof value !== 'string') return false;
@@ -54,7 +55,9 @@ function isDateTime(value: unknown): value is string {
   const date = new Date(0);
   // Unlike Date.UTC, setUTCFullYear preserves years 0000–0099.
   date.setUTCFullYear(year, month - 1, day);
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
 }
 
 function parseCreatedMeeting(value: unknown): CreatedMeeting | undefined {
@@ -69,9 +72,12 @@ function parseCreatedMeeting(value: unknown): CreatedMeeting | undefined {
     !Array.isArray(sources) ||
     sources.some((source) => source !== 'mic' && source !== 'system') ||
     body.state !== 'draft' ||
-    typeof body.version !== 'number' || !Number.isInteger(body.version) || body.version <= 0 ||
+    typeof body.version !== 'number' ||
+    !Number.isInteger(body.version) ||
+    body.version <= 0 ||
     !isDateTime(body.createdAt)
-  ) return undefined;
+  )
+    return undefined;
   return {
     id: body.id as string,
     title: body.title,
@@ -87,17 +93,29 @@ function parseCreatedMeeting(value: unknown): CreatedMeeting | undefined {
 function parseStartedMeeting(value: unknown): StartedMeeting | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const body = value as Record<string, unknown>;
-  if (!MeetingIdSchema.safeParse(body.meetingId).success || body.state !== 'recording' || !isDateTime(body.startedAt) || body.policyVersion !== 1) {
+  if (
+    !MeetingIdSchema.safeParse(body.meetingId).success ||
+    body.state !== 'recording' ||
+    !isDateTime(body.startedAt) ||
+    body.policyVersion !== 1
+  ) {
     return undefined;
   }
-  return { meetingId: body.meetingId as string, state: 'recording', startedAt: body.startedAt, policyVersion: 1 };
+  return {
+    meetingId: body.meetingId as string,
+    state: 'recording',
+    startedAt: body.startedAt,
+    policyVersion: 1,
+  };
 }
 
-export function createMeetingApi(options: {
-  fetch?: FetchLike;
-  baseUrl?: string;
-  newId?: () => string;
-} = {}) {
+export function createMeetingApi(
+  options: {
+    fetch?: FetchLike;
+    baseUrl?: string;
+    newId?: () => string;
+  } = {},
+) {
   const fetcher = options.fetch ?? globalThis.fetch.bind(globalThis);
   const baseUrl = options.baseUrl ?? 'http://127.0.0.1:4310';
   const newId = options.newId ?? (() => crypto.randomUUID());
@@ -154,7 +172,10 @@ export function createMeetingApi(options: {
 
   return {
     async createLocalMeeting(input: CreateLocalMeetingInput): Promise<CreatedMeeting> {
-      const policy = TranscriptionPolicyV1Schema.parse({ ...LOCAL_POLICY, language: input.language });
+      const policy = TranscriptionPolicyV1Schema.parse({
+        ...LOCAL_POLICY,
+        language: input.language,
+      });
       const idempotencyKey = newIdempotencyKey();
       return request(
         '/v1/meetings',
@@ -198,6 +219,7 @@ export function createMeetingApi(options: {
             'Content-Type': 'application/json',
             'Idempotency-Key': idempotencyKey,
           },
+          body: '{}',
         },
         parseStartedMeeting,
         200,
