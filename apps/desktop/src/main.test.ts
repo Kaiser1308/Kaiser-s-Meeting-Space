@@ -155,4 +155,95 @@ describe('@kms/desktop', () => {
       expect(mainContent).toContain('{seg.text}');
     });
   });
+
+  describe('M5 Task 4: Personal Library view, meeting reopen, and Markdown export', () => {
+    const mainContent = readFileSync(resolve(__dirname, 'main.tsx'), 'utf-8');
+
+    it('imports listLocalMeetings, saveTranscript, exportMeetingMarkdown', () => {
+      expect(mainContent).toContain('MeetingSummary');
+      expect(mainContent).toContain('MeetingDetailResult');
+      expect(mainContent).toMatch(
+        /import\s*\{[^}]*saveTranscript[^}]*getTranscript[^}]*\}\s*from\s*['"]\.\/transcript-storage\.js['"]/,
+      );
+      expect(mainContent).toMatch(
+        /import\s*\{[^}]*exportMeetingMarkdown[^}]*ExportableMeeting[^}]*\}\s*from\s*['"]\.\/markdown-export\.js['"]/,
+      );
+      expect(mainContent).toContain('meetingApi.listLocalMeetings');
+      expect(mainContent).toContain('meetingApi.getLocalMeeting');
+    });
+
+    it('manages activeTab, libraryMeetings, selectedMeeting, exportStatus, and exportError', () => {
+      expect(mainContent).toContain(
+        "const [activeTab, setActiveTab] = useState<'record' | 'library'>('record');",
+      );
+      expect(mainContent).toContain(
+        'const [libraryMeetings, setLibraryMeetings] = useState<MeetingSummary[]>([]);',
+      );
+      expect(mainContent).toContain(
+        'const [libraryLoading, setLibraryLoading] = useState<boolean>(false);',
+      );
+      expect(mainContent).toContain(
+        'const [libraryError, setLibraryError] = useState<string | null>(null);',
+      );
+      expect(mainContent).toContain(
+        'const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetailResult | null>(null);',
+      );
+      expect(mainContent).toContain(
+        'const [exportStatus, setExportStatus] = useState<string | null>(null);',
+      );
+      expect(mainContent).toContain(
+        'const [exportError, setExportError] = useState<string | null>(null);',
+      );
+    });
+
+    it('renders tab buttons for Record and Library', () => {
+      expect(mainContent).toContain("activeTab === 'record' ? 'tab-btn active' : 'tab-btn'");
+      expect(mainContent).toContain("activeTab === 'library' ? 'tab-btn active' : 'tab-btn'");
+      expect(mainContent).toContain("onClick={() => setActiveTab('record')}");
+      expect(mainContent).toContain("setActiveTab('library');");
+      expect(mainContent).toContain('fetchLibrary();');
+    });
+
+    it("renders library container when activeTab === 'library'", () => {
+      expect(mainContent).toContain("activeTab === 'library' && (");
+      expect(mainContent).toContain('data-testid="meeting-library"');
+      expect(mainContent).toContain('LOCAL MEETING LIBRARY');
+      expect(mainContent).toContain('onClick={fetchLibrary}');
+      expect(mainContent).toContain('data-testid="library-meeting-item"');
+      expect(mainContent).toContain('data-testid="open-meeting-btn"');
+      expect(mainContent).toContain('View / Reopen');
+    });
+
+    it('renders Export Markdown button and handles export status / error', () => {
+      expect(mainContent).toContain('const handleExportMarkdown = () => {');
+      expect(mainContent).toContain('exportMeetingMarkdown(targetMeeting, transcriptSegments);');
+      expect(mainContent).toContain('data-testid="export-markdown-btn"');
+      expect(mainContent).toContain('onClick={handleExportMarkdown}');
+      expect(mainContent).toContain('Exported ${res.filename} successfully.');
+      expect(mainContent).toContain('exportStatus && (');
+      expect(mainContent).toContain('exportError && (');
+    });
+
+    it('reopens meeting and restores persisted transcript segments', () => {
+      expect(mainContent).toContain('const handleOpenMeeting = async (meetingId: string) => {');
+      expect(mainContent).toContain('await meetingApi.getLocalMeeting(meetingId)');
+      expect(mainContent).toContain('setSelectedMeeting(detail)');
+      expect(mainContent).toContain('getTranscript(meetingId)');
+      expect(mainContent).toContain('setTranscriptSegments(cached)');
+      expect(mainContent).toContain("setTranscriptState('completed')");
+      expect(mainContent).toContain('data-testid="selected-meeting-card"');
+      expect(mainContent).toContain('{selectedMeeting && (');
+      expect(mainContent).toContain('{selectedMeeting.id}');
+      expect(mainContent).toContain('{selectedMeeting.state}');
+    });
+
+    it('persists transcript segments with saveTranscript when transcription completes', () => {
+      expect(mainContent).toContain('if (selectedMeeting) {');
+      expect(mainContent).toContain('saveTranscript(selectedMeeting.id, result.segments);');
+      expect(mainContent).toContain('if (lastSessionSummary) {');
+      expect(mainContent).toContain(
+        'saveTranscript(lastSessionSummary.meetingId, result.segments);',
+      );
+    });
+  });
 });

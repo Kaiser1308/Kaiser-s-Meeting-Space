@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NativeBridgeClient, type NativeIpcTransport } from '@kms/native-contract';
-import { createMeetingApi, MeetingApiError } from './meeting-api.js';
+import {
+  createMeetingApi,
+  MeetingApiError,
+  type MeetingSummary,
+  type MeetingDetailResult,
+} from './meeting-api.js';
+import { saveTranscript, getTranscript } from './transcript-storage.js';
+import { exportMeetingMarkdown, type ExportableMeeting } from './markdown-export.js';
 import { startPhysicalMeeting, StartMeetingError } from './start-meeting-workflow.js';
 import {
   endPhysicalMeeting,
@@ -58,6 +65,13 @@ export function App() {
   >('idle');
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
   const [transcriptDiagnostic, setTranscriptDiagnostic] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'record' | 'library'>('record');
+  const [libraryMeetings, setLibraryMeetings] = useState<MeetingSummary[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState<boolean>(false);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetailResult | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Capture mode configuration
   const [captureType, setCaptureType] = useState<'physical' | 'simulated'>('physical');
@@ -370,20 +384,27 @@ export function App() {
   };
 
   const handleTranscribeMeeting = async () => {
-    if (!lastSessionSummary || !nativeClient) return;
+    const targetMeetingId = selectedMeeting ? selectedMeeting.id : lastSessionSummary?.meetingId;
+    if (!targetMeetingId || !nativeClient) return;
     setTranscriptState('transcribing');
     setTranscriptDiagnostic(null);
     try {
-      log(`Starting post-recording transcription for meeting ${lastSessionSummary.meetingId}...`);
+      log(`Starting post-recording transcription for meeting ${targetMeetingId}...`);
       const result = await transcribeMeeting(
         { native: nativeClient },
         {
-          meetingId: lastSessionSummary.meetingId,
+          meetingId: targetMeetingId,
           language: meetingLanguage,
         },
       );
       setTranscriptSegments(result.segments);
       setTranscriptState('completed');
+      if (selectedMeeting) {
+        saveTranscript(selectedMeeting.id, result.segments);
+      }
+      if (lastSessionSummary) {
+        saveTranscript(lastSessionSummary.meetingId, result.segments);
+      }
       log(`Transcription completed: ${result.segments.length} segments received.`);
     } catch (err) {
       setTranscriptState('failed');
@@ -393,6 +414,66 @@ export function App() {
         setTranscriptDiagnostic('An unexpected error occurred during transcription.');
       }
       log(`Transcription failed: ${err}`);
+    }
+  };
+
+  const fetchLibrary = async () => {
+    setLibraryLoading(true);
+    setLibraryError(null);
+    try {
+      const res = await meetingApi.listLocalMeetings({ limit: 50 });
+      setLibraryMeetings(res.items);
+    } catch (err) {
+      setLibraryError('Failed to load local meeting library.');
+      log('Failed to load library: ' + err);
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  const handleOpenMeeting = async (meetingId: string) => {
+    try {
+      const detail = await meetingApi.getLocalMeeting(meetingId);
+      setSelectedMeeting(detail);
+      const cached = getTranscript(meetingId);
+      if (cached && cached.length > 0) {
+        setTranscriptSegments(cached);
+        setTranscriptState('completed');
+      } else {
+        setTranscriptSegments([]);
+        setTranscriptState('idle');
+      }
+    } catch (err) {
+      log('Failed to open meeting: ' + err);
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    setExportError(null);
+    setExportStatus(null);
+    const targetMeeting: ExportableMeeting | null = selectedMeeting
+      ? selectedMeeting
+      : lastSessionSummary
+        ? {
+            id: lastSessionSummary.meetingId,
+            title: meetingTitle,
+            language: meetingLanguage,
+            state: 'finalized',
+            createdAt: new Date().toISOString(),
+            endedAt: lastSessionSummary.finalizedAt,
+            captureSources: ['mic'],
+            timezone: meetingTimezone,
+          }
+        : null;
+
+    if (!targetMeeting) return;
+    const res = exportMeetingMarkdown(targetMeeting, transcriptSegments);
+    if (res.success) {
+      setExportStatus(`Exported ${res.filename} successfully.`);
+      log(`Exported markdown: ${res.filename}`);
+    } else {
+      setExportError(res.error || 'Failed to export Markdown.');
+      log(`Markdown export failed: ${res.error}`);
     }
   };
 
@@ -541,242 +622,766 @@ export function App() {
           <button className="profile">KT</button>
         </header>
 
-        <div className="grid">
-          <article className="start-card">
-            <p className="eyebrow">NEW MEETING</p>
-            <h2>Ready when you are.</h2>
-            <label className="eyebrow" htmlFor="meeting-title">
-              MEETING TITLE
-            </label>
-            <input
-              id="meeting-title"
-              value={meetingTitle}
-              onChange={(event) => setMeetingTitle(event.target.value)}
-              disabled={active}
-              required
-            />
-            <div className="modes">
-              <button
-                className={mode === 'record' ? 'active' : ''}
-                onClick={() => setMode('record')}
-              >
-                <b>Record meeting</b>
-                <small>Full audio + transcript</small>
-              </button>
-              <button
-                className={mode === 'translate' ? 'active' : ''}
-                onClick={() => setMode('translate')}
-              >
-                <b>Live translation</b>
-                <small>Vietnamese ↔ English</small>
-              </button>
-            </div>
+        {/* Tab Navigation */}
+        <div className="tab-switcher" style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+          <button
+            className={activeTab === 'record' ? 'tab-btn active' : 'tab-btn'}
+            onClick={() => setActiveTab('record')}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '10px',
+              border: '1px solid #ccd2cf',
+              background: activeTab === 'record' ? '#183128' : '#fff',
+              color: activeTab === 'record' ? '#fff' : '#17201d',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Record
+          </button>
+          <button
+            className={activeTab === 'library' ? 'tab-btn active' : 'tab-btn'}
+            onClick={() => {
+              setActiveTab('library');
+              fetchLibrary();
+            }}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '10px',
+              border: '1px solid #ccd2cf',
+              background: activeTab === 'library' ? '#183128' : '#fff',
+              color: activeTab === 'library' ? '#fff' : '#17201d',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Library
+          </button>
+        </div>
 
-            {/* Toggle group between physical hardware and simulator */}
-            <div className="selector-group">
-              <button
-                className={`selector-btn ${captureType === 'physical' ? 'active' : ''}`}
-                onClick={() => setCaptureType('physical')}
+        {activeTab === 'record' && (
+          <div className="grid">
+            <article className="start-card">
+              <p className="eyebrow">NEW MEETING</p>
+              <h2>Ready when you are.</h2>
+              <label className="eyebrow" htmlFor="meeting-title">
+                MEETING TITLE
+              </label>
+              <input
+                id="meeting-title"
+                value={meetingTitle}
+                onChange={(event) => setMeetingTitle(event.target.value)}
                 disabled={active}
-              >
-                Physical Capture
-              </button>
-              <button
-                className={`selector-btn ${captureType === 'simulated' ? 'active' : ''}`}
-                onClick={() => setCaptureType('simulated')}
-                disabled={active}
-              >
-                Simulated (P11)
-              </button>
-            </div>
+                required
+              />
+              <div className="modes">
+                <button
+                  className={mode === 'record' ? 'active' : ''}
+                  onClick={() => setMode('record')}
+                >
+                  <b>Record meeting</b>
+                  <small>Full audio + transcript</small>
+                </button>
+                <button
+                  className={mode === 'translate' ? 'active' : ''}
+                  onClick={() => setMode('translate')}
+                >
+                  <b>Live translation</b>
+                  <small>Vietnamese ↔ English</small>
+                </button>
+              </div>
 
-            {/* Dropdown selectors for physical sources */}
-            {captureType === 'physical' && (
-              <div style={{ marginTop: '16px' }}>
-                <label className="eyebrow" style={{ display: 'block', marginBottom: '4px' }}>
-                  MICROPHONE SOURCE
-                </label>
-                <select
-                  className="device-select"
-                  value={selectedMicId}
-                  onChange={(e) => setSelectedMicId(e.target.value)}
+              {/* Toggle group between physical hardware and simulator */}
+              <div className="selector-group">
+                <button
+                  className={`selector-btn ${captureType === 'physical' ? 'active' : ''}`}
+                  onClick={() => setCaptureType('physical')}
                   disabled={active}
                 >
-                  <option value="default">Default Input Device</option>
-                  {physicalMics.map((d: any) => (
-                    <option key={d.deviceId} value={d.deviceId}>
-                      {d.deviceName}
-                    </option>
-                  ))}
-                </select>
-
-                <label className="eyebrow" style={{ display: 'block', marginBottom: '4px' }}>
-                  SYSTEM AUDIO SOURCE
-                </label>
-                <select
-                  className="device-select"
-                  value={selectedSysId}
-                  onChange={(e) => setSelectedSysId(e.target.value)}
+                  Physical Capture
+                </button>
+                <button
+                  className={`selector-btn ${captureType === 'simulated' ? 'active' : ''}`}
+                  onClick={() => setCaptureType('simulated')}
                   disabled={active}
                 >
-                  <option value="default">Default Loopback Device</option>
-                  {physicalSys.map((d: any) => (
-                    <option key={d.deviceId} value={d.deviceId}>
-                      {d.deviceName}
-                    </option>
-                  ))}
-                </select>
+                  Simulated (P11)
+                </button>
               </div>
-            )}
 
-            {/* Simulated static devices list */}
-            {captureType === 'simulated' && (
-              <div className="sources">
-                <span>MICROPHONE</span>
-                <strong>
-                  {devices.find((d: any) => d.device_type === 'microphone')?.device_name ||
-                    'Default microphone'}
-                </strong>
-                <span>SYSTEM AUDIO</span>
-                <strong>
-                  {devices.find((d: any) => d.device_type === 'system_audio')?.device_name ||
-                    'Computer audio'}
-                </strong>
-              </div>
-            )}
-
-            {/* Real-time capture health indicators */}
-            {state === 'recording' && (
-              <div className="level-meters" data-testid="capture-health-indicators">
-                <div className="level-meter-track">
-                  <label>
-                    MIC LEVEL ({micLevel}%) — GAPS: {micGapCount}
+              {/* Dropdown selectors for physical sources */}
+              {captureType === 'physical' && (
+                <div style={{ marginTop: '16px' }}>
+                  <label className="eyebrow" style={{ display: 'block', marginBottom: '4px' }}>
+                    MICROPHONE SOURCE
                   </label>
-                  <div className="level-meter-bar-outer">
-                    <div className="level-meter-bar-inner" style={{ width: `${micLevel}%` }} />
+                  <select
+                    className="device-select"
+                    value={selectedMicId}
+                    onChange={(e) => setSelectedMicId(e.target.value)}
+                    disabled={active}
+                  >
+                    <option value="default">Default Input Device</option>
+                    {physicalMics.map((d: any) => (
+                      <option key={d.deviceId} value={d.deviceId}>
+                        {d.deviceName}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="eyebrow" style={{ display: 'block', marginBottom: '4px' }}>
+                    SYSTEM AUDIO SOURCE
+                  </label>
+                  <select
+                    className="device-select"
+                    value={selectedSysId}
+                    onChange={(e) => setSelectedSysId(e.target.value)}
+                    disabled={active}
+                  >
+                    <option value="default">Default Loopback Device</option>
+                    {physicalSys.map((d: any) => (
+                      <option key={d.deviceId} value={d.deviceId}>
+                        {d.deviceName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Simulated static devices list */}
+              {captureType === 'simulated' && (
+                <div className="sources">
+                  <span>MICROPHONE</span>
+                  <strong>
+                    {devices.find((d: any) => d.device_type === 'microphone')?.device_name ||
+                      'Default microphone'}
+                  </strong>
+                  <span>SYSTEM AUDIO</span>
+                  <strong>
+                    {devices.find((d: any) => d.device_type === 'system_audio')?.device_name ||
+                      'Computer audio'}
+                  </strong>
+                </div>
+              )}
+
+              {/* Real-time capture health indicators */}
+              {state === 'recording' && (
+                <div className="level-meters" data-testid="capture-health-indicators">
+                  <div className="level-meter-track">
+                    <label>
+                      MIC LEVEL ({micLevel}%) — GAPS: {micGapCount}
+                    </label>
+                    <div className="level-meter-bar-outer">
+                      <div className="level-meter-bar-inner" style={{ width: `${micLevel}%` }} />
+                    </div>
+                  </div>
+                  <div className="level-meter-track">
+                    <label>
+                      SYSTEM AUDIO LEVEL ({sysLevel}%) — GAPS: {sysGapCount}
+                    </label>
+                    <div className="level-meter-bar-outer">
+                      <div className="level-meter-bar-inner" style={{ width: `${sysLevel}%` }} />
+                    </div>
+                  </div>
+                  <div
+                    className="capture-health-stats"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '11px',
+                      color: '#738079',
+                      marginTop: '8px',
+                    }}
+                  >
+                    <span>
+                      Gap indicator: Mic ({micGapCount}) / Sys ({sysGapCount})
+                    </span>
+                    <span>Drift indicator: {driftSamples} samples</span>
                   </div>
                 </div>
-                <div className="level-meter-track">
-                  <label>
-                    SYSTEM AUDIO LEVEL ({sysLevel}%) — GAPS: {sysGapCount}
-                  </label>
-                  <div className="level-meter-bar-outer">
-                    <div className="level-meter-bar-inner" style={{ width: `${sysLevel}%` }} />
-                  </div>
-                </div>
+              )}
+
+              <div className="action-buttons">
+                <button className="record" onClick={active ? handleEndMeeting : handleStartMeeting}>
+                  <i />
+                  {active ? 'End meeting' : 'Start meeting'}
+                </button>
+                {active && (
+                  <button className="pause" onClick={handlePause}>
+                    {state === 'paused' ? 'Resume' : 'Pause'}
+                  </button>
+                )}
+              </div>
+              {startError && <p role="alert">{startError}</p>}
+              {stopError && (
                 <div
-                  className="capture-health-stats"
+                  role="alert"
+                  className="error-banner"
                   style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '11px',
-                    color: '#738079',
-                    marginTop: '8px',
+                    marginTop: '12px',
+                    padding: '12px 14px',
+                    background: '#fdf2f2',
+                    border: '1px solid #f8b4b4',
+                    borderRadius: '8px',
+                    color: '#9b1c1c',
+                    fontSize: '13px',
+                    lineHeight: '1.4',
                   }}
                 >
-                  <span>
-                    Gap indicator: Mic ({micGapCount}) / Sys ({sysGapCount})
-                  </span>
-                  <span>Drift indicator: {driftSamples} samples</span>
+                  {stopError}
                 </div>
-              </div>
-            )}
-
-            <div className="action-buttons">
-              <button className="record" onClick={active ? handleEndMeeting : handleStartMeeting}>
-                <i />
-                {active ? 'End meeting' : 'Start meeting'}
-              </button>
-              {active && (
-                <button className="pause" onClick={handlePause}>
-                  {state === 'paused' ? 'Resume' : 'Pause'}
-                </button>
               )}
-            </div>
-            {startError && <p role="alert">{startError}</p>}
-            {stopError && (
+
+              {/* Session Completion Evidence Card */}
+              {lastSessionSummary && (
+                <div
+                  className="session-evidence-card"
+                  data-testid="session-evidence-card"
+                  style={{
+                    marginTop: '20px',
+                    padding: '20px',
+                    background: '#193128',
+                    color: '#fff',
+                    borderRadius: '14px',
+                  }}
+                >
+                  <p className="eyebrow" style={{ color: '#a8b6af' }}>
+                    SESSION EVIDENCE
+                  </p>
+                  <h3 style={{ color: '#fff', margin: '4px 0 16px 0', fontSize: '18px' }}>
+                    Session Finalized
+                  </h3>
+                  <div
+                    className="evidence-row"
+                    style={{ paddingTop: '10px', paddingBottom: '10px' }}
+                  >
+                    <span>
+                      <small>Meeting ID (UUID)</small>
+                      <strong style={{ wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                        {lastSessionSummary.meetingId}
+                      </strong>
+                    </span>
+                  </div>
+                  <div
+                    className="evidence-row"
+                    style={{ paddingTop: '10px', paddingBottom: '10px' }}
+                  >
+                    <span>
+                      <small>Mic Chunks count</small>
+                      <strong>{lastSessionSummary.totalMicChunks}</strong>
+                    </span>
+                  </div>
+                  <div
+                    className="evidence-row"
+                    style={{ paddingTop: '10px', paddingBottom: '10px' }}
+                  >
+                    <span>
+                      <small>Sys Chunks count</small>
+                      <strong>{lastSessionSummary.totalSysChunks}</strong>
+                    </span>
+                  </div>
+                  <div
+                    className="evidence-row"
+                    style={{ paddingTop: '10px', paddingBottom: '10px' }}
+                  >
+                    <span>
+                      <small>Commit Status</small>
+                      <strong>{lastSessionSummary.commitStatus}</strong>
+                    </span>
+                  </div>
+                  <div
+                    className="evidence-row"
+                    style={{ paddingTop: '10px', paddingBottom: '10px' }}
+                  >
+                    <span>
+                      <small>Finalized At</small>
+                      <strong>
+                        {new Date(lastSessionSummary.finalizedAt).toLocaleTimeString()}
+                      </strong>
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      color: '#d8ff6a',
+                      marginTop: '16px',
+                      marginBottom: 0,
+                      fontWeight: 500,
+                    }}
+                  >
+                    All audio chunks committed locally. Source audio is immutable.
+                  </p>
+
+                  {(['idle', 'failed'] as string[]).includes(transcriptState) && (
+                    <button
+                      className="btn-transcribe"
+                      onClick={handleTranscribeMeeting}
+                      disabled={transcriptState === 'transcribing'}
+                      style={{
+                        marginTop: '16px',
+                        padding: '10px 16px',
+                        background: '#d8ff6a',
+                        color: '#14241e',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Transcribe meeting (Local Whisper)
+                    </button>
+                  )}
+
+                  {transcriptState === 'transcribing' && (
+                    <p role="status" style={{ color: '#d8ff6a', marginTop: '12px' }}>
+                      Running local Whisper model inference...
+                    </p>
+                  )}
+
+                  {transcriptDiagnostic && (
+                    <div
+                      role="alert"
+                      className="diagnostic-banner"
+                      style={{
+                        marginTop: '12px',
+                        padding: '12px 14px',
+                        background: '#fff8e1',
+                        border: '1px solid #ffe082',
+                        borderRadius: '8px',
+                        color: '#8d6e63',
+                        fontSize: '13px',
+                        lineHeight: '1.4',
+                      }}
+                    >
+                      <strong>Transcription Prerequisite: </strong>
+                      {transcriptDiagnostic}
+                    </div>
+                  )}
+
+                  {transcriptSegments.length > 0 && (
+                    <div
+                      className="source-transcript-card"
+                      data-testid="source-transcript-card"
+                      style={{
+                        marginTop: '16px',
+                        padding: '16px',
+                        background: '#12241d',
+                        borderRadius: '10px',
+                        border: '1px solid #2a473a',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div>
+                          <p className="eyebrow" style={{ color: '#a8b6af', margin: 0 }}>
+                            SOURCE TRANSCRIPT (LOCAL MODEL) [{meetingLanguage.toUpperCase()}]
+                          </p>
+                          <p style={{ fontSize: '12px', color: '#738079', margin: '4px 0 12px 0' }}>
+                            Read-only. Source transcript is immutable.
+                          </p>
+                        </div>
+                        <button
+                          className="btn-export-markdown"
+                          data-testid="export-markdown-btn"
+                          onClick={handleExportMarkdown}
+                          style={{
+                            padding: '8px 14px',
+                            background: '#d8ff6a',
+                            color: '#14241e',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                          }}
+                        >
+                          Export Markdown
+                        </button>
+                      </div>
+
+                      {exportStatus && (
+                        <div
+                          role="status"
+                          style={{
+                            marginTop: '8px',
+                            padding: '8px 12px',
+                            background: '#193b2d',
+                            border: '1px solid #2a5a44',
+                            borderRadius: '6px',
+                            color: '#d8ff6a',
+                            fontSize: '12px',
+                          }}
+                        >
+                          {exportStatus}
+                        </div>
+                      )}
+
+                      {exportError && (
+                        <div
+                          role="alert"
+                          style={{
+                            marginTop: '8px',
+                            padding: '8px 12px',
+                            background: '#3d1c1c',
+                            border: '1px solid #6b2d2d',
+                            borderRadius: '6px',
+                            color: '#ff8a80',
+                            fontSize: '12px',
+                          }}
+                        >
+                          {exportError}
+                        </div>
+                      )}
+                      <div className="transcript-segments" style={{ marginTop: '12px' }}>
+                        {transcriptSegments.map((seg, idx) => (
+                          <div
+                            key={idx}
+                            className="transcript-segment"
+                            style={{
+                              padding: '8px 0',
+                              borderBottom: '1px solid #2a473a',
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: '#738079',
+                                fontSize: '11px',
+                                fontFamily: 'monospace',
+                                marginRight: '8px',
+                              }}
+                            >
+                              [{Math.floor(seg.startMs / 1000)}s - {Math.floor(seg.endMs / 1000)}s]
+                            </span>
+                            {seg.speaker && (
+                              <strong
+                                style={{
+                                  color: '#d8ff6a',
+                                  marginRight: '6px',
+                                  fontSize: '12px',
+                                }}
+                              >
+                                {seg.speaker}:
+                              </strong>
+                            )}
+                            <span style={{ color: '#fff', fontSize: '14px' }}>{seg.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </article>
+
+            {/* Simulator Panel */}
+            <article className="evidence">
+              <p className="eyebrow">DETERMINISTIC SIMULATOR CONTROLS</p>
+              <h2>Inject Runtime Events</h2>
+              <div className="sim-grid">
+                <button
+                  className="sim-btn"
+                  onClick={() => injectEvent('chunk_ready')}
+                  disabled={!active || captureType !== 'simulated'}
+                >
+                  Ready Chunk
+                </button>
+                <button
+                  className="sim-btn"
+                  onClick={() => injectEvent('gap_detected')}
+                  disabled={!active || captureType !== 'simulated'}
+                >
+                  Inject Gap
+                </button>
+                <button
+                  className="sim-btn"
+                  onClick={() => injectEvent('overflow')}
+                  disabled={!active || captureType !== 'simulated'}
+                >
+                  Buffer Overflow
+                </button>
+                <button
+                  className="sim-btn"
+                  onClick={() => injectEvent('hot_plug')}
+                  disabled={captureType !== 'simulated'}
+                >
+                  Toggle Hot-Plug
+                </button>
+                <button
+                  className="sim-btn"
+                  onClick={() => injectEvent('sleep_wake')}
+                  disabled={!active || captureType !== 'simulated'}
+                >
+                  Sleep / Wake
+                </button>
+                <button
+                  className="sim-btn btn-danger"
+                  onClick={() => injectEvent('crash')}
+                  disabled={!active || captureType !== 'simulated'}
+                >
+                  Crash Runtime
+                </button>
+              </div>
+            </article>
+          </div>
+        )}
+
+        {/* Meeting Library Tab */}
+        {activeTab === 'library' && (
+          <div
+            className="meeting-library"
+            data-testid="meeting-library"
+            style={{ display: 'grid', gap: '24px' }}
+          >
+            <article className="start-card" style={{ padding: '24px' }}>
               <div
-                role="alert"
-                className="error-banner"
                 style={{
-                  marginTop: '12px',
-                  padding: '12px 14px',
-                  background: '#fdf2f2',
-                  border: '1px solid #f8b4b4',
-                  borderRadius: '8px',
-                  color: '#9b1c1c',
-                  fontSize: '13px',
-                  lineHeight: '1.4',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '16px',
                 }}
               >
-                {stopError}
+                <div>
+                  <p className="eyebrow" style={{ margin: 0 }}>
+                    LOCAL MEETING LIBRARY
+                  </p>
+                  <h2 style={{ margin: '4px 0' }}>Stored Meetings</h2>
+                </div>
+                <button
+                  onClick={fetchLibrary}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#183128',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  Refresh
+                </button>
               </div>
-            )}
 
-            {/* Session Completion Evidence Card */}
-            {lastSessionSummary && (
-              <div
-                className="session-evidence-card"
-                data-testid="session-evidence-card"
+              {libraryLoading && <p role="status">Loading local meetings...</p>}
+
+              {libraryError && (
+                <div
+                  role="alert"
+                  className="diagnostic-banner"
+                  style={{
+                    padding: '12px 14px',
+                    background: '#fff8e1',
+                    border: '1px solid #ffe082',
+                    borderRadius: '8px',
+                    color: '#8d6e63',
+                    fontSize: '13px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  {libraryError}
+                </div>
+              )}
+
+              {!libraryLoading && libraryMeetings.length === 0 && (
+                <p>No local meetings found. Record a meeting to get started.</p>
+              )}
+
+              {libraryMeetings.length > 0 && (
+                <div className="library-meeting-list" style={{ display: 'grid', gap: '12px' }}>
+                  {libraryMeetings.map((m) => (
+                    <div
+                      key={m.id}
+                      data-testid="library-meeting-item"
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '14px 18px',
+                        background: '#fafaf8',
+                        border: '1px solid #e2e2dd',
+                        borderRadius: '10px',
+                      }}
+                    >
+                      <div>
+                        <h4 style={{ margin: '0 0 6px 0', fontSize: '16px' }}>{m.title}</h4>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center',
+                            fontSize: '12px',
+                            color: '#738079',
+                          }}
+                        >
+                          <span
+                            className="badge-state"
+                            style={{
+                              background: '#e0f2fe',
+                              color: '#0369a1',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontWeight: 600,
+                              fontSize: '11px',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {m.state}
+                          </span>
+                          <span
+                            className="badge-lang"
+                            style={{
+                              background: '#fef3c7',
+                              color: '#b45309',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontWeight: 600,
+                              fontSize: '11px',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {m.language}
+                          </span>
+                          <span>Created: {new Date(m.createdAt).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <button
+                        data-testid="open-meeting-btn"
+                        onClick={() => handleOpenMeeting(m.id)}
+                        style={{
+                          padding: '8px 14px',
+                          background: '#183128',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          fontSize: '13px',
+                        }}
+                      >
+                        View / Reopen
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+
+            {selectedMeeting && (
+              <article
+                className="selected-meeting-card"
+                data-testid="selected-meeting-card"
                 style={{
-                  marginTop: '20px',
-                  padding: '20px',
+                  padding: '24px',
                   background: '#193128',
                   color: '#fff',
                   borderRadius: '14px',
                 }}
               >
-                <p className="eyebrow" style={{ color: '#a8b6af' }}>
-                  SESSION EVIDENCE
-                </p>
-                <h3 style={{ color: '#fff', margin: '4px 0 16px 0', fontSize: '18px' }}>
-                  Session Finalized
-                </h3>
-                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
-                  <span>
-                    <small>Meeting ID (UUID)</small>
-                    <strong style={{ wordBreak: 'break-all', fontFamily: 'monospace' }}>
-                      {lastSessionSummary.meetingId}
-                    </strong>
-                  </span>
-                </div>
-                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
-                  <span>
-                    <small>Mic Chunks count</small>
-                    <strong>{lastSessionSummary.totalMicChunks}</strong>
-                  </span>
-                </div>
-                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
-                  <span>
-                    <small>Sys Chunks count</small>
-                    <strong>{lastSessionSummary.totalSysChunks}</strong>
-                  </span>
-                </div>
-                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
-                  <span>
-                    <small>Commit Status</small>
-                    <strong>{lastSessionSummary.commitStatus}</strong>
-                  </span>
-                </div>
-                <div className="evidence-row" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
-                  <span>
-                    <small>Finalized At</small>
-                    <strong>{new Date(lastSessionSummary.finalizedAt).toLocaleTimeString()}</strong>
-                  </span>
-                </div>
-                <p
+                <div
                   style={{
-                    fontSize: '12px',
-                    color: '#d8ff6a',
-                    marginTop: '16px',
-                    marginBottom: 0,
-                    fontWeight: 500,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
                   }}
                 >
-                  All audio chunks committed locally. Source audio is immutable.
-                </p>
+                  <div>
+                    <p className="eyebrow" style={{ color: '#a8b6af', margin: 0 }}>
+                      REOPENED MEETING
+                    </p>
+                    <h3 style={{ margin: '6px 0 12px 0', color: '#fff', fontSize: '20px' }}>
+                      {selectedMeeting.title}
+                    </h3>
+                  </div>
+                  <button
+                    className="btn-export-markdown"
+                    data-testid="export-markdown-btn"
+                    onClick={handleExportMarkdown}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#d8ff6a',
+                      color: '#14241e',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Export Markdown
+                  </button>
+                </div>
 
-                {(['idle', 'failed'] as string[]).includes(transcriptState) && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: '8px',
+                    margin: '16px 0',
+                    fontSize: '13px',
+                    color: '#d8dee9',
+                  }}
+                >
+                  <div>
+                    <strong style={{ color: '#a8b6af' }}>Meeting ID: </strong>
+                    <code style={{ fontFamily: 'monospace', color: '#fff' }}>
+                      {selectedMeeting.id}
+                    </code>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#a8b6af' }}>State: </strong>
+                    <span style={{ textTransform: 'uppercase', color: '#d8ff6a', fontWeight: 600 }}>
+                      {selectedMeeting.state}
+                    </span>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#a8b6af' }}>Created At: </strong>
+                    <span>{selectedMeeting.createdAt}</span>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#a8b6af' }}>Ended At: </strong>
+                    <span>{selectedMeeting.endedAt || 'N/A'}</span>
+                  </div>
+                </div>
+
+                {exportStatus && (
+                  <div
+                    role="status"
+                    style={{
+                      marginTop: '12px',
+                      padding: '10px 14px',
+                      background: '#193b2d',
+                      border: '1px solid #2a5a44',
+                      borderRadius: '8px',
+                      color: '#d8ff6a',
+                      fontSize: '13px',
+                    }}
+                  >
+                    {exportStatus}
+                  </div>
+                )}
+
+                {exportError && (
+                  <div
+                    role="alert"
+                    style={{
+                      marginTop: '12px',
+                      padding: '10px 14px',
+                      background: '#3d1c1c',
+                      border: '1px solid #6b2d2d',
+                      borderRadius: '8px',
+                      color: '#ff8a80',
+                      fontSize: '13px',
+                    }}
+                  >
+                    {exportError}
+                  </div>
+                )}
+
+                {transcriptSegments.length === 0 && (
                   <button
                     className="btn-transcribe"
                     onClick={handleTranscribeMeeting}
@@ -827,7 +1432,7 @@ export function App() {
                     className="source-transcript-card"
                     data-testid="source-transcript-card"
                     style={{
-                      marginTop: '16px',
+                      marginTop: '20px',
                       padding: '16px',
                       background: '#12241d',
                       borderRadius: '10px',
@@ -835,7 +1440,7 @@ export function App() {
                     }}
                   >
                     <p className="eyebrow" style={{ color: '#a8b6af', margin: 0 }}>
-                      SOURCE TRANSCRIPT (LOCAL MODEL) [{meetingLanguage.toUpperCase()}]
+                      SOURCE TRANSCRIPT (LOCAL MODEL) [{selectedMeeting.language.toUpperCase()}]
                     </p>
                     <p style={{ fontSize: '12px', color: '#738079', margin: '4px 0 12px 0' }}>
                       Read-only. Source transcript is immutable.
@@ -877,62 +1482,10 @@ export function App() {
                     </div>
                   </div>
                 )}
-              </div>
+              </article>
             )}
-          </article>
-
-          {/* Simulator Panel */}
-          <article className="evidence">
-            <p className="eyebrow">DETERMINISTIC SIMULATOR CONTROLS</p>
-            <h2>Inject Runtime Events</h2>
-            <div className="sim-grid">
-              <button
-                className="sim-btn"
-                onClick={() => injectEvent('chunk_ready')}
-                disabled={!active || captureType !== 'simulated'}
-              >
-                Ready Chunk
-              </button>
-              <button
-                className="sim-btn"
-                onClick={() => injectEvent('gap_detected')}
-                disabled={!active || captureType !== 'simulated'}
-              >
-                Inject Gap
-              </button>
-              <button
-                className="sim-btn"
-                onClick={() => injectEvent('overflow')}
-                disabled={!active || captureType !== 'simulated'}
-              >
-                Buffer Overflow
-              </button>
-              <button
-                className="sim-btn"
-                onClick={() => injectEvent('hot_plug')}
-                disabled={captureType !== 'simulated'}
-              >
-                Toggle Hot-Plug
-              </button>
-              <button
-                className="sim-btn"
-                onClick={() => injectEvent('sleep_wake')}
-                disabled={!active || captureType !== 'simulated'}
-              >
-                Sleep / Wake
-              </button>
-              <button
-                className="sim-btn btn-danger"
-                onClick={() => injectEvent('crash')}
-                disabled={!active || captureType !== 'simulated'}
-              >
-                Crash Runtime
-              </button>
-            </div>
-          </article>
-        </div>
-
-        {/* Live Logs */}
+          </div>
+        )}
         <section className="recent">
           <div>
             <p className="eyebrow">CONSOLE LOGS</p>
