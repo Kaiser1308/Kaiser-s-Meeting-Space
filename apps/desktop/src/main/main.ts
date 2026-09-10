@@ -28,7 +28,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' http://127.0.0.1:4310 http://localhost:4310",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'none'",
@@ -37,7 +37,10 @@ const CSP = [
 
 // Vite injects an inline React-refresh preamble only in local development.
 // Packaged builds retain the strict CSP above.
-const DEV_CSP = CSP.replace("script-src 'self'", "script-src 'self' 'unsafe-inline'");
+const DEV_CSP = CSP.replace("script-src 'self'", "script-src 'self' 'unsafe-inline'").replace(
+  "connect-src 'self' http://127.0.0.1:4310 http://localhost:4310",
+  "connect-src 'self' http://127.0.0.1:4310 http://localhost:4310 ws://localhost:5173 ws://127.0.0.1:5173",
+);
 
 /** Allowed dev server origins. */
 const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];

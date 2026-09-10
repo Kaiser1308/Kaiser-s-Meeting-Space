@@ -70,6 +70,10 @@ describe('Electron security configuration', () => {
       expect(CSP).toContain("base-uri 'self'");
     });
 
+    it('permits local meeting API connections in connect-src', () => {
+      expect(CSP).toContain("connect-src 'self' http://127.0.0.1:4310 http://localhost:4310");
+    });
+
     it("permits Vite's development preamble without weakening the production CSP", () => {
       applySecurityPolicies();
       const handler = vi
