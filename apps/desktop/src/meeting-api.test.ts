@@ -456,4 +456,54 @@ describe('local meeting API adapter', () => {
       new MeetingApiError('INVALID_RESPONSE'),
     );
   });
+
+  it('ends a local meeting with distinct idempotency key and empty json body', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse(200, {
+        meetingId: createdId,
+        state: 'finalized',
+        finalizedAt: '2026-09-10T01:00:00.000Z',
+      }),
+    );
+    const api = createMeetingApi({ fetch: fetchMock, newId: () => 'end-key-00003' });
+
+    const ended = await api.endLocalMeeting(createdId);
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`http://127.0.0.1:4310/v1/meetings/${createdId}/end`);
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual({
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': 'end-key-00003',
+      },
+      body: '{}',
+    });
+    expect(ended).toEqual({
+      meetingId: createdId,
+      state: 'finalized',
+      finalizedAt: '2026-09-10T01:00:00.000Z',
+    });
+  });
+
+  it('rejects endLocalMeeting when meetingId is not a valid UUID', async () => {
+    const api = createMeetingApi({ fetch: vi.fn(), newId: () => 'end-key-00003' });
+    await expect(api.endLocalMeeting('not-a-uuid')).rejects.toEqual(
+      new MeetingApiError('INVALID_RESPONSE'),
+    );
+  });
+
+  it.each([401, 404, 409, 500])(
+    'maps HTTP %s on endLocalMeeting to API_UNAVAILABLE',
+    async (status) => {
+      const api = createMeetingApi({
+        fetch: vi
+          .fn()
+          .mockResolvedValue(jsonResponse(status, { error: { message: 'server error' } })),
+        newId: () => 'end-key-00003',
+      });
+      await expect(api.endLocalMeeting(createdId)).rejects.toEqual(
+        new MeetingApiError('API_UNAVAILABLE'),
+      );
+    },
+  );
 });

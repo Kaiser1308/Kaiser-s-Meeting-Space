@@ -34,6 +34,11 @@ export type StartedMeeting = {
   startedAt: string;
   policyVersion: 1;
 };
+export type EndedMeeting = {
+  meetingId: string;
+  state: string;
+  finalizedAt: string;
+};
 export type CreateLocalMeetingInput = {
   title: string;
   language: 'vi' | 'en';
@@ -106,6 +111,23 @@ function parseStartedMeeting(value: unknown): StartedMeeting | undefined {
     state: 'recording',
     startedAt: body.startedAt,
     policyVersion: 1,
+  };
+}
+
+function parseEndedMeeting(value: unknown): EndedMeeting | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const body = value as Record<string, unknown>;
+  if (
+    !MeetingIdSchema.safeParse(body.meetingId).success ||
+    typeof body.state !== 'string' ||
+    !isDateTime(body.finalizedAt)
+  ) {
+    return undefined;
+  }
+  return {
+    meetingId: body.meetingId as string,
+    state: body.state,
+    finalizedAt: body.finalizedAt,
   };
 }
 
@@ -222,6 +244,32 @@ export function createMeetingApi(
           body: '{}',
         },
         parseStartedMeeting,
+        200,
+      );
+    },
+
+    endLocalMeeting(meetingId: string): Promise<EndedMeeting> {
+      const parsedId = MeetingIdSchema.safeParse(meetingId);
+      if (!parsedId.success) {
+        return Promise.reject(new MeetingApiError('INVALID_RESPONSE'));
+      }
+      let idempotencyKey: string;
+      try {
+        idempotencyKey = newIdempotencyKey();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return request(
+        `/v1/meetings/${encodeURIComponent(parsedId.data)}/end`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+          body: '{}',
+        },
+        parseEndedMeeting,
         200,
       );
     },
