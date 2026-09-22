@@ -477,3 +477,7 @@ tests. This is runner contention, not a product failure reproduced serially.
 Final verification continuation (2026-09-22): `pnpm verify` execution-plan
 validation passed but formatting stopped the gate with 161 files. Desktop ESLint
 was independently verified at 0 errors / 14 warnings; P20 remains OPEN.
+
+Final packaged verification (2026-09-22): serial Windows packaged smoke passes
+3/3 and desktop typecheck exits 0, covering the isolated physical meeting,
+Library reopen, Markdown export, and concurrency paths.

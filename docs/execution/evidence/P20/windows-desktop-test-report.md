@@ -11,6 +11,7 @@ reader/manual, resilience/performance, and feature-coverage gates remain open.
 
 - 19 desktop test files, 183 tests: pass.
 - Packaged Electron smoke: 3 tests: pass.
+- Final serial packaged smoke rerun: 3/3 pass; desktop typecheck: pass.
 - Packaged Electron meeting flow now includes reopen plus Markdown export: pass.
 - Windows x64 electron-builder packaging: pass.
 - Desktop TypeScript typecheck: pass.

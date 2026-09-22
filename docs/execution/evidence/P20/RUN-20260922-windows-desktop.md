@@ -188,6 +188,12 @@ Raw command output was captured during the run in:
     contention rather than a reproduced product failure. Desktop qualification
     commands must be run serially when they launch Electron/CDP children.
 
+19. Final serial packaged verification reran `pnpm --filter @kms/desktop
+    test:smoke` and `typecheck`: packaged smoke passed 3/3 and TypeScript
+    typecheck exited 0. The smoke covered synthetic physical audio, SQLite
+    manifest/hash/provenance, Library reopen, Markdown export, and concurrent
+    isolated packaged instances.
+
 ## Debug continuation — 2026-09-22
 
 The initial database integration failure was reproduced in

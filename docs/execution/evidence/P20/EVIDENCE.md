@@ -184,3 +184,8 @@ Final verification continuation (2026-09-22): fresh `pnpm verify` validated the
 execution plan, then stopped at repository Prettier with 161 files reported.
 Desktop lint was independently rerun with 0 errors and 14 warnings. The phase
 is not marked VERIFIED.
+
+Final packaged verification (2026-09-22): serial packaged smoke passes 3/3 and
+desktop typecheck exits 0. The smoke covers synthetic physical audio,
+SQLite/hash/provenance, Library reopen, Markdown export, and concurrency
+isolation. Remaining manual/reader/provider and missing-feature gates stay open.
