@@ -19,8 +19,8 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm --filter @kms/desktop typecheck` | 0 | TypeScript check passed. |
 | `pnpm --filter @kms/desktop build:electron` | 0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`. |
 | `pnpm exec eslint apps/desktop` | 1 | 5 errors, 14 warnings; see defect log below. |
-| `pnpm --filter @kms/desktop test:e2e` | 0 | 1 Playwright test passed after adding the missing desktop script/dependency and installing Chromium. |
-| `pnpm test:e2e:desktop` | 0 | 1 Playwright test passed through the root wrapper. |
+| `pnpm --filter @kms/desktop test:e2e` | 0 | 3 Playwright tests passed after adding the missing desktop script/dependency and installing Chromium. |
+| `pnpm test:e2e:desktop` | 0 | 3 Playwright tests passed through the root wrapper. |
 | `pnpm verify` | 1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute. |
 
 Raw command output was captured during the run in:
@@ -35,6 +35,7 @@ Raw command output was captured during the run in:
 - `%TEMP%\\kms-playwright-browser-install-20260922.log`
 - `%TEMP%\\kms-desktop-e2e-direct-20260922.log`
 - `%TEMP%\\kms-desktop-e2e-root-20260922.log`
+- `%TEMP%\\kms-desktop-e2e-expanded-20260922.log`
 - `%TEMP%\\kms-desktop-unit-rerun-20260922.log`
 - `%TEMP%\\kms-desktop-typecheck-rerun-20260922.log`
 - `%TEMP%\\kms-desktop-build-rerun-20260922.log`
@@ -52,7 +53,7 @@ Raw command output was captured during the run in:
 | Library/detail | Packaged reopen/library path plus unit coverage | Partial; full UI qualification NOT RUN |
 | Markdown export | Desktop markdown export unit coverage | PASS at unit seam; full reader/manual qualification NOT RUN |
 | DOCX/PDF/audio export and download/history | P20 implementation tests exist, but no current full Windows reader/storage run | NOT VERIFIED |
-| Playwright desktop UI | Editor smoke via direct and root commands, 1/1 each | PASS for available smoke only |
+| Playwright desktop UI | Shell, diagnostics/capture controls, and Record/Library switching, 3/3 | PASS for covered flows only |
 | Packaged executable visual boot | Native Windows executable opened with Electron menu and Meetings/Templates/Settings shell visible | PASS for boot observation |
 | Native OS click-through | Orca exposed the Electron renderer only as `Chrome Legacy Window`; coordinate clicks were reported unverified and produced no confirmed state change | NOT VERIFIED |
 
@@ -74,6 +75,10 @@ Raw command output was captured during the run in:
    available OS-level accessibility adapter cannot expose the renderer controls
    reliably; its synthetic clicks are explicitly unverified. This does not
    replace the passing CDP packaged smoke or prove manual M1-M6 click-through.
+6. The `Templates` and `Settings` sidebar buttons render in the desktop shell,
+   but `apps/desktop/src/main.tsx` currently attaches no click handler or view
+   state to either button. They are therefore visible but functionally
+   incomplete; this is recorded as a product defect, not a passing feature.
 
 ## Conclusion
 

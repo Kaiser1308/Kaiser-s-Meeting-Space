@@ -13,7 +13,8 @@ failed, and the configured desktop Playwright gate does not actually run.
 - Packaged Electron smoke: 3 tests: pass.
 - Windows x64 electron-builder packaging: pass.
 - Desktop TypeScript typecheck: pass.
-- Playwright desktop editor smoke: 1/1 pass, both direct and root wrapper.
+- Playwright desktop E2E: 3/3 pass through the root wrapper, covering shell,
+  diagnostics/capture controls, and Record/Library switching.
 
 ### Failures / missing coverage
 
@@ -21,7 +22,10 @@ failed, and the configured desktop Playwright gate does not actually run.
 - Desktop ESLint: fail, 5 errors and 14 warnings.
 - The initial E2E run was false-green because the desktop package had no E2E
   script/dependency. That tooling defect was corrected and both E2E entry points
-  now execute 1 test and pass.
+  now execute 3 tests and pass.
+- The Templates and Settings sidebar controls are visible but currently have no
+  click handler or destination view in the desktop renderer; they remain an
+  open functional defect.
 - Physical microphone/system-audio, local model runtime, reader compatibility,
   accessibility, long-session, provider, and signed-install qualification were
   not claimed as passed.
