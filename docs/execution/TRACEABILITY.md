@@ -433,3 +433,9 @@ flows and do not prove P20-A01 through P20-A06; reader, durable storage/
 download, two-owner, accessibility/manual, real model/corpus, and inherited
 qualification rows remain OPEN. Evidence:
 `evidence/P20/RUN-20260922-windows-desktop.md`.
+
+The same run also records security 37/37 and contract 436/436 passing tests.
+The repository integration suite failed 5 database migration/schema baseline
+assertions; root resilience/performance commands selected no tests despite exit
+0 and are therefore not treated as passing evidence. These failures keep the
+integrated P20 gate open.

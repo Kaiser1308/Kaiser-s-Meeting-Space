@@ -16,6 +16,11 @@ two-owner route/database, accessibility/manual, long-session/provider,
 real-model/corpus, and inherited deferred gates remain open. Evidence:
 `evidence/P20/RUN-20260922-windows-desktop.md`.
 
+The follow-up Windows gates pass security 37/37 and contract 436/436. Database
+integration fails 5 migration/schema baseline assertions. Root resilience and
+performance commands run zero tests despite exit 0, so their coverage is
+missing rather than passing. P20 remains IN_PROGRESS.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The

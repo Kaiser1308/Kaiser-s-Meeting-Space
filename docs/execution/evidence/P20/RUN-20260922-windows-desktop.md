@@ -11,24 +11,29 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 
 ## Commands and evidence
 
-| Command                                                       | Exit | Result                                                                                                                                       |
-| ------------------------------------------------------------- | ---: | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`                              |    0 | Dependencies installed; pnpm warned that native build scripts for `cpu-features`, `msgpackr-extract`, `protobufjs`, and `ssh2` were ignored. |
-| `pnpm --filter @kms/desktop test:unit`                        |    0 | 19 files / 183 tests passed, including packaged Electron smoke tests.                                                                        |
-| `pnpm --filter @kms/desktop test:smoke`                       |    0 | 1 file / 3 tests passed; physical packaged flow, SQLite/hash/reopen, Markdown export, and concurrent isolated instances passed.              |
-| `pnpm --filter @kms/desktop typecheck`                        |    0 | TypeScript check passed.                                                                                                                     |
-| `pnpm --filter @kms/desktop build:electron`                   |    0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`.                                   |
-| `cargo test -p kms-native` (initial)                          |  101 | 78 native tests ran; 77 passed and `packet_flags_preserve_every_applicable_reason` failed.                                                   |
-| `cargo test -p kms-native` (fixed)                            |    0 | 78/78 native tests passed; 2 dead-code warnings remain.                                                                                      |
-| `cargo build --release -p kms-native`                         |    0 | Release Windows native sidecar built; 17 compiler warnings remain.                                                                           |
-| `cargo test -p kms-native --features local-speech`            |    0 | 101/101 optional local-speech tests passed with the Windows MSVC toolchain after installing the missing native build tools.                  |
-| `cargo build --release -p kms-native --features local-speech` |    0 | Optional local-speech release sidecar built; 20 compiler warnings remain.                                                                    |
-| `pnpm --filter @kms/desktop build:electron` (native fix)      |    0 | Electron package rebuilt with the fixed release sidecar.                                                                                     |
-| `pnpm --filter @kms/desktop test:smoke` (native fix)          |    0 | Packaged physical capture/reopen/export/concurrency smoke: 3/3 passed.                                                                       |
-| `pnpm exec eslint apps/desktop`                               |    1 | 5 errors, 14 warnings; see defect log below.                                                                                                 |
-| `pnpm --filter @kms/desktop test:e2e`                         |    0 | 3 Playwright tests passed after adding the missing desktop script/dependency and installing Chromium.                                        |
-| `pnpm test:e2e:desktop`                                       |    0 | 3 Playwright tests passed through the root wrapper.                                                                                          |
-| `pnpm verify`                                                 |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                |
+| Command                                                       | Exit | Result                                                                                                                                               |
+| ------------------------------------------------------------- | ---: | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                              |    0 | Dependencies installed; pnpm warned that native build scripts for `cpu-features`, `msgpackr-extract`, `protobufjs`, and `ssh2` were ignored.         |
+| `pnpm --filter @kms/desktop test:unit`                        |    0 | 19 files / 183 tests passed, including packaged Electron smoke tests.                                                                                |
+| `pnpm --filter @kms/desktop test:smoke`                       |    0 | 1 file / 3 tests passed; physical packaged flow, SQLite/hash/reopen, Markdown export, and concurrent isolated instances passed.                      |
+| `pnpm --filter @kms/desktop typecheck`                        |    0 | TypeScript check passed.                                                                                                                             |
+| `pnpm --filter @kms/desktop build:electron`                   |    0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`.                                           |
+| `cargo test -p kms-native` (initial)                          |  101 | 78 native tests ran; 77 passed and `packet_flags_preserve_every_applicable_reason` failed.                                                           |
+| `cargo test -p kms-native` (fixed)                            |    0 | 78/78 native tests passed; 2 dead-code warnings remain.                                                                                              |
+| `cargo build --release -p kms-native`                         |    0 | Release Windows native sidecar built; 17 compiler warnings remain.                                                                                   |
+| `cargo test -p kms-native --features local-speech`            |    0 | 101/101 optional local-speech tests passed with the Windows MSVC toolchain after installing the missing native build tools.                          |
+| `cargo build --release -p kms-native --features local-speech` |    0 | Optional local-speech release sidecar built; 20 compiler warnings remain.                                                                            |
+| `pnpm --filter @kms/desktop build:electron` (native fix)      |    0 | Electron package rebuilt with the fixed release sidecar.                                                                                             |
+| `pnpm --filter @kms/desktop test:smoke` (native fix)          |    0 | Packaged physical capture/reopen/export/concurrency smoke: 3/3 passed.                                                                               |
+| `pnpm exec eslint apps/desktop`                               |    1 | 5 errors, 14 warnings; see defect log below.                                                                                                         |
+| `pnpm --filter @kms/desktop test:e2e`                         |    0 | 3 Playwright tests passed after adding the missing desktop script/dependency and installing Chromium.                                                |
+| `pnpm test:e2e:desktop`                                       |    0 | 3 Playwright tests passed through the root wrapper.                                                                                                  |
+| `pnpm test:security`                                          |    0 | 4 files / 37 security tests passed.                                                                                                                  |
+| `pnpm test:contract`                                          |    0 | Domain 28 files / 406 tests and API 7 files / 30 tests passed.                                                                                       |
+| `pnpm test:integration`                                       |    1 | API integration completed; database suite failed 5/352 tests because migration/schema fixtures expect obsolete counts (9 vs 14, 38 vs 55, 30 vs 36). |
+| `pnpm test:resilience`                                        |    0 | No selected workspace package exposes a `test:resilience` script; zero tests executed, so this is not evidence of a pass.                            |
+| `pnpm test:performance`                                       |    0 | No selected workspace package exposes a `test:performance` script; zero tests executed, so this is not evidence of a pass.                           |
+| `pnpm verify`                                                 |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                        |
 
 Raw command output was captured during the run in:
 
@@ -43,6 +48,13 @@ Raw command output was captured during the run in:
 - `%TEMP%\\kms-desktop-e2e-direct-20260922.log`
 - `%TEMP%\\kms-desktop-e2e-root-20260922.log`
 - `%TEMP%\\kms-desktop-e2e-expanded-20260922.log`
+- `%TEMP%\\kms-p20-security-20260922.log`
+- `%TEMP%\\kms-p20-contract-20260922.log`
+- `%TEMP%\\kms-p20-integration-20260922.log`
+- `%TEMP%\\kms-p20-resilience-20260922.log`
+- `%TEMP%\\kms-p20-performance-20260922.log`
+- `%TEMP%\\kms-p20-domain-contract-20260922.log`
+- `%TEMP%\\kms-p20-api-contract-20260922.log`
 - `%TEMP%\\kms-desktop-unit-rerun-20260922.log`
 - `%TEMP%\\kms-desktop-typecheck-rerun-20260922.log`
 - `%TEMP%\\kms-desktop-build-rerun-20260922.log`
@@ -111,6 +123,13 @@ Raw command output was captured during the run in:
 9. The repository does not contain the `STATUS.md` file referenced by the
    execution rules, so no status-file update was possible; lifecycle state was
    recorded in `PROGRESS.md`, `TRACEABILITY.md`, and this evidence set.
+10. The repository integration gate fails in the database migration-restore
+    suite: five assertions still use obsolete migration journal/schema/enum
+    counts. This is a repository baseline defect, not a desktop UI failure,
+    but it prevents the integrated Windows qualification gate from passing.
+11. `pnpm test:resilience` and `pnpm test:performance` exit zero while
+    selecting no package scripts. They are false-green commands and provide no
+    resilience/performance evidence; the missing package scripts remain open.
 
 ## Conclusion
 

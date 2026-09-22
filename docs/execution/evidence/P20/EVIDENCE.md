@@ -126,3 +126,9 @@ route/database, accessibility/manual, long-session/provider, and real
 model/corpus gates remain open. `pnpm verify` stops at 155 Prettier errors and
 desktop ESLint has 5 errors. See `RUN-20260922-windows-desktop.md` and
 `windows-desktop-test-report.md`.
+
+Additional integrated-gate checks from the same Windows run: security passes
+37/37; contract passes domain 406/406 and API 30/30. Integration fails 5/352
+database migration/schema baseline assertions. The root resilience and
+performance commands exit zero without selecting any test script, so those
+commands produce no evidence and remain open.

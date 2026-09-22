@@ -21,10 +21,17 @@ failed, and several physical/manual/reader qualification gates remain open.
 - Optional local-speech feature suite: 101/101 pass with the Windows MSVC
   toolchain; optional release sidecar build passes. Real model/corpus runtime
   qualification was not run.
+- Security gate: 37/37 pass. Contract gate: domain 406/406 and API 30/30
+  pass.
 
 ### Failures / missing coverage
 
 - Repository `pnpm verify`: fail at formatting, 155 files.
+- Repository integration gate: fail, database migration/schema baseline has 5
+  failed assertions (`9` vs `14`, `38` vs `55`, and `30` vs `36`).
+- Resilience/performance root commands return exit 0 without running tests
+  because no selected workspace package provides those scripts; this is missing
+  coverage, not a pass.
 - Desktop ESLint: fail, 5 errors and 14 warnings.
 - The initial E2E run was false-green because the desktop package had no E2E
   script/dependency. That tooling defect was corrected and both E2E entry points
