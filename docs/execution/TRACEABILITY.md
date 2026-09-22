@@ -423,3 +423,13 @@ owner, expiry, or stored-artifact metadata mismatch. Exporter tests pass 2
 files / 11 tests and package typecheck exits 0. The integrated gate is blocked
 by the pre-existing frozen-lockfile mismatch. Evidence:
 `evidence/P20/RUN-20260814-1918.md`.
+
+P20 Windows desktop qualification continuation (2026-09-22): unit 183/183,
+packaged smoke 3/3, Playwright desktop E2E 3/3, native Rust 78/78, and
+optional local-speech 101/101 passed; typecheck and Windows x64 packaging also
+passed. The WASAPI combined-flag defect found during qualification was fixed
+and regression-tested. These results cover only the exercised Windows desktop
+flows and do not prove P20-A01 through P20-A06; reader, durable storage/
+download, two-owner, accessibility/manual, real model/corpus, and inherited
+qualification rows remain OPEN. Evidence:
+`evidence/P20/RUN-20260922-windows-desktop.md`.

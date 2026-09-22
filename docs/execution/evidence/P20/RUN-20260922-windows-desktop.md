@@ -108,6 +108,9 @@ Raw command output was captured during the run in:
    Rust target, and applying a temporary CMake policy wrapper resolved the
    toolchain issue: 101/101 feature tests and the release build then passed.
    No real model/corpus runtime qualification was run.
+9. The repository does not contain the `STATUS.md` file referenced by the
+   execution rules, so no status-file update was possible; lifecycle state was
+   recorded in `PROGRESS.md`, `TRACEABILITY.md`, and this evidence set.
 
 ## Conclusion
 

@@ -112,3 +112,17 @@ the persisted `markdown` value and added verified download resolution. Exporter
 tests pass 2 files / 11 tests and package typecheck exits 0. The integrated
 `pnpm verify` gate is blocked before execution by the pre-existing frozen
 lockfile mismatch. Evidence: `RUN-20260814-1918.md`.
+
+Windows desktop qualification continuation (2026-09-22): desktop unit tests
+pass 183/183, packaged Electron smoke passes 3/3, Playwright desktop E2E
+passes 3/3, TypeScript typecheck and Windows x64 packaging pass. The native
+Windows suite passes 78/78 after fixing combined WASAPI flag reporting; the
+optional `local-speech` feature passes 101/101 with an MSVC toolchain and its
+release sidecar builds. The packaged smoke records synthetic physical audio
+into isolated temporary user data, verifies SQLite/hash/provenance, reopens
+Library, and exports Markdown. This does not close P20-A01 through P20-A06:
+DOCX/PDF target-reader, durable P05/P06 storage/download, two-owner
+route/database, accessibility/manual, long-session/provider, and real
+model/corpus gates remain open. `pnpm verify` stops at 155 Prettier errors and
+desktop ESLint has 5 errors. See `RUN-20260922-windows-desktop.md` and
+`windows-desktop-test-report.md`.
