@@ -194,3 +194,9 @@ Resilience rerun (2026-09-22): root `pnpm test:resilience` now invokes the
 dedicated Vitest config and passes 3/3 with temporary Docker PostgreSQL/Redis
 services on ports 5433/6380. Containers were removed after verification. The
 performance gate remains open because no performance target is registered.
+
+Reader-tool continuation (2026-09-22): Poppler 25.07.0-0 was installed after
+the initial Windows Installer lock cleared. `pdfinfo`, `pdftotext`, and
+`pdftoppm` passed against the synthetic one-page PDF, and the rendered PNG was
+visually inspected. Full branded/large-document/multi-reader qualification
+remains OPEN.

@@ -77,6 +77,11 @@ corrected to run the dedicated suite and passes 3/3 with temporary Docker
 PostgreSQL/Redis services on ports 5433/6380; containers were removed after
 verification. Performance remains OPEN because no target is registered.
 
+Reader-tool continuation (2026-09-22): Poppler 25.07.0-0 was installed after
+the initial Windows Installer lock cleared; synthetic PDF metadata, text
+extraction, and PNG rendering passed. Full branded/large-document/multi-reader
+qualification remains OPEN.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The

@@ -28,8 +28,10 @@ reader/manual, performance, and feature-coverage gates remain open.
 - Export renderer package: 11/11 pass for simple/audio/DOCX/PDF seams.
 - Synthetic reader smoke: LibreOffice 26.2.5.2 converted DOCX to PDF; pypdf
   reopened the PDF and extracted the expected one-page text, and PyMuPDF
-  rendered it for visual inspection. This does not prove the full target-reader
-  matrix or branded/large-document behavior.
+  rendered it for visual inspection. Poppler 25.07.0-0 was subsequently
+  installed; `pdfinfo`, `pdftotext`, and `pdftoppm` also passed on the same
+  synthetic PDF. This does not prove the full target-reader matrix or
+  branded/large-document behavior.
 - Security gate: 37/37 pass. Contract gate: domain 406/406 and API 30/30
   pass.
 
@@ -57,9 +59,9 @@ reader/manual, performance, and feature-coverage gates remain open.
   1/1 and the full desktop E2E run passes 8/8.
 - The visible Templates and Settings navigation buttons do not change view or
   content; both are covered by expected-failure E2E checks.
-- Poppler installation was attempted but blocked by a concurrent Windows
-  Installer lock; it remains unavailable. PyMuPDF was used only as a rendering
-  fallback for this synthetic reader smoke.
+- Poppler was initially blocked by a concurrent Windows Installer lock, then
+  installed successfully and passed the synthetic PDF smoke. Full reader,
+  branded-layout, and large-document qualification remain open.
 - Database migration inventory expectations now derive the journal count from
   the committed journal and include migrations 0004–0013; the focused migration
   suite passes 29/29 and full database integration passes 352/352.

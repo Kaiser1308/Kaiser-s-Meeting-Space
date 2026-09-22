@@ -39,6 +39,7 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm test:resilience` (rerun with Docker services)           |    0 | Root command now runs the Redis-loss suite: 1 file / 3 tests passed with PostgreSQL/Redis test containers on ports 5433/6380.                       |
 | `pnpm test:performance`                                       |    0 | No selected workspace package exposes a `test:performance` script; zero tests executed, so this is not evidence of a pass.                           |
 | LibreOffice DOCX/PDF reader smoke                             |    0 | LibreOffice 26.2.5.2 converted the synthetic DOCX to PDF; output reopened with pypdf (1 page, expected text) and rendered to PNG for visual review. |
+| Poppler PDF reader smoke (rerun)                              |    0 | Poppler 25.07.0-0 `pdfinfo`/`pdftotext`/`pdftoppm` verified the same synthetic PDF: 1 page, expected text, and PNG render. |
 | `pnpm verify`                                                 |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                        |
 
 Raw command output was captured during the run in:
@@ -164,10 +165,12 @@ Raw command output was captured during the run in:
     expected-failure E2E checks because the current renderer has no handlers or
     view state for these buttons.
 15. Windows had no Word/PDF CLI initially. LibreOffice was installed and its
-    26.2.5.2 headless conversion/reopen smoke passed using synthetic content;
-    Poppler installation was blocked by a concurrent Windows Installer lock,
-    so PyMuPDF was used for PNG rendering. This is not a substitute for the
-    required target-reader matrix or full branded/large-document qualification.
+    26.2.5.2 headless conversion/reopen smoke passed using synthetic content.
+    Poppler installation was initially blocked by a concurrent Windows
+    Installer lock, but a later install of 25.07.0-0 succeeded; its
+    `pdfinfo`/`pdftotext`/`pdftoppm` smoke also passed. This is not a substitute
+    for the required target-reader matrix or full branded/large-document
+    qualification.
 
 16. The root resilience command is false-green because no workspace exposes a
     `test:resilience` script. The underlying Windows-configured resilience test
@@ -201,6 +204,12 @@ Raw command output was captured during the run in:
     1 file / 3 tests. The containers were removed after verification. This is
     direct synthetic resilience evidence, not a claim of long-session or
     production-service qualification.
+
+21. Poppler 25.07.0-0 was installed on Windows after the initial installer
+    lock cleared. Synthetic PDF metadata, text extraction, and first-page PNG
+    rendering passed; visual inspection showed the expected text without
+    clipping. Full branded/large-document and multiple-reader qualification
+    remains open.
 
 ## Debug continuation — 2026-09-22
 

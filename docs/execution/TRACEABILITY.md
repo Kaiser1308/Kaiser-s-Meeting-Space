@@ -485,3 +485,7 @@ Library reopen, Markdown export, and concurrency paths.
 Resilience rerun (2026-09-22): corrected root command passes the Redis-loss
 suite 3/3 with temporary Docker PostgreSQL/Redis services; containers were
 removed after verification. Performance remains OPEN with no registered target.
+
+Reader-tool continuation (2026-09-22): Poppler 25.07.0-0 now passes synthetic
+PDF metadata, text extraction, and PNG rendering checks. Full branded,
+large-document, and multi-reader qualification remains OPEN.
