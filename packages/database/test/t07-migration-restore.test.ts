@@ -38,6 +38,11 @@ const VALID_SHA_2 = '1'.repeat(64);
 const EPOCH = '2026-01-01T00:00:00.000Z';
 const EPOCH_2 = '2026-01-01T01:00:00.000Z';
 const DRIZZLE_DIR = resolve(import.meta.dirname, '../drizzle');
+const EXPECTED_MIGRATION_COUNT = (
+  JSON.parse(readFileSync(resolve(DRIZZLE_DIR, 'meta/_journal.json'), 'utf8')) as {
+    entries: unknown[];
+  }
+).entries.length;
 
 const DEFAULT_CAPTURE_PROFILE =
   '{"container":"webm","codec":"opus","sampleRate":48000,"bitDepth":16,"channels":1,"bitrate":96000,"opusFrameDurationMs":20,"complexity":5}';
@@ -83,6 +88,23 @@ const EXPECTED_TABLES = [
   'transcript_runs',
   'transcript_run_parts',
   'transcript_raw_events',
+  'translation_versions',
+  'translation_versions_current',
+  'finalization_manifests',
+  'finalization_states',
+  'finalization_runs',
+  'finalization_ranges',
+  'finalization_run_parts',
+  'minutes_provenance',
+  'transcript_review_projections',
+  'transcript_review_decisions',
+  'transcript_review_lineage',
+  'transcript_review_revisions',
+  'transcript_review_idempotency',
+  'transcript_review_bookmarks',
+  'transcript_review_flags',
+  'minutes_editor_versions',
+  'minutes_editor_current',
 ];
 
 const EXPECTED_ENUMS = [
@@ -116,7 +138,38 @@ const EXPECTED_ENUMS = [
   'run_provider',
   'run_lifecycle_state',
   'speech_event_kind',
+  'finalization_state',
+  'finalization_primary_action',
+  'finalization_range_classification',
+  'finalization_part_state',
+  'finalization_locality',
+  'finalization_source',
 ];
+
+const TABLES_AFTER_0004 = new Set([
+  'audio_reconciliation',
+  'audio_orphan_records',
+  'transcript_runs',
+  'transcript_run_parts',
+  'transcript_raw_events',
+  'translation_versions',
+  'translation_versions_current',
+  'finalization_manifests',
+  'finalization_states',
+  'finalization_runs',
+  'finalization_ranges',
+  'finalization_run_parts',
+  'minutes_provenance',
+  'transcript_review_projections',
+  'transcript_review_decisions',
+  'transcript_review_lineage',
+  'transcript_review_revisions',
+  'transcript_review_idempotency',
+  'transcript_review_bookmarks',
+  'transcript_review_flags',
+  'minutes_editor_versions',
+  'minutes_editor_current',
+]);
 
 // Expected total number of non-PK indexes (counted from SQL files)
 // 0000: 9 (unique indexes: external_identities_issuer_subject_unique, timeline_markers_unique_event_idx, audio_chunks_meeting_source_index_unique, audio_manifests_meeting_source_unique)
@@ -559,7 +612,7 @@ describe('P03-T07: Migration, compatibility, concurrency, restore', () => {
       const rows = await testDb.$raw`
         SELECT COUNT(*)::int AS cnt FROM "drizzle"."__drizzle_migrations"
       `;
-      expect(rows[0]!.cnt).toBe(9); // 0000 through 0008
+      expect(rows[0]!.cnt).toBe(EXPECTED_MIGRATION_COUNT);
     });
 
     it('table row counts are unchanged after re-run', async () => {
@@ -569,7 +622,7 @@ describe('P03-T07: Migration, compatibility, concurrency, restore', () => {
       const rows = await testDb.$raw`
         SELECT COUNT(*)::int AS cnt FROM "drizzle"."__drizzle_migrations"
       `;
-      expect(rows[0]!.cnt).toBe(9);
+      expect(rows[0]!.cnt).toBe(EXPECTED_MIGRATION_COUNT);
     });
   });
 
@@ -639,7 +692,7 @@ describe('P03-T07: Migration, compatibility, concurrency, restore', () => {
         VALUES (${hash0003}, ${Date.now()})
       `;
 
-      // Now apply 0004 (identity status + sessions table) to reach current
+      // Now apply 0004 (identity status + sessions table) to reach the N-1 checkpoint
       const sql0004 = readMigrationSql('0004_identity_status.sql');
       const stmts0004 = sql0004
         .split('--> statement-breakpoint')
@@ -675,14 +728,7 @@ describe('P03-T07: Migration, compatibility, concurrency, restore', () => {
     // 0003 tables should be present since runMigrations applied them
     it('all tables including 0003 exist after full migration', async () => {
       const tables = await getTableNames(n1Db);
-      for (const t of EXPECTED_TABLES.filter(
-        (name) =>
-          name !== 'audio_reconciliation' &&
-          name !== 'audio_orphan_records' &&
-          name !== 'transcript_runs' &&
-          name !== 'transcript_run_parts' &&
-          name !== 'transcript_raw_events',
-      )) {
+      for (const t of EXPECTED_TABLES.filter((name) => !TABLES_AFTER_0004.has(name))) {
         expect(tables).toContain(t);
       }
     });
@@ -781,7 +827,7 @@ describe('P03-T07: Migration, compatibility, concurrency, restore', () => {
       const rows = await testDb.$raw`
         SELECT COUNT(*)::int AS cnt FROM "drizzle"."__drizzle_migrations"
       `;
-      expect(rows[0]!.cnt).toBe(9);
+      expect(rows[0]!.cnt).toBe(EXPECTED_MIGRATION_COUNT);
     });
   });
 

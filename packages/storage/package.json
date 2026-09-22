@@ -7,7 +7,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run src --exclude src/s3/**/*.minio.test.ts",
-    "test:integration": "vitest run src/s3/**/*.minio.test.ts"
+    "test:integration": "vitest run src/s3/s3-object-store.minio.test.ts"
   },
   "dependencies": {
     "@kms/domain": "workspace:*",
