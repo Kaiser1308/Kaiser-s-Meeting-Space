@@ -13,4 +13,5 @@ export default defineWorkspace([
   'apps/api',
   'apps/desktop',
   'apps/mobile',
+  'scripts/windows/vitest.config.mjs',
 ]);

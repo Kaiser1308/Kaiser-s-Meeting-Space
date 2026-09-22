@@ -243,6 +243,15 @@ describe('Windows packaged simulator five-minute stability', () => {
     expect(() => assertResetState({ state: 'Idle', sessionId: null })).not.toThrow();
   });
 
+  it('accepts the default five-minute and configured three-hour durations without changing simulator invariants', () => {
+    expect(DEFAULT_CAPTURE_DURATION_MS).toBe(300_000);
+    expect(stabilityIterations).toBe(stabilityDurationMs / 5_000);
+    expect(() => assertHealthSampleCoverage(
+      Array.from({ length: 1_080 }, (_, index) => (index + 1) * 10_000),
+      10_800_000,
+    )).not.toThrow();
+  });
+
   it(
     `runs ${stabilityIterations} synthetic five-second chunks through the packaged Electron preload bridge`,
     async (context) => {

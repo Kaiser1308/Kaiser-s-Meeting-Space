@@ -21,6 +21,7 @@
     "test:integration": "node scripts/quality/run-required-suite.mjs integration",
     "test:contract": "node scripts/quality/run-required-suite.mjs contract",
     "test:e2e:desktop": "pnpm --filter @kms/desktop test:e2e",
+    "test:windows": "pnpm --filter @kms/desktop test:windows",
     "test:e2e:mobile": "pnpm --filter @kms/mobile test:e2e",
     "test:security": "vitest run --config tests/security/vitest.config.ts",
     "test:resilience": "vitest run --config tests/resilience/vitest.config.ts",

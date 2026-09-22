@@ -10,6 +10,7 @@
     "build:electron": "tsc --noEmit && vite build && electron-builder",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
+    "test:windows": "node ../../scripts/windows/windows-test-cli.mjs",
     "test:smoke": "vitest run src/main/packaged-app.smoke.test.ts",
     "test:e2e": "playwright test"
   },
