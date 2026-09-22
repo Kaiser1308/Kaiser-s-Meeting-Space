@@ -435,6 +435,16 @@ describe('Packaged Desktop Application Smoke Test', () => {
       expect(reopened!.id).toBe(meetingId);
       expect(reopened!.title).toBe('New meeting');
 
+      // Verify the reopened meeting can be exported from the packaged renderer.
+      await cdp2.evaluate(`document.querySelector('[data-testid="export-markdown-btn"]')?.click()`);
+      let exportStatus = '';
+      for (let i = 0; i < 10; i++) {
+        await wait(250);
+        exportStatus = String(await cdp2.evaluate(`document.body.innerText`));
+        if (exportStatus.includes('Exported ')) break;
+      }
+      expect(exportStatus).toContain('Exported ');
+
       await gracefulClose(child2, cdp2);
       child2 = null;
     } finally {

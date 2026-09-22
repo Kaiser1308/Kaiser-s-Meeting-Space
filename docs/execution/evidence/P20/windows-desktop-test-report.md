@@ -11,6 +11,7 @@ failed, and the configured desktop Playwright gate does not actually run.
 
 - 19 desktop test files, 183 tests: pass.
 - Packaged Electron smoke: 3 tests: pass.
+- Packaged Electron meeting flow now includes reopen plus Markdown export: pass.
 - Windows x64 electron-builder packaging: pass.
 - Desktop TypeScript typecheck: pass.
 - Playwright desktop E2E: 3/3 pass through the root wrapper, covering shell,
