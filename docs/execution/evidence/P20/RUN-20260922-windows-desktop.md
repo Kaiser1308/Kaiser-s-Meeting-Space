@@ -249,9 +249,11 @@ sidecar; no browser preview or mocked preload bridge was used.
   capture.
 - Evidence: `evidence/P20/windows-simulator-5m/RUN-20260922-133457-packaged-simulator-5m/`.
 - Packaged executable SHA-256:
-  `2C918FA39AFD2011EA515AF716B36CB25EE5DA42922828B5D5CED1E9F5EECA10`
-  (source package rebuild used the existing verified native sidecar; native
-  source rebuild remains environment-blocked by CMake/Opus tooling).
+  `E29C58F19B2E498404D729394681D483C08F3BDF592A36D25BC470250E60BAA8`.
+  Packaged native sidecar SHA-256:
+  `2262E511AB2F37950B7D3C63B49EA47A110D6E68C13C28A8B210F8FF3D512F1D`.
+  The source package rebuild used the existing verified native sidecar; native
+  source rebuild remains environment-blocked by CMake/Opus tooling.
 
 This is a verified synthetic Windows packaged stability run only. It does not
 promote P20 to VERIFIED and does not qualify physical devices, real meeting
