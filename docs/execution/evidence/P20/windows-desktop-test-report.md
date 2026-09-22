@@ -18,6 +18,9 @@ failed, and several physical/manual/reader qualification gates remain open.
   diagnostics/capture controls, and Record/Library switching.
 - Native Windows Rust suite: initial 77/78 exposed a flag-reporting defect;
   after the fix, full suite is 78/78 pass and the rebuilt packaged smoke is 3/3.
+- Optional local-speech feature suite: 101/101 pass with the Windows MSVC
+  toolchain; optional release sidecar build passes. Real model/corpus runtime
+  qualification was not run.
 
 ### Failures / missing coverage
 

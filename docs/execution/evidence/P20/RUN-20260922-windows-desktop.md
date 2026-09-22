@@ -11,22 +11,24 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 
 ## Commands and evidence
 
-| Command                                                  | Exit | Result                                                                                                                                       |
-| -------------------------------------------------------- | ---: | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`                         |    0 | Dependencies installed; pnpm warned that native build scripts for `cpu-features`, `msgpackr-extract`, `protobufjs`, and `ssh2` were ignored. |
-| `pnpm --filter @kms/desktop test:unit`                   |    0 | 19 files / 183 tests passed, including packaged Electron smoke tests.                                                                        |
-| `pnpm --filter @kms/desktop test:smoke`                  |    0 | 1 file / 3 tests passed; physical packaged flow, SQLite/hash/reopen, Markdown export, and concurrent isolated instances passed.              |
-| `pnpm --filter @kms/desktop typecheck`                   |    0 | TypeScript check passed.                                                                                                                     |
-| `pnpm --filter @kms/desktop build:electron`              |    0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`.                                   |
-| `cargo test -p kms-native` (initial)                     |  101 | 78 native tests ran; 77 passed and `packet_flags_preserve_every_applicable_reason` failed.                                                   |
-| `cargo test -p kms-native` (fixed)                       |    0 | 78/78 native tests passed; 2 dead-code warnings remain.                                                                                      |
-| `cargo build --release -p kms-native`                    |    0 | Release Windows native sidecar built; 17 compiler warnings remain.                                                                           |
-| `pnpm --filter @kms/desktop build:electron` (native fix) |    0 | Electron package rebuilt with the fixed release sidecar.                                                                                     |
-| `pnpm --filter @kms/desktop test:smoke` (native fix)     |    0 | Packaged physical capture/reopen/export/concurrency smoke: 3/3 passed.                                                                       |
-| `pnpm exec eslint apps/desktop`                          |    1 | 5 errors, 14 warnings; see defect log below.                                                                                                 |
-| `pnpm --filter @kms/desktop test:e2e`                    |    0 | 3 Playwright tests passed after adding the missing desktop script/dependency and installing Chromium.                                        |
-| `pnpm test:e2e:desktop`                                  |    0 | 3 Playwright tests passed through the root wrapper.                                                                                          |
-| `pnpm verify`                                            |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                |
+| Command                                                       | Exit | Result                                                                                                                                       |
+| ------------------------------------------------------------- | ---: | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                              |    0 | Dependencies installed; pnpm warned that native build scripts for `cpu-features`, `msgpackr-extract`, `protobufjs`, and `ssh2` were ignored. |
+| `pnpm --filter @kms/desktop test:unit`                        |    0 | 19 files / 183 tests passed, including packaged Electron smoke tests.                                                                        |
+| `pnpm --filter @kms/desktop test:smoke`                       |    0 | 1 file / 3 tests passed; physical packaged flow, SQLite/hash/reopen, Markdown export, and concurrent isolated instances passed.              |
+| `pnpm --filter @kms/desktop typecheck`                        |    0 | TypeScript check passed.                                                                                                                     |
+| `pnpm --filter @kms/desktop build:electron`                   |    0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`.                                   |
+| `cargo test -p kms-native` (initial)                          |  101 | 78 native tests ran; 77 passed and `packet_flags_preserve_every_applicable_reason` failed.                                                   |
+| `cargo test -p kms-native` (fixed)                            |    0 | 78/78 native tests passed; 2 dead-code warnings remain.                                                                                      |
+| `cargo build --release -p kms-native`                         |    0 | Release Windows native sidecar built; 17 compiler warnings remain.                                                                           |
+| `cargo test -p kms-native --features local-speech`            |    0 | 101/101 optional local-speech tests passed with the Windows MSVC toolchain after installing the missing native build tools.                  |
+| `cargo build --release -p kms-native --features local-speech` |    0 | Optional local-speech release sidecar built; 20 compiler warnings remain.                                                                    |
+| `pnpm --filter @kms/desktop build:electron` (native fix)      |    0 | Electron package rebuilt with the fixed release sidecar.                                                                                     |
+| `pnpm --filter @kms/desktop test:smoke` (native fix)          |    0 | Packaged physical capture/reopen/export/concurrency smoke: 3/3 passed.                                                                       |
+| `pnpm exec eslint apps/desktop`                               |    1 | 5 errors, 14 warnings; see defect log below.                                                                                                 |
+| `pnpm --filter @kms/desktop test:e2e`                         |    0 | 3 Playwright tests passed after adding the missing desktop script/dependency and installing Chromium.                                        |
+| `pnpm test:e2e:desktop`                                       |    0 | 3 Playwright tests passed through the root wrapper.                                                                                          |
+| `pnpm verify`                                                 |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                |
 
 Raw command output was captured during the run in:
 
@@ -50,25 +52,27 @@ Raw command output was captured during the run in:
 - `%TEMP%\\kms-native-flag-regression-final-20260922.log`
 - `%TEMP%\\kms-native-cargo-test-fixed-20260922.log`
 - `%TEMP%\\kms-native-cargo-build-release-20260922.log`
+- `%TEMP%\\kms-native-cargo-test-local-speech-msvc-wrapper-final-20260922.log`
+- `%TEMP%\\kms-native-cargo-build-release-local-speech-20260922.log`
 - `%TEMP%\\kms-desktop-build-native-fix-20260922.log`
 - `%TEMP%\\kms-desktop-smoke-native-fix-20260922.log`
 - `%TEMP%\\kms-p20-verify-20260922.log`
 
 ## Windows feature matrix
 
-| Area                                       | Evidence                                                                                                                                             | Status                                                              |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Boot/supervisor/security/preload           | Desktop unit tests and packaged smoke                                                                                                                | PASS in automated coverage                                          |
-| Start meeting                              | `meeting-api`, start workflow, packaged smoke                                                                                                        | PASS in automated coverage                                          |
-| Mic/local capture and durable evidence     | Packaged smoke records in isolated temp userData and validates SQLite/hash/provenance                                                                | PASS in automated synthetic/package smoke                           |
-| Stop/finalization/reopen                   | Packaged smoke and finalization/transcript tests                                                                                                     | PASS in automated coverage                                          |
-| Local speech/transcription                 | Unit/contract coverage only                                                                                                                          | Physical model/runtime qualification NOT RUN                        |
-| Library/detail                             | Packaged reopen/library path plus unit coverage                                                                                                      | Partial; full UI qualification NOT RUN                              |
-| Markdown export                            | Packaged Electron smoke clicks Export Markdown after reopen and observes success status; unit coverage also passes                                   | PASS for Markdown UI flow; full reader/manual qualification NOT RUN |
-| DOCX/PDF/audio export and download/history | P20 implementation tests exist, but no current full Windows reader/storage run                                                                       | NOT VERIFIED                                                        |
-| Playwright desktop UI                      | Shell, diagnostics/capture controls, and Record/Library switching, 3/3                                                                               | PASS for covered flows only                                         |
-| Packaged executable visual boot            | Native Windows executable opened with Electron menu and Meetings/Templates/Settings shell visible                                                    | PASS for boot observation                                           |
-| Native OS click-through                    | Orca exposed the Electron renderer only as `Chrome Legacy Window`; coordinate clicks were reported unverified and produced no confirmed state change | NOT VERIFIED                                                        |
+| Area                                       | Evidence                                                                                                                                             | Status                                                               |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Boot/supervisor/security/preload           | Desktop unit tests and packaged smoke                                                                                                                | PASS in automated coverage                                           |
+| Start meeting                              | `meeting-api`, start workflow, packaged smoke                                                                                                        | PASS in automated coverage                                           |
+| Mic/local capture and durable evidence     | Packaged smoke records in isolated temp userData and validates SQLite/hash/provenance                                                                | PASS in automated synthetic/package smoke                            |
+| Stop/finalization/reopen                   | Packaged smoke and finalization/transcript tests                                                                                                     | PASS in automated coverage                                           |
+| Local speech/transcription                 | Optional feature suite 101/101 and release sidecar build pass; no real model/corpus was supplied                                                     | Automated feature pass; physical model/runtime qualification NOT RUN |
+| Library/detail                             | Packaged reopen/library path plus unit coverage                                                                                                      | Partial; full UI qualification NOT RUN                               |
+| Markdown export                            | Packaged Electron smoke clicks Export Markdown after reopen and observes success status; unit coverage also passes                                   | PASS for Markdown UI flow; full reader/manual qualification NOT RUN  |
+| DOCX/PDF/audio export and download/history | P20 implementation tests exist, but no current full Windows reader/storage run                                                                       | NOT VERIFIED                                                         |
+| Playwright desktop UI                      | Shell, diagnostics/capture controls, and Record/Library switching, 3/3                                                                               | PASS for covered flows only                                          |
+| Packaged executable visual boot            | Native Windows executable opened with Electron menu and Meetings/Templates/Settings shell visible                                                    | PASS for boot observation                                            |
+| Native OS click-through                    | Orca exposed the Electron renderer only as `Chrome Legacy Window`; coordinate clicks were reported unverified and produced no confirmed state change | NOT VERIFIED                                                         |
 
 ## Defects and blockers
 
@@ -98,6 +102,12 @@ Raw command output was captured during the run in:
    condition to be reported as all three flags. The function now matches exact
    masked values, the regression matrix passes, and the rebuilt packaged smoke
    remains green.
+8. The first `local-speech` build attempt failed under the default GNU Rust
+   toolchain because `dlltool.exe` was unavailable, and the bundled CMake was
+   too new for an older dependency. Installing MSYS2/MinGW, using the MSVC
+   Rust target, and applying a temporary CMake policy wrapper resolved the
+   toolchain issue: 101/101 feature tests and the release build then passed.
+   No real model/corpus runtime qualification was run.
 
 ## Conclusion
 
