@@ -45,7 +45,8 @@ failed, and several physical/manual/reader qualification gates remain open.
   not qualify the scenarios: setup failed to connect to PostgreSQL
   `127.0.0.1:5433`, leaving 3 scenarios skipped. No performance target exists
   in the repository.
-- Desktop ESLint: fail, 5 errors and 14 warnings.
+- Desktop ESLint: rerun has 0 errors and 14 `no-explicit-any` warnings after
+  removing unused imports/fixture state and documenting best-effort cleanup.
 - The initial E2E run was false-green because the desktop package had no E2E
   script/dependency. That tooling defect was corrected; the desktop entry point
   now executes all 8 tests.

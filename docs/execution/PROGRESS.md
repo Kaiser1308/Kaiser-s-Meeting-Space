@@ -52,6 +52,11 @@ The root commands still select zero tests, and no performance target is
 registered. Neither gate is treated as passing; the required external service
 and a performance test target remain open.
 
+Desktop lint debug continuation (2026-09-22): unused imports/fixture state and
+two empty cleanup blocks were corrected. ESLint now reports 0 errors and 14
+explicit-`any` warnings; desktop unit 183/183, typecheck, packaged smoke, and
+covered E2E checks still pass. P20 remains IN_PROGRESS.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The

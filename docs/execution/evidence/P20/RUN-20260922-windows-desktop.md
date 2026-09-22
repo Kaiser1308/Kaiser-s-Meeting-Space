@@ -173,6 +173,12 @@ Raw command output was captured during the run in:
     resilience pass is claimed. No performance test target is registered in
     the repository, so performance evidence is likewise unavailable.
 
+17. Desktop ESLint initially reported five errors. The unused imports/fixture
+    variable and two cleanup empty blocks were corrected; the rerun reports
+    zero errors and 14 existing `no-explicit-any` warnings. Desktop unit tests
+    remain 183/183 and the full E2E suite completes 8/8 with two expected
+    navigation failures.
+
 ## Debug continuation — 2026-09-22
 
 The initial database integration failure was reproduced in

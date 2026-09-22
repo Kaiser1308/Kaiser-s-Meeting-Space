@@ -168,3 +168,9 @@ resilience suite used its dedicated Vitest config but could not start because
 the required local PostgreSQL endpoint `127.0.0.1:5433` was unavailable; three
 scenarios were skipped. No performance suite is registered. No pass is claimed
 for either gate.
+
+Desktop lint continuation (2026-09-22): five ESLint errors were removed without
+changing runtime behavior (unused imports/fixture state and empty cleanup
+blocks). The desktop lint rerun reports 0 errors and 14 existing explicit-
+`any` warnings; unit 183/183, typecheck, packaged smoke, and E2E remain green
+for their covered scenarios.

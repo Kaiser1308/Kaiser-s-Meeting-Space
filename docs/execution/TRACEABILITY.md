@@ -465,3 +465,7 @@ Resilience/performance continuation (2026-09-22): direct Redis-loss resilience
 execution reached setup but failed on missing PostgreSQL at `127.0.0.1:5433`
 (3 scenarios skipped); root resilience/performance commands still run zero
 tests and no performance target is registered. These gates remain OPEN.
+
+Desktop lint continuation (2026-09-22): the five lint errors were corrected;
+the rerun reports 0 errors and 14 `no-explicit-any` warnings. Desktop unit,
+packaged smoke, typecheck, and covered E2E checks remain passing.
