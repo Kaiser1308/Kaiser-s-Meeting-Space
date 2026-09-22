@@ -57,6 +57,11 @@ two empty cleanup blocks were corrected. ESLint now reports 0 errors and 14
 explicit-`any` warnings; desktop unit 183/183, typecheck, packaged smoke, and
 covered E2E checks still pass. P20 remains IN_PROGRESS.
 
+Runner isolation debug continuation (2026-09-22): concurrent desktop unit and
+E2E execution caused two packaged CDP timeouts; a serial rerun passed 19 files /
+183 tests. Electron/CDP gates are therefore recorded as serial-only to avoid
+runner contention.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The

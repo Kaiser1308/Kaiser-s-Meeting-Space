@@ -3,9 +3,9 @@
 ## Executive summary
 
 The current Windows Electron build was exercised with the available automated
-desktop suites. Core packaged behavior passed, but the complete Windows
-qualification did not pass because the repository verify gate and desktop lint
-failed, and several physical/manual/reader qualification gates remain open.
+desktop suites. Core packaged behavior and the covered desktop gates pass, but
+the complete Windows qualification remains open because repository formatting,
+reader/manual, resilience/performance, and feature-coverage gates remain open.
 
 ### Passes
 
@@ -14,7 +14,7 @@ failed, and several physical/manual/reader qualification gates remain open.
 - Packaged Electron meeting flow now includes reopen plus Markdown export: pass.
 - Windows x64 electron-builder packaging: pass.
 - Desktop TypeScript typecheck: pass.
-- Playwright desktop E2E: 8 tests execute; all 8 complete successfully, with 6
+- Playwright desktop E2E rerun: 8 tests execute; all 8 complete successfully, with 6
   normal passes and 2 expected-failures for missing Templates and Settings
   navigation.
   Shell, diagnostics/capture controls, mode/source toggles, Record/Library
@@ -45,7 +45,7 @@ failed, and several physical/manual/reader qualification gates remain open.
   not qualify the scenarios: setup failed to connect to PostgreSQL
   `127.0.0.1:5433`, leaving 3 scenarios skipped. No performance target exists
   in the repository.
-- Desktop ESLint: rerun has 0 errors and 14 `no-explicit-any` warnings after
+- Desktop ESLint rerun has 0 errors and 14 `no-explicit-any` warnings after
   removing unused imports/fixture state and documenting best-effort cleanup.
 - The initial E2E run was false-green because the desktop package had no E2E
   script/dependency. That tooling defect was corrected; the desktop entry point
@@ -71,6 +71,9 @@ failed, and several physical/manual/reader qualification gates remain open.
 - Physical microphone/system-audio, local model runtime, reader compatibility,
   accessibility, long-session, provider, and signed-install qualification were
   not claimed as passed.
+- A concurrent unit+E2E verification attempt caused two packaged smoke CDP
+  timeouts; the serial rerun passed 19 files / 183 tests. This is recorded as
+  runner contention, and Electron/CDP desktop gates should run serially.
 
 The detailed run record, command exit codes, feature matrix, and defect log are
 in [RUN-20260922-windows-desktop.md](RUN-20260922-windows-desktop.md).

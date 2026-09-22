@@ -469,3 +469,7 @@ tests and no performance target is registered. These gates remain OPEN.
 Desktop lint continuation (2026-09-22): the five lint errors were corrected;
 the rerun reports 0 errors and 14 `no-explicit-any` warnings. Desktop unit,
 packaged smoke, typecheck, and covered E2E checks remain passing.
+
+Runner isolation continuation (2026-09-22): concurrent unit/E2E execution
+caused two packaged CDP timeouts; the serial rerun passed 19 files / 183
+tests. This is runner contention, not a product failure reproduced serially.

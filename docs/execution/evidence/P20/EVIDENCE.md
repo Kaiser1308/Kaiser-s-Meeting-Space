@@ -174,3 +174,8 @@ changing runtime behavior (unused imports/fixture state and empty cleanup
 blocks). The desktop lint rerun reports 0 errors and 14 existing explicit-
 `any` warnings; unit 183/183, typecheck, packaged smoke, and E2E remain green
 for their covered scenarios.
+
+Runner isolation continuation (2026-09-22): a concurrent desktop unit plus E2E
+run caused two packaged smoke CDP connection timeouts. A serial rerun passed
+19 files / 183 tests, confirming runner contention rather than a reproduced
+product failure. Electron/CDP desktop gates are recorded as serial-only.

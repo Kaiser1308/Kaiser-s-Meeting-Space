@@ -27,7 +27,7 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm --filter @kms/desktop build:electron` (native fix)      |    0 | Electron package rebuilt with the fixed release sidecar.                                                                                             |
 | `pnpm --filter @kms/desktop test:smoke` (native fix)          |    0 | Packaged physical capture/reopen/export/concurrency smoke: 3/3 passed.                                                                               |
 | `pnpm exec eslint apps/desktop`                               |    1 | 5 errors, 14 warnings; see defect log below.                                                                                                         |
-| `pnpm --filter @kms/desktop test:e2e`                         |    0 | 8 Playwright tests executed: 5 passed and 3 expected-failures expose simulated title validation plus Templates/Settings navigation defects.          |
+| `pnpm --filter @kms/desktop test:e2e` (initial)               |    0 | 8 Playwright tests executed: 5 passed and 3 expected-failures exposed simulated title validation plus Templates/Settings navigation defects.          |
 | `pnpm test:e2e:desktop`                                       |    0 | Same 8-test desktop suite passed through the root wrapper; expected-failures are reported by Playwright as `x`.                                      |
 | `pnpm test:security`                                          |    0 | 4 files / 37 security tests passed.                                                                                                                  |
 | `pnpm test:contract`                                          |    0 | Domain 28 files / 406 tests and API 7 files / 30 tests passed.                                                                                       |
@@ -105,7 +105,7 @@ Raw command output was captured during the run in:
 
 1. `pnpm verify` cannot complete because repository-wide Prettier reports 155
    files. This is a gate failure, not fixed in this qualification run.
-2. Desktop lint fails on unused symbols in `apps/desktop/renderer/MinutesEditor.ts`,
+2. Desktop lint initially failed on unused symbols in `apps/desktop/renderer/MinutesEditor.ts`,
    `apps/desktop/src/local-meeting-store.test.ts`, and `apps/desktop/src/main.tsx`,
    plus empty blocks in `apps/desktop/src/main/packaged-app.smoke.test.ts`.
 3. The initial run exposed a false-green E2E wrapper because
@@ -139,10 +139,11 @@ Raw command output was captured during the run in:
 9. The repository does not contain the `STATUS.md` file referenced by the
    execution rules, so no status-file update was possible; lifecycle state was
    recorded in `PROGRESS.md`, `TRACEABILITY.md`, and this evidence set.
-10. The repository integration gate fails in the database migration-restore
-    suite: five assertions still use obsolete migration journal/schema/enum
-    counts. This is a repository baseline defect, not a desktop UI failure,
-    but it prevents the integrated Windows qualification gate from passing.
+10. The initial repository integration gate failed in the database
+    migration-restore suite because five assertions used obsolete migration
+    journal/schema/enum counts. The rerun passes after aligning the test with
+    migrations 0000–0013; the initial failure is retained here as historical
+    evidence.
 11. `pnpm test:resilience` and `pnpm test:performance` exit zero while
     selecting no package scripts. They are false-green commands and provide no
     resilience/performance evidence; the missing package scripts remain open.
@@ -178,6 +179,13 @@ Raw command output was captured during the run in:
     zero errors and 14 existing `no-explicit-any` warnings. Desktop unit tests
     remain 183/183 and the full E2E suite completes 8/8 with two expected
     navigation failures.
+
+18. A final verification attempt launched desktop unit tests and Playwright
+    E2E concurrently; two packaged smoke cases then timed out waiting for CDP
+    while their child processes were still running. The same packaged unit
+    suite rerun serially passed 19 files / 183 tests, so this is runner
+    contention rather than a reproduced product failure. Desktop qualification
+    commands must be run serially when they launch Electron/CDP children.
 
 ## Debug continuation — 2026-09-22
 
