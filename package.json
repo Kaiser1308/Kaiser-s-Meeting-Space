@@ -23,7 +23,7 @@
     "test:e2e:desktop": "pnpm --filter @kms/desktop test:e2e",
     "test:e2e:mobile": "pnpm --filter @kms/mobile test:e2e",
     "test:security": "vitest run --config tests/security/vitest.config.ts",
-    "test:resilience": "pnpm -r test:resilience",
+    "test:resilience": "vitest run --config tests/resilience/vitest.config.ts",
     "test:performance": "pnpm -r test:performance",
     "build": "node scripts/quality/run-required-suite.mjs build",
     "verify": "pnpm execution:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:integration && pnpm test:contract && pnpm build",
