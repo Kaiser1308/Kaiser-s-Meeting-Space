@@ -34,7 +34,9 @@ reader/manual, resilience/performance, and feature-coverage gates remain open.
 
 ### Failures / missing coverage
 
-- Repository `pnpm verify`: fail at formatting, 155 files.
+- Repository `pnpm verify`: current rerun fails at formatting, 161 files
+  (the earlier qualification run reported 155 before later generated artifacts
+  were present).
 - Repository integration gate: initial run failed on 5 stale database
   migration/schema assertions; after the debug fixes, root integration passes
   API, database (352/352), and MinIO storage (15/15).

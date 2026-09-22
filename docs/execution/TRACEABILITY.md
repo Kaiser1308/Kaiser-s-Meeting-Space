@@ -473,3 +473,7 @@ packaged smoke, typecheck, and covered E2E checks remain passing.
 Runner isolation continuation (2026-09-22): concurrent unit/E2E execution
 caused two packaged CDP timeouts; the serial rerun passed 19 files / 183
 tests. This is runner contention, not a product failure reproduced serially.
+
+Final verification continuation (2026-09-22): `pnpm verify` execution-plan
+validation passed but formatting stopped the gate with 161 files. Desktop ESLint
+was independently verified at 0 errors / 14 warnings; P20 remains OPEN.

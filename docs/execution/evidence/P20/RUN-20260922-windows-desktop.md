@@ -103,8 +103,9 @@ Raw command output was captured during the run in:
 
 ## Defects and blockers
 
-1. `pnpm verify` cannot complete because repository-wide Prettier reports 155
-   files. This is a gate failure, not fixed in this qualification run.
+1. `pnpm verify` cannot complete because repository-wide Prettier reports 161
+   files in the current workspace (the initial run reported 155). This is a
+   gate failure, not fixed in this qualification run.
 2. Desktop lint initially failed on unused symbols in `apps/desktop/renderer/MinutesEditor.ts`,
    `apps/desktop/src/local-meeting-store.test.ts`, and `apps/desktop/src/main.tsx`,
    plus empty blocks in `apps/desktop/src/main/packaged-app.smoke.test.ts`.

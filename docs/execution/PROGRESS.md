@@ -62,6 +62,11 @@ E2E execution caused two packaged CDP timeouts; a serial rerun passed 19 files /
 183 tests. Electron/CDP gates are therefore recorded as serial-only to avoid
 runner contention.
 
+Final verification continuation (2026-09-22): fresh `pnpm verify` passed
+execution-plan validation and stopped at Prettier with 161 files. Desktop
+ESLint was separately verified at 0 errors and 14 warnings. P20 remains
+IN_PROGRESS and is not promoted to VERIFIED.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The
