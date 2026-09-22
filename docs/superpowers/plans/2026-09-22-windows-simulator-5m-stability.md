@@ -4,7 +4,7 @@
 
 **Goal:** Chạy một bài kiểm thử Windows desktop dùng simulator trong đúng 300 giây, có tải chunk tổng hợp đều đặn, có health/process telemetry và kết luận pass/fail trung thực về độ ổn định.
 
-**Architecture:** Giữ nguyên ranh giới simulator/native hiện có. Tạo một harness kiểm thử riêng cho desktop: khởi động app với user-data directory tạm, chọn `Simulated (P11)`, phát một `chunk_ready` mỗi 5 giây trong 60 vòng, chụp state/health và process metrics, sau đó stop/reset và kiểm tra artifact. Harness không dùng microphone, provider/AI, nội dung cuộc họp thật hoặc fake thiết bị production.
+**Architecture:** Giữ nguyên ranh giới simulator/native hiện có. Tạo một harness Vitest dùng packaged Windows `.exe` và CDP WebSocket, khởi động app với `--user-data-dir=<temp>`, chọn `Simulated (P11)`, phát một `chunk_ready` mỗi 5 giây trong 60 vòng, chụp state/health và process-tree metrics từ Windows, sau đó stop/reset và kiểm tra artifact. Harness không dùng microphone, provider/AI, nội dung cuộc họp thật hoặc fake thiết bị production.
 
 **Tech Stack:** Windows PowerShell, pnpm, Electron, Playwright, Vitest, Rust `kms-native`, SQLite/manifest hiện có, Docker chỉ khi một gate phụ thuộc service cần nó.
 
@@ -62,8 +62,8 @@ Run:
 
 ```powershell
 pnpm --filter @kms/desktop typecheck
-pnpm --filter @kms/desktop test:unit -- --runInBand
-cargo test --manifest-path native/Cargo.toml -p kms-native simulator
+pnpm --filter @kms/desktop test:unit
+cargo +stable-x86_64-pc-windows-msvc test --manifest-path native/Cargo.toml -p kms-native simulator
 ```
 
 Expected: exit code 0. If a command fails, stop and use the systematic-debugging workflow before changing the harness or product code.
@@ -83,50 +83,50 @@ test(windows): lock simulator stability run preflight
 ## Task 2: Add a bounded five-minute simulator stability harness
 
 **Files:**
-- Create: `apps/desktop/e2e/windows-simulator-stability.spec.ts`
-- Create: `apps/desktop/e2e/support/windows-simulator-run.ts`
-- Modify only if required: `apps/desktop/playwright.config.ts`
+- Create: `apps/desktop/src/main/windows-simulator-stability.test.ts`
+- Create: `apps/desktop/src/main/windows-simulator-stability-runner.ts`
+- Modify only if required: `apps/desktop/src/main/packaged-app.smoke.test.ts` (reuse only; do not alter its physical-audio assertions)
 - Test against: `apps/desktop/src/main.tsx`
 - Test against: `native/crates/kms-native/src/simulator.rs`
 
 **Interfaces:**
-- `runWindowsSimulatorStability(page, options): Promise<SimulatorRunSummary>`
+- `runWindowsSimulatorStability(cdp, child, options): Promise<SimulatorRunSummary>`
 - `SimulatorRunSummary` contains only operational fields: `startedAt`, `endedAt`, `elapsedMs`, `iterations`, `virtualTimeMs`, `chunkCount`, `stateTransitions`, `healthFailures`, `rendererErrors`, `expectedEventErrors`, `memorySamples`, `artifactDir`.
 - The helper uses the existing UI controls and simulator contract; it must not expose or persist real meeting data.
 
 - [ ] **Step 1: Write the failing test contract**
 
-Add one Playwright test with a bounded timeout above five minutes. It must assert before implementation that the run summary has `elapsedMs >= 300000`, `iterations === 60`, `virtualTimeMs === 300000`, `chunkCount === 60`, final simulator state `idle`, and no unexpected renderer/runtime errors.
+Add one Vitest test with a bounded timeout above five minutes. It must assert before implementation that the run summary has `elapsedMs >= 300000`, `iterations === 60`, `virtualTimeMs === 300000`, `chunkCount === 60`, final simulator state `idle`, and no unexpected renderer/runtime errors.
 
 - [ ] **Step 2: Run the new test to establish the current failure**
 
 Run:
 
 ```powershell
-pnpm --filter @kms/desktop exec playwright test e2e/windows-simulator-stability.spec.ts --project=chromium --workers=1
+pnpm --filter @kms/desktop exec vitest run src/main/windows-simulator-stability.test.ts
 ```
 
-Expected: the test is not yet runnable or fails because no five-minute harness/summary exists. Preserve this output in the task notes; do not weaken assertions.
+Expected: the test is not yet runnable or fails because no five-minute packaged-Electron harness/summary exists. Preserve this output in the task notes; do not weaken assertions.
 
 - [ ] **Step 3: Implement the minimum deterministic loop**
 
 The helper must:
 
-1. Navigate to the desktop app and select the exact `Simulated (P11)` control.
-2. Fill a synthetic title such as `Windows simulator stability run` and click `Start meeting`.
-3. For `i = 0..59`, click the existing `Ready Chunk` simulator control (or call the equivalent existing test-only bridge), assert the response remains simulated, poll `simulator_get_state`, and record only counts/state/virtual time.
+1. Spawn `apps/desktop/dist-packaged/win-unpacked/Kaiser's Meeting Space.exe` with `--enable-logging`, `--user-data-dir=<unique-temp-dir>`, and a free `--remote-debugging-port`; connect to the `dist/index.html` CDP target using the same WebSocket pattern as `packaged-app.smoke.test.ts`.
+2. Wait for local runtime health, select the exact `Simulated (P11)` control, fill a synthetic title such as `Windows simulator stability run`, and click `Start meeting`.
+3. For `i = 0..59`, call the existing preload bridge through CDP (`window.kmsNative.invoke`) with `simulator_inject_event` and `{ eventKind: 'chunk_ready', advanceMs: 5000 }`, assert every response has `isSimulated: true`, poll `simulator_get_state`, and record only counts/state/virtual time. Do not assert 60 durable files: current simulator chunk bytes are returned as metadata and are not persisted individually.
 4. Pace iterations against a monotonic deadline so the wall-clock capture duration is exactly 300 seconds; do not use an unbounded sleep loop.
-5. Sample the desktop/native process every 10 seconds: alive state, private working set, CPU time, and exit code if available. Write newline-delimited JSON with operational fields only.
+5. Sample the packaged Electron process and its child process tree every 10 seconds with Windows PowerShell/CIM (`Get-Process`, `Win32_Process`): alive state, private working set, CPU time, child PIDs, and exit code if available. Write newline-delimited JSON with operational fields only.
 6. Click `End meeting`, poll until idle, call reset, and write `summary.json` plus `summary.md` into a unique `%TEMP%\kms-windows-sim-5m-*` directory.
 7. On failure, collect a sanitized screenshot and DOM/runtime error summary; never dump page HTML, transcript text, raw IPC payloads, or audio bytes.
 
 - [ ] **Step 4: Add explicit assertions for stability and cleanup**
 
-Assert: no renderer crash/page error, no unexpected console error, no failed simulator command, monotonic `virtualTimeMs`, exactly 60 successful chunk events, no unexplained gap/overflow count in the baseline, state transitions `idle -> capturing -> idle`, and no leftover active session after reset.
+Assert: no renderer crash/page error, no unexpected console error, no failed simulator command, monotonic `virtualTimeMs`, exactly 60 successful chunk metadata events, no unexplained gap/overflow count in the baseline, state transitions `idle -> capturing -> idle`, and no leftover active session after reset. Verify native response fields directly through `window.kmsNative.invoke`, not through a browser-only mock.
 
 - [ ] **Step 5: Run the focused test and debug root causes**
 
-Run the focused Playwright command again. For every failure, classify it as harness, desktop renderer, native simulator, packaging/boot, or environment; inspect the first causal error, make the smallest scoped fix, and rerun the focused test. Do not turn a real failure into an expected failure.
+Run the focused Vitest command again. For every failure, classify it as harness, desktop renderer, native simulator, packaging/boot, or environment; inspect the first causal error, make the smallest scoped fix, and rerun the focused test. Do not turn a real failure into an expected failure.
 
 - [ ] **Step 6: Commit the harness task**
 
@@ -151,14 +151,14 @@ test(desktop): add five-minute Windows simulator stability harness
 
 - [ ] **Step 1: Start from a clean temporary app state**
 
-Set a unique `KMS_TEST_USER_DATA` under `%TEMP%`, ensure no previous simulator process owns it, and launch the Windows desktop test with one worker. Never point the run at a real user profile or production data directory.
+Set a unique temporary user-data directory under `%TEMP%`, ensure no previous simulator process owns it, and launch the packaged Electron test serially. The runner must pass the directory through `--user-data-dir=<path>`; `KMS_TEST_USER_DATA` is not an application contract. Never point the run at a real user profile or production data directory.
 
 - [ ] **Step 2: Run the baseline for exactly 300 seconds**
 
 Run:
 
 ```powershell
-pnpm --filter @kms/desktop exec playwright test e2e/windows-simulator-stability.spec.ts --project=chromium --workers=1 --reporter=line
+pnpm --filter @kms/desktop exec vitest run src/main/windows-simulator-stability.test.ts --reporter=verbose
 ```
 
 The test must remain attached for the full 300-second wall-clock interval, generate 60 synthetic chunks, then stop and reset cleanly. Record actual monotonic elapsed time, not only the test runner's nominal timeout.
@@ -229,7 +229,7 @@ pnpm --filter @kms/desktop typecheck
 pnpm --filter @kms/desktop test:unit
 pnpm --filter @kms/desktop test:smoke
 pnpm --filter @kms/desktop test:e2e -- --workers=1
-cargo test --manifest-path native/Cargo.toml -p kms-native
+cargo +stable-x86_64-pc-windows-msvc test --manifest-path native/Cargo.toml -p kms-native
 ```
 
 Expected: each exit code and test count is recorded. Do not run concurrent Electron/CDP suites.
