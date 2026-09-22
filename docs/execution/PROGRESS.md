@@ -26,6 +26,10 @@ records simulated-mode title validation ordering. Mode/source toggles and
 Library refresh pass. P20 remains IN_PROGRESS pending the logged defect and
 the other qualification gates.
 
+The navigation audit expanded Windows E2E to 8 tests: 5 pass and 3 expected
+failures record simulated title validation plus missing Templates/Settings
+views. P20 remains IN_PROGRESS.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The

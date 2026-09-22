@@ -14,8 +14,9 @@ failed, and several physical/manual/reader qualification gates remain open.
 - Packaged Electron meeting flow now includes reopen plus Markdown export: pass.
 - Windows x64 electron-builder packaging: pass.
 - Desktop TypeScript typecheck: pass.
-- Playwright desktop E2E: 6 tests execute through the root wrapper; 5 pass and
-  1 expected-failure documents simulated-mode title validation ordering.
+- Playwright desktop E2E: 8 tests execute through the root wrapper; 5 pass and
+  3 expected-failures document simulated-mode title validation plus missing
+  Templates and Settings navigation.
   Shell, diagnostics/capture controls, mode/source toggles, Record/Library
   switching, and Library refresh are covered.
 - Native Windows Rust suite: initial 77/78 exposed a flag-reporting defect;
@@ -45,6 +46,8 @@ failed, and several physical/manual/reader qualification gates remain open.
   empty meeting title, producing `Local capture runtime is unavailable.` rather
   than `Enter a meeting title.`; this is covered by an expected-failure E2E
   regression test.
+- The visible Templates and Settings navigation buttons do not change view or
+  content; both are covered by expected-failure E2E checks.
 - The WASAPI flag-reporting defect was fixed and verified through the native
   regression test, full Rust suite, release sidecar build, and packaged smoke.
 - Physical microphone/system-audio, local model runtime, reader compatibility,

@@ -444,3 +444,7 @@ The expanded desktop E2E also found a simulated-capture validation defect:
 empty meeting title returns `Local capture runtime is unavailable.` before the
 expected title error. The expected-failure test preserves this regression
 evidence; mode/source toggles and Library refresh pass.
+
+The navigation audit added expected-failure coverage for the visible Templates
+and Settings buttons: neither changes the rendered view because the current
+renderer has no handler or view state for them.

@@ -62,3 +62,17 @@ test('refreshes the Windows local meeting library', async ({ page }) => {
     page.getByText('No local meetings found. Record a meeting to get started.', { exact: true }),
   ).toBeVisible();
 });
+
+test('opens the Windows Templates view from the primary navigation', async ({ page }) => {
+  test.fail();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Templates', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Templates', exact: true })).toBeVisible();
+});
+
+test('opens the Windows Settings view from the primary navigation', async ({ page }) => {
+  test.fail();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+});

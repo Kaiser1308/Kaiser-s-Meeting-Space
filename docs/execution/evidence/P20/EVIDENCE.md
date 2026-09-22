@@ -127,6 +127,11 @@ model/corpus gates remain open. `pnpm verify` stops at 155 Prettier errors and
 desktop ESLint has 5 errors. See `RUN-20260922-windows-desktop.md` and
 `windows-desktop-test-report.md`.
 
+Navigation audit continuation (2026-09-22): the Windows E2E suite now executes
+8 tests through the root wrapper; 5 pass and 3 expected-failures capture the
+simulated-mode title-validation defect and the non-functional Templates and
+Settings sidebar buttons. Library refresh and source-mode interactions pass.
+
 Additional integrated-gate checks from the same Windows run: security passes
 37/37; contract passes domain 406/406 and API 30/30. Integration fails 5/352
 database migration/schema baseline assertions. The root resilience and
