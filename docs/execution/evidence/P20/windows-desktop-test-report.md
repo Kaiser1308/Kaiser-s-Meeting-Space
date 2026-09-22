@@ -13,15 +13,15 @@ failed, and the configured desktop Playwright gate does not actually run.
 - Packaged Electron smoke: 3 tests: pass.
 - Windows x64 electron-builder packaging: pass.
 - Desktop TypeScript typecheck: pass.
+- Playwright desktop editor smoke: 1/1 pass, both direct and root wrapper.
 
 ### Failures / missing coverage
 
 - Repository `pnpm verify`: fail at formatting, 155 files.
 - Desktop ESLint: fail, 5 errors and 14 warnings.
-- Direct Playwright: unavailable because `@playwright/test`/Playwright binary is
-  not installed for `apps/desktop`.
-- Root desktop E2E command: false green; exits 0 while selecting no test script
-  and running zero tests.
+- The initial E2E run was false-green because the desktop package had no E2E
+  script/dependency. That tooling defect was corrected and both E2E entry points
+  now execute 1 test and pass.
 - Physical microphone/system-audio, local model runtime, reader compatibility,
   accessibility, long-session, provider, and signed-install qualification were
   not claimed as passed.

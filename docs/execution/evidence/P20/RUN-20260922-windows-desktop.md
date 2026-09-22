@@ -19,8 +19,8 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm --filter @kms/desktop typecheck` | 0 | TypeScript check passed. |
 | `pnpm --filter @kms/desktop build:electron` | 0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`. |
 | `pnpm exec eslint apps/desktop` | 1 | 5 errors, 14 warnings; see defect log below. |
-| `pnpm --filter @kms/desktop exec playwright test` | 1 | Playwright executable is not installed in the desktop workspace. |
-| `pnpm test:e2e:desktop` | 0 | **Invalid green:** no desktop package has a `test:e2e` script, so zero tests ran. |
+| `pnpm --filter @kms/desktop test:e2e` | 0 | 1 Playwright test passed after adding the missing desktop script/dependency and installing Chromium. |
+| `pnpm test:e2e:desktop` | 0 | 1 Playwright test passed through the root wrapper. |
 | `pnpm verify` | 1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute. |
 
 Raw command output was captured during the run in:
@@ -30,8 +30,14 @@ Raw command output was captured during the run in:
 - `%TEMP%\\kms-desktop-build-20260922.log`
 - `%TEMP%\\kms-desktop-typecheck-20260922.log`
 - `%TEMP%\\kms-desktop-lint-target-20260922.log`
-- `%TEMP%\\kms-desktop-playwright-direct-20260922.log`
-- `%TEMP%\\kms-desktop-e2e-20260922.log`
+- `%TEMP%\\kms-playwright-install-20260922.log`
+- `%TEMP%\\kms-playwright-install-full-20260922.log`
+- `%TEMP%\\kms-playwright-browser-install-20260922.log`
+- `%TEMP%\\kms-desktop-e2e-direct-20260922.log`
+- `%TEMP%\\kms-desktop-e2e-root-20260922.log`
+- `%TEMP%\\kms-desktop-unit-rerun-20260922.log`
+- `%TEMP%\\kms-desktop-typecheck-rerun-20260922.log`
+- `%TEMP%\\kms-desktop-build-rerun-20260922.log`
 - `%TEMP%\\kms-p20-verify-20260922.log`
 
 ## Windows feature matrix
@@ -46,7 +52,7 @@ Raw command output was captured during the run in:
 | Library/detail | Packaged reopen/library path plus unit coverage | Partial; full UI qualification NOT RUN |
 | Markdown export | Desktop markdown export unit coverage | PASS at unit seam; full reader/manual qualification NOT RUN |
 | DOCX/PDF/audio export and download/history | P20 implementation tests exist, but no current full Windows reader/storage run | NOT VERIFIED |
-| Playwright desktop UI | No executable/package available; wrapper selects zero tests | NOT RUN |
+| Playwright desktop UI | Editor smoke via direct and root commands, 1/1 each | PASS for available smoke only |
 
 ## Defects and blockers
 
@@ -55,10 +61,10 @@ Raw command output was captured during the run in:
 2. Desktop lint fails on unused symbols in `apps/desktop/renderer/MinutesEditor.ts`,
    `apps/desktop/src/local-meeting-store.test.ts`, and `apps/desktop/src/main.tsx`,
    plus empty blocks in `apps/desktop/src/main/packaged-app.smoke.test.ts`.
-3. `apps/desktop/package.json` has no `test:e2e` script and no
-   `@playwright/test` dependency, while the root `test:e2e:desktop` script
-   invokes that missing script and returns exit 0 with zero tests. This is a
-   false-green E2E gate.
+3. The initial run exposed a false-green E2E wrapper because
+   `apps/desktop/package.json` had no `test:e2e` script or `@playwright/test`
+   dependency. The test tooling was corrected in this run; direct and root
+   E2E now both execute 1 test and pass.
 4. Package installation succeeded but pnpm ignored several dependency build
    scripts. Any qualification requiring those native packages must explicitly
    approve/build them and rerun.
