@@ -223,3 +223,20 @@ stored-artifact metadata. Exporter tests pass 2 files / 11 tests and package
 typecheck exits 0. P20 remains IN_PROGRESS because durable P05/P06 wiring,
 reader/security/performance qualification, and inherited deferred rows remain
 open. Evidence: `docs/execution/evidence/P20/RUN-20260814-1918.md`.
+
+P20 Windows pipeline harness continuation (2026-09-22): selectable Windows
+profiles are implemented for `physical-recording`, `simulator-full`, and
+`physical-full`, with one duration selected per invocation (`5m`, `1h`, `3h`,
+or `4h`). A frozen synthetic meeting fixture, transcript-quality metrics, and
+sanitized `summary.json`/`metrics.ndjson`/`events.ndjson` evidence contract are
+covered by focused tests. The harness fails closed when real audio, a local
+speech model, or a verified captured-source reader is unavailable; no provider
+or fake device is substituted. P20 remains IN_PROGRESS: packaged synthetic
+stability is qualified separately, while real-device/model/reader and inherited
+qualification rows remain open. Evidence:
+`docs/execution/evidence/P20/RUN-20260922-windows-desktop.md`.
+
+The selected packaged simulator 3-hour run also completed with PASS: 10,800,659
+ms elapsed, 2,160/2,160 chunks, 1,080 health samples, 859 process samples,
+zero renderer/event/health errors, and final state `idle`. Evidence:
+`docs/execution/evidence/P20/windows-simulator-3h/RUN-20260922-164043-packaged-simulator-3h/`.

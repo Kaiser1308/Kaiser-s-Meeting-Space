@@ -453,6 +453,23 @@ empty meeting title returns `Local capture runtime is unavailable.` before the
 expected title error. The expected-failure test preserves this regression
 evidence; mode/source toggles and Library refresh pass.
 
+P20 selectable Windows pipeline harness continuation (2026-09-22): the test
+kit now exposes `physical-recording`, `simulator-full`, and `physical-full`
+profiles and one selected duration (`5m`, `1h`, `3h`, or `4h`) per invocation.
+The local synthetic meeting fixture is immutable and hash-verified; transcript
+quality and sanitized operational evidence are versioned separately from the
+source fixture. Missing real-audio opt-in/device, local model, or captured
+source reader returns `BLOCKED` rather than substituting a fake device/provider
+or claiming a pass. Focused tests, typecheck, scoped lint, CLI selection, and
+diff gates pass. P20 remains IN_PROGRESS; physical device, model quality,
+source-reader, and inherited qualification rows remain OPEN. Evidence:
+`evidence/P20/RUN-20260922-windows-desktop.md`.
+
+The selected three-hour packaged simulator run then completed with PASS:
+10,800,659 ms elapsed, 2,160/2,160 synthetic chunks, 1,080 health samples,
+859 process samples, zero renderer/event/health errors, and final state `idle`.
+Evidence: `evidence/P20/windows-simulator-3h/RUN-20260922-164043-packaged-simulator-3h/`.
+
 The navigation audit added expected-failure coverage for the visible Templates
 and Settings buttons: neither changes the rendered view because the current
 renderer has no handler or view state for them.

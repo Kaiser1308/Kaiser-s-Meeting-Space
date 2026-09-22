@@ -259,6 +259,44 @@ This is a verified synthetic Windows packaged stability run only. It does not
 promote P20 to VERIFIED and does not qualify physical devices, real meeting
 content, provider/model behavior, or the inherited deferred gates.
 
+## Selectable Windows pipeline harness continuation
+
+The Windows test kit was extended with three explicit profiles:
+
+- `physical-recording`: packaged Electron capture using an explicitly selected
+  microphone and local scripted fixture playback.
+- `simulator-full`: deterministic storage, manifest/chunk lifecycle, replay,
+  local speech IPC, transcript-quality evaluation, and Markdown export.
+- `physical-full`: physical capture followed by the local speech path and
+  transcript/export checks.
+
+Each invocation accepts exactly one duration: `5m`, `1h`, `3h`, or `4h`. The
+CLI rejects missing, duplicate, or unsupported profile/duration values, so the
+matrix is selected one run at a time rather than executing every combination.
+
+The source fixture is a local scripted synthetic meeting asset with immutable
+WAV and expected-transcript SHA-256 values. It contains no real meeting
+content. Evidence writes only sanitized operational fields to
+`summary.json`, `metrics.ndjson`, and `events.ndjson`; raw paths, payloads,
+device identifiers, secrets, and transcript text are redacted.
+
+The fail-closed prerequisite behavior is intentional. Physical recording
+requires explicit real-audio opt-in, a selected device, and the packaged
+capture runtime. Simulator-full requires an allowlisted local speech model.
+Physical-full additionally requires a verified reader for the captured WebM
+source before local speech can run. Missing prerequisites produce `BLOCKED`,
+never a synthetic `PASS`, provider substitution, or fake device behavior.
+
+The implementation has separate task commits for the selectable test kit,
+fixture, physical-recording profile, simulator-full profile, physical-full
+profile, and evidence contract. Focused tests, desktop typecheck, scoped lint,
+CLI selection tests, and staged diff checks were run directly. The packaged
+three-hour simulator qualification then completed with `PASS`: 10,800,659 ms
+elapsed, 2,160/2,160 chunks, 10,800,000 ms virtual time, 1,080 health
+samples, 859 process samples, zero renderer/event/health errors, and final
+state `idle`. The retained evidence is
+`windows-simulator-3h/RUN-20260922-164043-packaged-simulator-3h/`.
+
 The Windows desktop unit, packaged smoke, typecheck, and Windows x64 packaging
 passed. The software is not fully qualified: repository verify, lint, and the
 desktop E2E gate have failures or invalid coverage, and the physical/manual /

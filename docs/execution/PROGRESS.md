@@ -683,3 +683,30 @@ repository/domain mapping passed database typecheck, 6 files / 28 unit tests,
 and 17 files / 324 PostgreSQL integration tests. P18 remains IMPLEMENTED;
 durable draft orchestration and provider/human/security/inherited gates remain
 OPEN.
+
+### P20 Windows pipeline harness continuation - 2026-09-22
+
+The selectable Windows test kit is implemented in separate task-scoped
+commits. It supports `physical-recording`, `simulator-full`, and
+`physical-full`, with exactly one duration selected per run: `5m`, `1h`, `3h`,
+or `4h`. The committed synthetic meeting fixture is local, scripted, hashed,
+and immutable after finalization; expected transcript quality is measured with
+WER/CER, phrase coverage, timestamp coverage, and empty-segment checks.
+
+The physical recording route uses the packaged Electron application and an
+explicit local fixture playback path. The simulator-full route exercises
+storage, manifest/chunk lifecycle, replay, local speech IPC, transcript
+quality, and export when a verified local model is supplied. The physical-full
+route composes real capture with the same local speech path and refuses to
+claim success until a verified captured-source reader exists. Missing audio
+opt-in, device, model, or source-reader prerequisites return `BLOCKED`; the
+harness never substitutes a provider, mock device, or fake transcript.
+
+Focused unit tests, desktop typecheck, scoped lint, CLI selection tests, and
+diff checks pass for the harness implementation. The packaged 3-hour simulator
+run completed with `PASS`: 10,800,659 ms elapsed, 2,160/2,160 chunks,
+10,800,000 ms virtual time, 1,080 health samples, 859 process samples, zero
+renderer/event/health errors, and final state `idle`. Evidence:
+`docs/execution/evidence/P20/windows-simulator-3h/RUN-20260922-164043-packaged-simulator-3h/`.
+P20 remains IN_PROGRESS; this continuation does not close physical device,
+model quality, reader, or inherited qualification gates.
