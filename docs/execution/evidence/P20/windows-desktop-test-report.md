@@ -35,8 +35,9 @@ failed, and several physical/manual/reader qualification gates remain open.
 ### Failures / missing coverage
 
 - Repository `pnpm verify`: fail at formatting, 155 files.
-- Repository integration gate: fail, database migration/schema baseline has 5
-  failed assertions (`9` vs `14`, `38` vs `55`, and `30` vs `36`).
+- Repository integration gate: initial run failed on 5 stale database
+  migration/schema assertions; after the debug fixes, root integration passes
+  API, database (352/352), and MinIO storage (15/15).
 - Resilience/performance root commands return exit 0 without running tests
   because no selected workspace package provides those scripts; this is missing
   coverage, not a pass.
@@ -55,6 +56,11 @@ failed, and several physical/manual/reader qualification gates remain open.
 - Poppler installation was attempted but blocked by a concurrent Windows
   Installer lock; it remains unavailable. PyMuPDF was used only as a rendering
   fallback for this synthetic reader smoke.
+- Database migration inventory expectations now derive the journal count from
+  the committed journal and include migrations 0004–0013; the focused migration
+  suite passes 29/29 and full database integration passes 352/352.
+- The storage integration script now uses an explicit MinIO test path instead
+  of a Windows-incompatible glob; the real MinIO suite passes 15/15.
 - The WASAPI flag-reporting defect was fixed and verified through the native
   regression test, full Rust suite, release sidecar build, and packaged smoke.
 - Physical microphone/system-audio, local model runtime, reader compatibility,

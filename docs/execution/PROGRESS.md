@@ -36,6 +36,15 @@ Renderer/reader smoke passes export 11/11 and synthetic DOCX-to-PDF
 LibreOffice/pypdf/PNG checks. Poppler installation remained unavailable due to
 the Windows Installer lock; full target-reader qualification remains open.
 
+Windows integration debug continuation (2026-09-22): P03-T07 migration
+inventory expectations were aligned with the committed 0000–0013 schema;
+focused migration tests pass 29/29 and full database integration passes
+352/352. The storage MinIO integration script was made Windows-safe by replacing
+its shell glob with an explicit test path; MinIO integration passes 15/15.
+Root `pnpm test:integration` now exits 0 across API, database, and storage.
+P20 remains IN_PROGRESS because reader/manual, resilience/performance, and
+inherited qualification rows remain open.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The

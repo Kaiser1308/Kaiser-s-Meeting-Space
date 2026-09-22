@@ -152,3 +152,12 @@ with pypdf, and rendered to PNG for visual review; expected text and one-page
 output were present. Poppler remained unavailable because a concurrent Windows
 Installer lock blocked its installation. This does not close the full
 target-reader, branded-layout, large-document, or durable-storage gates.
+
+Integration debug continuation (2026-09-22): the database migration-restore
+baseline was corrected to match the committed 0000–0013 catalog. The focused
+P03-T07 suite passes 29/29, the full database integration suite passes 352/352,
+and root `pnpm test:integration` passes API, database, and real Testcontainers
+MinIO storage integration. The storage package glob was replaced with an
+explicit Windows-safe test path; its MinIO suite passes 15/15. P20 remains
+IN_PROGRESS because reader, manual/device, resilience/performance, and
+inherited qualification rows remain open.

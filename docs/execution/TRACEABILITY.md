@@ -453,3 +453,10 @@ Renderer/reader smoke also passes the 11/11 export seam suite and a synthetic
 DOCX-to-PDF LibreOffice reopen/render check. Poppler installation was blocked
 by the Windows Installer lock; the fallback render was performed with PyMuPDF.
 Full reader and branded-layout qualification remains OPEN.
+
+Integration debug continuation (2026-09-22): stale P03-T07 migration inventory
+assertions were aligned with the committed 0000–0013 catalog (29/29 focused,
+352/352 full database integration). The Windows storage integration glob was
+replaced by an explicit MinIO test path; the real MinIO suite passes 15/15 and
+root integration exits 0. Reader/manual, resilience/performance, and inherited
+qualification rows remain OPEN.

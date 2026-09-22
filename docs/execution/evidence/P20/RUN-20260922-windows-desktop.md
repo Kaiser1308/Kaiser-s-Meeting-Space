@@ -31,7 +31,10 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm test:e2e:desktop`                                       |    0 | Same 8-test desktop suite passed through the root wrapper; expected-failures are reported by Playwright as `x`.                                      |
 | `pnpm test:security`                                          |    0 | 4 files / 37 security tests passed.                                                                                                                  |
 | `pnpm test:contract`                                          |    0 | Domain 28 files / 406 tests and API 7 files / 30 tests passed.                                                                                       |
-| `pnpm test:integration`                                       |    1 | API integration completed; database suite failed 5/352 tests because migration/schema fixtures expect obsolete counts (9 vs 14, 38 vs 55, 30 vs 36). |
+| `pnpm test:integration` (initial)                             |    1 | API completed; database failed 5/352 tests because migration/schema fixtures expected obsolete counts (9 vs 14, 38 vs 55, 30 vs 36). |
+| `pnpm --filter @kms/database test:integration` (rerun)        |    0 | 19 files / 352 tests passed after aligning the migration/schema inventory with migrations 0000–0013. |
+| `pnpm --filter @kms/storage test:integration` (rerun)         |    0 | 1 MinIO integration file / 15 tests passed after replacing the Windows-incompatible glob script. |
+| `pnpm test:integration` (rerun)                               |    0 | API, database, and MinIO storage integration suites completed successfully. |
 | `pnpm test:resilience`                                        |    0 | No selected workspace package exposes a `test:resilience` script; zero tests executed, so this is not evidence of a pass.                            |
 | `pnpm test:performance`                                       |    0 | No selected workspace package exposes a `test:performance` script; zero tests executed, so this is not evidence of a pass.                           |
 | LibreOffice DOCX/PDF reader smoke                             |    0 | LibreOffice 26.2.5.2 converted the synthetic DOCX to PDF; output reopened with pypdf (1 page, expected text) and rendered to PNG for visual review. |
@@ -161,6 +164,22 @@ Raw command output was captured during the run in:
     Poppler installation was blocked by a concurrent Windows Installer lock,
     so PyMuPDF was used for PNG rendering. This is not a substitute for the
     required target-reader matrix or full branded/large-document qualification.
+
+## Debug continuation — 2026-09-22
+
+The initial database integration failure was reproduced in
+`t07-migration-restore.test.ts` as 24/29 passing and five stale inventory
+assertions. The test expected nine journal entries, 38 tables, and 30 enums
+while the committed `0000`–`0013` migration set produces 14, 55, and 36. The
+test now derives the journal count from the committed migration journal and
+includes the current table/enum inventory; the focused suite passes 29/29 and
+the full database integration suite passes 352/352.
+
+The root integration rerun then exposed a separate Windows command issue:
+`@kms/storage` used the glob `src/s3/**/*.minio.test.ts`, which did not resolve
+under the Windows shell and produced zero suites. The script now names the
+MinIO test file explicitly; the real Testcontainers MinIO suite passes 15/15,
+and root `pnpm test:integration` exits 0.
 
 ## Conclusion
 
