@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NativeBridgeClient, type NativeIpcTransport } from '@kms/native-contract';
-import {
-  createMeetingApi,
-  MeetingApiError,
-  type MeetingSummary,
-  type MeetingDetailResult,
-} from './meeting-api.js';
+import { MeetingApiError, type MeetingSummary, type MeetingDetailResult } from './meeting-api.js';
 import { createLocalMeetingStore } from './local-meeting-store.js';
 import { saveTranscript, getTranscript } from './transcript-storage.js';
 import { exportMeetingMarkdown, type ExportableMeeting } from './markdown-export.js';

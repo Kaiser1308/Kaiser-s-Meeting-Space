@@ -516,10 +516,14 @@ describe('Packaged Desktop Application Smoke Test', () => {
       if (childB) terminateProcess(childB);
       try {
         rmSync(tempUserDirA, { recursive: true, force: true });
-      } catch {}
+      } catch {
+        // Temporary test directories are best-effort cleanup targets.
+      }
       try {
         rmSync(tempUserDirB, { recursive: true, force: true });
-      } catch {}
+      } catch {
+        // Temporary test directories are best-effort cleanup targets.
+      }
     }
   }, 45_000);
 });

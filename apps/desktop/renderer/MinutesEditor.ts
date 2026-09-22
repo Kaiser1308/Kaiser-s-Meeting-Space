@@ -1,5 +1,3 @@
-import { mapMinutesDocument } from './view-model.js';
-
 export interface MinutesEditorProps {
   readonly documentId: string;
 }

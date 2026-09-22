@@ -103,7 +103,6 @@ describe('LocalMeetingStore', () => {
   });
 
   it('filters meetings by state when state filter is provided', async () => {
-    const m1 = await store.createLocalMeeting({ title: 'Draft', language: 'en', timezone: 'UTC' });
     const m2 = await store.createLocalMeeting({ title: 'Done', language: 'en', timezone: 'UTC' });
     await store.startLocalMeeting(m2.id);
     await store.endLocalMeeting(m2.id);
