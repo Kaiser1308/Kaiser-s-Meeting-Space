@@ -460,3 +460,8 @@ assertions were aligned with the committed 0000–0013 catalog (29/29 focused,
 replaced by an explicit MinIO test path; the real MinIO suite passes 15/15 and
 root integration exits 0. Reader/manual, resilience/performance, and inherited
 qualification rows remain OPEN.
+
+Resilience/performance continuation (2026-09-22): direct Redis-loss resilience
+execution reached setup but failed on missing PostgreSQL at `127.0.0.1:5433`
+(3 scenarios skipped); root resilience/performance commands still run zero
+tests and no performance target is registered. These gates remain OPEN.

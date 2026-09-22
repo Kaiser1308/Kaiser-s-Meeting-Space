@@ -45,6 +45,13 @@ Root `pnpm test:integration` now exits 0 across API, database, and storage.
 P20 remains IN_PROGRESS because reader/manual, resilience/performance, and
 inherited qualification rows remain open.
 
+Resilience/performance debug continuation (2026-09-22): direct Redis-loss
+execution with the dedicated Vitest config reached setup but failed because
+PostgreSQL at `127.0.0.1:5433` was unavailable; three scenarios were skipped.
+The root commands still select zero tests, and no performance target is
+registered. Neither gate is treated as passing; the required external service
+and a performance test target remain open.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The

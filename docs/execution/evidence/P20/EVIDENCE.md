@@ -161,3 +161,10 @@ MinIO storage integration. The storage package glob was replaced with an
 explicit Windows-safe test path; its MinIO suite passes 15/15. P20 remains
 IN_PROGRESS because reader, manual/device, resilience/performance, and
 inherited qualification rows remain open.
+
+Resilience/performance continuation (2026-09-22): the root commands remain
+invalid zero-test commands. Direct execution of the available Redis-loss
+resilience suite used its dedicated Vitest config but could not start because
+the required local PostgreSQL endpoint `127.0.0.1:5433` was unavailable; three
+scenarios were skipped. No performance suite is registered. No pass is claimed
+for either gate.

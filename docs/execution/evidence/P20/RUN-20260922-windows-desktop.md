@@ -165,6 +165,14 @@ Raw command output was captured during the run in:
     so PyMuPDF was used for PNG rendering. This is not a substitute for the
     required target-reader matrix or full branded/large-document qualification.
 
+16. The root resilience command is false-green because no workspace exposes a
+    `test:resilience` script. The underlying Windows-configured resilience test
+    was run directly with its Vitest config; all three scenarios were skipped
+    because setup could not connect to the required local PostgreSQL endpoint
+    at `127.0.0.1:5433`. Redis is also configured at `127.0.0.1:6380`. No
+    resilience pass is claimed. No performance test target is registered in
+    the repository, so performance evidence is likewise unavailable.
+
 ## Debug continuation — 2026-09-22
 
 The initial database integration failure was reproduced in
