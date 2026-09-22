@@ -86,6 +86,7 @@ export interface SanitizedFailureMetadata {
 type PendingCdpRequest = {
   resolve: (value: Record<string, unknown>) => void;
   reject: (error: Error) => void;
+  timer?: ReturnType<typeof setTimeout>;
 };
 
 export interface ChildProcessFailureSource {
@@ -94,6 +95,20 @@ export interface ChildProcessFailureSource {
 }
 
 const wait = (ms: number) => new Promise<void>((resolvePromise) => setTimeout(resolvePromise, ms));
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorCode: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(errorCode)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 export function getHealthSampleDeadline(
   nextHealthSampleAt: number,
@@ -151,7 +166,10 @@ export function rejectPendingCdpRequests(
   pending: Map<number, PendingCdpRequest>,
   errorCode: string,
 ): void {
-  for (const request of pending.values()) request.reject(new Error(errorCode));
+  for (const request of pending.values()) {
+    if (request.timer) clearTimeout(request.timer);
+    request.reject(new Error(errorCode));
+  }
   pending.clear();
 }
 
@@ -311,50 +329,73 @@ async function connectToCdp(
   }
   if (!wsUrl || !loadedTargetUrl) throw new Error('cdp_dist_index_target_unavailable');
 
-  const ws = new WebSocket(wsUrl);
+  let ws: WebSocket | null = null;
   let nextId = 1;
-  ws.onmessage = (event) => {
-    const message = JSON.parse(event.data.toString()) as {
-      id?: number;
-      method?: string;
-      params?: { type?: string };
-      result?: Record<string, unknown>;
-      error?: unknown;
+  try {
+    ws = new WebSocket(wsUrl);
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data.toString()) as {
+        id?: number;
+        method?: string;
+        params?: { type?: string };
+        result?: Record<string, unknown>;
+        error?: unknown;
+      };
+      if (message.id !== undefined && pending.has(message.id)) {
+        const request = pending.get(message.id)!;
+        pending.delete(message.id);
+        if (request.timer) clearTimeout(request.timer);
+        if (message.error) request.reject(new Error('cdp_command_failed'));
+        else request.resolve(message);
+      } else if (message.method === 'Runtime.consoleAPICalled' && message.params?.type === 'error') {
+        rendererErrors.push('console_error');
+      } else if (message.method === 'Runtime.exceptionThrown') {
+        rendererErrors.push('runtime_exception');
+      }
     };
-    if (message.id !== undefined && pending.has(message.id)) {
-      const request = pending.get(message.id)!;
-      pending.delete(message.id);
-      if (message.error) request.reject(new Error('cdp_command_failed'));
-      else request.resolve(message);
-    } else if (message.method === 'Runtime.consoleAPICalled' && message.params?.type === 'error') {
-      rendererErrors.push('console_error');
-    } else if (message.method === 'Runtime.exceptionThrown') {
-      rendererErrors.push('runtime_exception');
-    }
-  };
-  ws.onerror = () => signalTransportFailure('cdp_websocket_error');
-  ws.onclose = () => {
-    if (!expectedClose) signalTransportFailure('cdp_websocket_closed');
-  };
-  await new Promise<void>((resolvePromise, reject) => {
-    rejectOpening = reject;
-    ws.onopen = () => {
-      opened = true;
-      resolvePromise();
+    ws.onerror = () => signalTransportFailure('cdp_websocket_error');
+    ws.onclose = () => {
+      if (!expectedClose) signalTransportFailure('cdp_websocket_closed');
     };
-  });
-  const command = async (method: string, params: Record<string, unknown> = {}) => {
-    const id = nextId++;
-    return new Promise<Record<string, unknown>>((resolvePromise, reject) => {
-      pending.set(id, { resolve: resolvePromise, reject });
-      ws.send(JSON.stringify({ id, method, params }));
+    await new Promise<void>((resolvePromise, reject) => {
+      rejectOpening = reject;
+      const timer = setTimeout(() => reject(new Error('cdp_websocket_open_timeout')), 10_000);
+      ws!.onopen = () => {
+        clearTimeout(timer);
+        opened = true;
+        resolvePromise();
+      };
     });
-  };
-  await command('Runtime.enable');
-  await command('Page.enable');
-  return {
-    loadedTargetUrl,
-    cdp: {
+    const command = async (method: string, params: Record<string, unknown> = {}) => {
+      const id = nextId++;
+      return new Promise<Record<string, unknown>>((resolvePromise, reject) => {
+        const timer = setTimeout(() => {
+          pending.delete(id);
+          reject(new Error('cdp_command_timeout'));
+        }, 10_000);
+        pending.set(id, {
+          resolve: (value) => {
+            clearTimeout(timer);
+            resolvePromise(value);
+          },
+          reject: (error) => {
+            clearTimeout(timer);
+            reject(error);
+          },
+          timer,
+        });
+        try {
+          ws!.send(JSON.stringify({ id, method, params }));
+        } catch (error) {
+          clearTimeout(timer);
+          pending.delete(id);
+          reject(error instanceof Error ? error : new Error('cdp_send_failed'));
+        }
+      });
+    };
+    await command('Runtime.enable');
+    await command('Page.enable');
+    const session: CdpSession = {
       command,
       async evaluate(expression: string): Promise<unknown> {
         const response = await command('Runtime.evaluate', {
@@ -371,10 +412,19 @@ async function connectToCdp(
       },
       close: () => {
         expectedClose = true;
-        ws.close();
+        ws?.close();
       },
-    },
-  };
+    };
+    ws = null;
+    return { loadedTargetUrl, cdp: session };
+  } catch (error) {
+    try {
+      ws?.close();
+    } catch {
+      // Best-effort close; the outer process cleanup remains authoritative.
+    }
+    throw error;
+  }
 }
 
 function makeInvokeExpression(command: string, payload: Record<string, unknown>): string {
@@ -778,8 +828,20 @@ export async function runWindowsSimulatorStability(options: SimulatorRunOptions 
     try {
       try {
         if (cdp) {
-          try { await invokeNative(cdp, 'simulator_stop_capture', {}, expectedEventErrors); } catch { /* cleanup continues */ }
-          try { await invokeNative(cdp, 'simulator_reset', {}, expectedEventErrors); } catch { /* cleanup continues */ }
+          try {
+            await withTimeout(
+              invokeNative(cdp, 'simulator_stop_capture', {}, expectedEventErrors),
+              5_000,
+              'cleanup_stop_timeout',
+            );
+          } catch { /* cleanup continues */ }
+          try {
+            await withTimeout(
+              invokeNative(cdp, 'simulator_reset', {}, expectedEventErrors),
+              5_000,
+              'cleanup_reset_timeout',
+            );
+          } catch { /* cleanup continues */ }
         }
         if (child) await gracefulClose(child, cdp);
       } catch (error) {
