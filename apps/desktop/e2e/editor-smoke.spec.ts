@@ -45,8 +45,6 @@ test('exercises Windows recording and simulated source modes', async ({ page }) 
 });
 
 test('validates an empty meeting title before checking capture runtime', async ({ page }) => {
-  // Known defect: simulated mode reports runtime-unavailable before title validation.
-  test.fail();
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulated (P11)', exact: true }).click();
   await page.getByLabel('MEETING TITLE').fill('');

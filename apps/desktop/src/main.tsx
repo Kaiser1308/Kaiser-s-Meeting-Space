@@ -259,12 +259,13 @@ export function App() {
 
   const handleStartMeeting = async () => {
     try {
+      const title = meetingTitle.trim();
+      if (!title) {
+        setStartError('Enter a meeting title.');
+        return;
+      }
+
       if (captureType === 'physical') {
-        const title = meetingTitle.trim();
-        if (!title) {
-          setStartError('Enter a meeting title.');
-          return;
-        }
         if (!nativeClient) {
           setState('idle');
           setCurrentMeetingId(null);
