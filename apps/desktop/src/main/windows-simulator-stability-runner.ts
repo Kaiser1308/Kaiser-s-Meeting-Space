@@ -234,7 +234,7 @@ async function waitForProcessTreeTermination(child: ChildProcess, timeoutMs: num
   const deadline = performance.now() + timeoutMs;
   do {
     const remainingMs = Math.max(1, Math.ceil(deadline - performance.now()));
-    const sample = sampleProcessTree(child, 0, Math.min(500, remainingMs));
+    const sample = sampleProcessTree(child, 0, Math.min(2_000, remainingMs));
     if (isProcessTreeTerminated(sample)) return;
     if (performance.now() >= deadline) break;
     await wait(Math.min(200, Math.max(1, deadline - performance.now())));
@@ -353,9 +353,11 @@ async function connectToCdp(
         rendererErrors.push('runtime_exception');
       }
     };
-    ws.onerror = () => signalTransportFailure('cdp_websocket_error');
+    ws.onerror = () => {
+      if (!expectedClose && !expectedProcessExit) signalTransportFailure('cdp_websocket_error');
+    };
     ws.onclose = () => {
-      if (!expectedClose) signalTransportFailure('cdp_websocket_closed');
+      if (!expectedClose && !expectedProcessExit) signalTransportFailure('cdp_websocket_closed');
     };
     await new Promise<void>((resolvePromise, reject) => {
       rejectOpening = reject;
@@ -366,6 +368,7 @@ async function connectToCdp(
         resolvePromise();
       };
     });
+    const transport = ws;
     const command = async (method: string, params: Record<string, unknown> = {}) => {
       const id = nextId++;
       return new Promise<Record<string, unknown>>((resolvePromise, reject) => {
@@ -385,7 +388,7 @@ async function connectToCdp(
           timer,
         });
         try {
-          ws!.send(JSON.stringify({ id, method, params }));
+          transport!.send(JSON.stringify({ id, method, params }));
         } catch (error) {
           clearTimeout(timer);
           pending.delete(id);
@@ -480,6 +483,11 @@ export function assertHealthyLifecycleResponse(response: NativeResponse): void {
   if (response.payload?.status !== 'healthy') throw new Error('lifecycle_health_not_healthy');
 }
 
+function assertBasicLifecycleHealth(response: NativeResponse): void {
+  assertHealthyLifecycleResponse(response);
+  if (response.payload?.storageReady !== true) throw new Error('lifecycle_storage_not_ready');
+}
+
 export function toOperationalHealthSample(response: NativeResponse): OperationalHealthSample {
   assertHealthyLifecycleResponse(response);
   const payload = response.payload ?? {};
@@ -510,10 +518,20 @@ export function toSanitizedFailureMetadata(
   phase: string,
   error: unknown,
 ): SanitizedFailureMetadata {
-  const candidate = error instanceof Error ? error.message : '';
+  const candidate = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string'
+        ? error.message
+        : '';
+  const typeName = typeof error === 'object' && error !== null && 'constructor' in error
+    && typeof error.constructor?.name === 'string'
+    ? error.constructor.name.replace(/[^A-Za-z0-9]/g, '')
+    : 'Unknown';
   return {
     phase,
-    errorCode: toSafeErrorCode(candidate, 'unknown_harness_failure'),
+    errorCode: toSafeErrorCode(candidate, `unknown_${typeName || 'Unknown'}`),
   };
 }
 
@@ -729,10 +747,18 @@ export async function runWindowsSimulatorStability(options: SimulatorRunOptions 
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const status = (await cdp.evaluate(`({ apiStatus: document.querySelector('[data-testid="api-status"]')?.textContent?.trim(), recordButton: document.querySelector('button.record')?.textContent?.trim() })`)) as { apiStatus?: string; recordButton?: string } | undefined;
       if (status?.apiStatus === 'HEALTHY' && status.recordButton === 'Start meeting') {
-        const health = await invokeLifecycle(cdp, 'health_check', {}, expectedEventErrors);
-        healthSamples.push(toOperationalHealthSample(health));
-        healthy = true;
-        break;
+        try {
+          const health = await invokeLifecycle(cdp, 'health_check', {}, expectedEventErrors, false);
+          assertHealthyLifecycleResponse(health);
+          healthy = true;
+          break;
+        } catch (error) {
+          if (error instanceof Error && error.message === 'lifecycle_storage_not_ready') {
+            await wait(500);
+            continue;
+          }
+          throw error;
+        }
       }
       await wait(500);
     }

@@ -301,6 +301,13 @@ export function App() {
           return;
         }
         log('Starting simulated capture session...');
+        const storage = await nativeClient.send('storage_init');
+        if (!storage.success) {
+          setState('idle');
+          setCurrentMeetingId(null);
+          setStartError('Failed to initialize simulated capture storage.');
+          return;
+        }
         const resp = await nativeClient.send('simulator_start_capture');
         if (resp.success) {
           const payload = resp.payload as Record<string, unknown>;
