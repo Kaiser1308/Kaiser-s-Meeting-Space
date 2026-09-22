@@ -26,8 +26,8 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm --filter @kms/desktop build:electron` (native fix)      |    0 | Electron package rebuilt with the fixed release sidecar.                                                                                             |
 | `pnpm --filter @kms/desktop test:smoke` (native fix)          |    0 | Packaged physical capture/reopen/export/concurrency smoke: 3/3 passed.                                                                               |
 | `pnpm exec eslint apps/desktop`                               |    1 | 5 errors, 14 warnings; see defect log below.                                                                                                         |
-| `pnpm --filter @kms/desktop test:e2e`                         |    0 | 3 Playwright tests passed after adding the missing desktop script/dependency and installing Chromium.                                                |
-| `pnpm test:e2e:desktop`                                       |    0 | 3 Playwright tests passed through the root wrapper.                                                                                                  |
+| `pnpm --filter @kms/desktop test:e2e`                         |    0 | 6 Playwright tests executed: 5 passed and 1 expected-failure exposes simulated-mode title-validation ordering.                                       |
+| `pnpm test:e2e:desktop`                                       |    0 | Same 6-test desktop suite passed through the root wrapper; the expected-failure is reported by Playwright as `x`.                                    |
 | `pnpm test:security`                                          |    0 | 4 files / 37 security tests passed.                                                                                                                  |
 | `pnpm test:contract`                                          |    0 | Domain 28 files / 406 tests and API 7 files / 30 tests passed.                                                                                       |
 | `pnpm test:integration`                                       |    1 | API integration completed; database suite failed 5/352 tests because migration/schema fixtures expect obsolete counts (9 vs 14, 38 vs 55, 30 vs 36). |
@@ -48,6 +48,9 @@ Raw command output was captured during the run in:
 - `%TEMP%\\kms-desktop-e2e-direct-20260922.log`
 - `%TEMP%\\kms-desktop-e2e-root-20260922.log`
 - `%TEMP%\\kms-desktop-e2e-expanded-20260922.log`
+- `%TEMP%\\kms-desktop-e2e-feature-audit-20260922.log`
+- `%TEMP%\\kms-desktop-e2e-feature-audit-rerun-20260922.log`
+- `%TEMP%\\kms-desktop-e2e-root-feature-audit-20260922.log`
 - `%TEMP%\\kms-p20-security-20260922.log`
 - `%TEMP%\\kms-p20-contract-20260922.log`
 - `%TEMP%\\kms-p20-integration-20260922.log`
@@ -72,19 +75,19 @@ Raw command output was captured during the run in:
 
 ## Windows feature matrix
 
-| Area                                       | Evidence                                                                                                                                             | Status                                                               |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Boot/supervisor/security/preload           | Desktop unit tests and packaged smoke                                                                                                                | PASS in automated coverage                                           |
-| Start meeting                              | `meeting-api`, start workflow, packaged smoke                                                                                                        | PASS in automated coverage                                           |
-| Mic/local capture and durable evidence     | Packaged smoke records in isolated temp userData and validates SQLite/hash/provenance                                                                | PASS in automated synthetic/package smoke                            |
-| Stop/finalization/reopen                   | Packaged smoke and finalization/transcript tests                                                                                                     | PASS in automated coverage                                           |
-| Local speech/transcription                 | Optional feature suite 101/101 and release sidecar build pass; no real model/corpus was supplied                                                     | Automated feature pass; physical model/runtime qualification NOT RUN |
-| Library/detail                             | Packaged reopen/library path plus unit coverage                                                                                                      | Partial; full UI qualification NOT RUN                               |
-| Markdown export                            | Packaged Electron smoke clicks Export Markdown after reopen and observes success status; unit coverage also passes                                   | PASS for Markdown UI flow; full reader/manual qualification NOT RUN  |
-| DOCX/PDF/audio export and download/history | P20 implementation tests exist, but no current full Windows reader/storage run                                                                       | NOT VERIFIED                                                         |
-| Playwright desktop UI                      | Shell, diagnostics/capture controls, and Record/Library switching, 3/3                                                                               | PASS for covered flows only                                          |
-| Packaged executable visual boot            | Native Windows executable opened with Electron menu and Meetings/Templates/Settings shell visible                                                    | PASS for boot observation                                            |
-| Native OS click-through                    | Orca exposed the Electron renderer only as `Chrome Legacy Window`; coordinate clicks were reported unverified and produced no confirmed state change | NOT VERIFIED                                                         |
+| Area                                       | Evidence                                                                                                                                               | Status                                                               |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Boot/supervisor/security/preload           | Desktop unit tests and packaged smoke                                                                                                                  | PASS in automated coverage                                           |
+| Start meeting                              | `meeting-api`, start workflow, packaged smoke                                                                                                          | PASS in automated coverage                                           |
+| Mic/local capture and durable evidence     | Packaged smoke records in isolated temp userData and validates SQLite/hash/provenance                                                                  | PASS in automated synthetic/package smoke                            |
+| Stop/finalization/reopen                   | Packaged smoke and finalization/transcript tests                                                                                                       | PASS in automated coverage                                           |
+| Local speech/transcription                 | Optional feature suite 101/101 and release sidecar build pass; no real model/corpus was supplied                                                       | Automated feature pass; physical model/runtime qualification NOT RUN |
+| Library/detail                             | Packaged reopen/library path plus unit coverage                                                                                                        | Partial; full UI qualification NOT RUN                               |
+| Markdown export                            | Packaged Electron smoke clicks Export Markdown after reopen and observes success status; unit coverage also passes                                     | PASS for Markdown UI flow; full reader/manual qualification NOT RUN  |
+| DOCX/PDF/audio export and download/history | P20 implementation tests exist, but no current full Windows reader/storage run                                                                         | NOT VERIFIED                                                         |
+| Playwright desktop UI                      | Shell, diagnostics/capture controls, Record/Library switching, mode/source toggles, title validation, and Library refresh; 5 pass + 1 expected failure | PASS for covered flows; one validation defect                        |
+| Packaged executable visual boot            | Native Windows executable opened with Electron menu and Meetings/Templates/Settings shell visible                                                      | PASS for boot observation                                            |
+| Native OS click-through                    | Orca exposed the Electron renderer only as `Chrome Legacy Window`; coordinate clicks were reported unverified and produced no confirmed state change   | NOT VERIFIED                                                         |
 
 ## Defects and blockers
 
@@ -96,7 +99,8 @@ Raw command output was captured during the run in:
 3. The initial run exposed a false-green E2E wrapper because
    `apps/desktop/package.json` had no `test:e2e` script or `@playwright/test`
    dependency. The test tooling was corrected in this run; direct and root
-   E2E now both execute 3 tests and pass.
+   E2E now both execute 6 tests; five pass and one expected-failure preserves a
+   simulated-mode validation defect.
 4. Package installation succeeded but pnpm ignored several dependency build
    scripts. Any qualification requiring those native packages must explicitly
    approve/build them and rerun.
@@ -130,6 +134,11 @@ Raw command output was captured during the run in:
 11. `pnpm test:resilience` and `pnpm test:performance` exit zero while
     selecting no package scripts. They are false-green commands and provide no
     resilience/performance evidence; the missing package scripts remain open.
+12. The expanded Windows UI E2E found that an empty title in `Simulated (P11)`
+    mode returns `Local capture runtime is unavailable.` instead of the title
+    validation error. The cause is the simulated start path checking the native
+    bridge before applying the title guard; a Playwright expected-failure now
+    preserves this regression evidence.
 
 ## Conclusion
 

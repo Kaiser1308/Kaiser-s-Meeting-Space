@@ -439,3 +439,8 @@ The repository integration suite failed 5 database migration/schema baseline
 assertions; root resilience/performance commands selected no tests despite exit
 0 and are therefore not treated as passing evidence. These failures keep the
 integrated P20 gate open.
+
+The expanded desktop E2E also found a simulated-capture validation defect:
+empty meeting title returns `Local capture runtime is unavailable.` before the
+expected title error. The expected-failure test preserves this regression
+evidence; mode/source toggles and Library refresh pass.

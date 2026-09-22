@@ -132,3 +132,11 @@ Additional integrated-gate checks from the same Windows run: security passes
 database migration/schema baseline assertions. The root resilience and
 performance commands exit zero without selecting any test script, so those
 commands produce no evidence and remain open.
+
+Desktop UI E2E continuation (2026-09-22): the expanded suite executes 6 tests
+through both direct and root entry points; 5 pass and 1 expected-failure
+captures a real defect where Simulated (P11) start checks native availability
+before empty-title validation. Mode/source toggles and Library refresh pass.
+The defect and exact observed error are recorded in
+`RUN-20260922-windows-desktop.md` and
+`windows-desktop-test-report.md`.
