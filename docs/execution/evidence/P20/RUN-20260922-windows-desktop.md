@@ -53,6 +53,8 @@ Raw command output was captured during the run in:
 | Markdown export | Desktop markdown export unit coverage | PASS at unit seam; full reader/manual qualification NOT RUN |
 | DOCX/PDF/audio export and download/history | P20 implementation tests exist, but no current full Windows reader/storage run | NOT VERIFIED |
 | Playwright desktop UI | Editor smoke via direct and root commands, 1/1 each | PASS for available smoke only |
+| Packaged executable visual boot | Native Windows executable opened with Electron menu and Meetings/Templates/Settings shell visible | PASS for boot observation |
+| Native OS click-through | Orca exposed the Electron renderer only as `Chrome Legacy Window`; coordinate clicks were reported unverified and produced no confirmed state change | NOT VERIFIED |
 
 ## Defects and blockers
 
@@ -68,6 +70,10 @@ Raw command output was captured during the run in:
 4. Package installation succeeded but pnpm ignored several dependency build
    scripts. Any qualification requiring those native packages must explicitly
    approve/build them and rerun.
+5. The packaged executable can be launched and visually inspected, but the
+   available OS-level accessibility adapter cannot expose the renderer controls
+   reliably; its synthetic clicks are explicitly unverified. This does not
+   replace the passing CDP packaged smoke or prove manual M1-M6 click-through.
 
 ## Conclusion
 
