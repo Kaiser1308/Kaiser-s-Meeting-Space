@@ -1,0 +1,11 @@
+﻿{
+    "fixtureId":  "synthetic-meeting-v1",
+    "language":  "en",
+    "wavPath":  "synthetic-meeting.wav",
+    "wavSha256":  "9127d808a8c139e60ebb1d058da4703f40b05ee8cbb58e48cf47a1ad3fafc1ce",
+    "durationMs":  13002,
+    "expectedTranscriptPath":  "expected-transcript.json",
+    "expectedTranscriptSha256":  "77bf077eee8c7f1ace7d73b5d81570b58bb63c5c8f90f6ebd897991f43de957f",
+    "maxWer":  0.45,
+    "minPhraseCoverage":  0.8
+}
