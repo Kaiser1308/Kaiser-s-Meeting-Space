@@ -11,17 +11,22 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 
 ## Commands and evidence
 
-| Command                                     | Exit | Result                                                                                                                                       |
-| ------------------------------------------- | ---: | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`            |    0 | Dependencies installed; pnpm warned that native build scripts for `cpu-features`, `msgpackr-extract`, `protobufjs`, and `ssh2` were ignored. |
-| `pnpm --filter @kms/desktop test:unit`      |    0 | 19 files / 183 tests passed, including packaged Electron smoke tests.                                                                        |
-| `pnpm --filter @kms/desktop test:smoke`     |    0 | 1 file / 3 tests passed; physical packaged flow, SQLite/hash/reopen, Markdown export, and concurrent isolated instances passed.              |
-| `pnpm --filter @kms/desktop typecheck`      |    0 | TypeScript check passed.                                                                                                                     |
-| `pnpm --filter @kms/desktop build:electron` |    0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`.                                   |
-| `pnpm exec eslint apps/desktop`             |    1 | 5 errors, 14 warnings; see defect log below.                                                                                                 |
-| `pnpm --filter @kms/desktop test:e2e`       |    0 | 3 Playwright tests passed after adding the missing desktop script/dependency and installing Chromium.                                        |
-| `pnpm test:e2e:desktop`                     |    0 | 3 Playwright tests passed through the root wrapper.                                                                                          |
-| `pnpm verify`                               |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                |
+| Command                                                  | Exit | Result                                                                                                                                       |
+| -------------------------------------------------------- | ---: | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                         |    0 | Dependencies installed; pnpm warned that native build scripts for `cpu-features`, `msgpackr-extract`, `protobufjs`, and `ssh2` were ignored. |
+| `pnpm --filter @kms/desktop test:unit`                   |    0 | 19 files / 183 tests passed, including packaged Electron smoke tests.                                                                        |
+| `pnpm --filter @kms/desktop test:smoke`                  |    0 | 1 file / 3 tests passed; physical packaged flow, SQLite/hash/reopen, Markdown export, and concurrent isolated instances passed.              |
+| `pnpm --filter @kms/desktop typecheck`                   |    0 | TypeScript check passed.                                                                                                                     |
+| `pnpm --filter @kms/desktop build:electron`              |    0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`.                                   |
+| `cargo test -p kms-native` (initial)                     |  101 | 78 native tests ran; 77 passed and `packet_flags_preserve_every_applicable_reason` failed.                                                   |
+| `cargo test -p kms-native` (fixed)                       |    0 | 78/78 native tests passed; 2 dead-code warnings remain.                                                                                      |
+| `cargo build --release -p kms-native`                    |    0 | Release Windows native sidecar built; 17 compiler warnings remain.                                                                           |
+| `pnpm --filter @kms/desktop build:electron` (native fix) |    0 | Electron package rebuilt with the fixed release sidecar.                                                                                     |
+| `pnpm --filter @kms/desktop test:smoke` (native fix)     |    0 | Packaged physical capture/reopen/export/concurrency smoke: 3/3 passed.                                                                       |
+| `pnpm exec eslint apps/desktop`                          |    1 | 5 errors, 14 warnings; see defect log below.                                                                                                 |
+| `pnpm --filter @kms/desktop test:e2e`                    |    0 | 3 Playwright tests passed after adding the missing desktop script/dependency and installing Chromium.                                        |
+| `pnpm test:e2e:desktop`                                  |    0 | 3 Playwright tests passed through the root wrapper.                                                                                          |
+| `pnpm verify`                                            |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                |
 
 Raw command output was captured during the run in:
 
@@ -40,6 +45,13 @@ Raw command output was captured during the run in:
 - `%TEMP%\\kms-desktop-typecheck-rerun-20260922.log`
 - `%TEMP%\\kms-desktop-build-rerun-20260922.log`
 - `%TEMP%\\kms-desktop-smoke-export-20260922.log`
+- `%TEMP%\\kms-native-cargo-test-20260922.log`
+- `%TEMP%\\kms-native-flag-regression-20260922.log`
+- `%TEMP%\\kms-native-flag-regression-final-20260922.log`
+- `%TEMP%\\kms-native-cargo-test-fixed-20260922.log`
+- `%TEMP%\\kms-native-cargo-build-release-20260922.log`
+- `%TEMP%\\kms-desktop-build-native-fix-20260922.log`
+- `%TEMP%\\kms-desktop-smoke-native-fix-20260922.log`
 - `%TEMP%\\kms-p20-verify-20260922.log`
 
 ## Windows feature matrix
@@ -68,7 +80,7 @@ Raw command output was captured during the run in:
 3. The initial run exposed a false-green E2E wrapper because
    `apps/desktop/package.json` had no `test:e2e` script or `@playwright/test`
    dependency. The test tooling was corrected in this run; direct and root
-   E2E now both execute 1 test and pass.
+   E2E now both execute 3 tests and pass.
 4. Package installation succeeded but pnpm ignored several dependency build
    scripts. Any qualification requiring those native packages must explicitly
    approve/build them and rerun.
@@ -80,6 +92,12 @@ Raw command output was captured during the run in:
    but `apps/desktop/src/main.tsx` currently attaches no click handler or view
    state to either button. They are therefore visible but functionally
    incomplete; this is recorded as a product defect, not a passing feature.
+7. The initial native suite exposed a real bug in
+   `packet_flag_reason_suffix`: Rust `|` patterns were interpreted as
+   alternatives instead of combined bitmask values, causing a two-flag WASAPI
+   condition to be reported as all three flags. The function now matches exact
+   masked values, the regression matrix passes, and the rebuilt packaged smoke
+   remains green.
 
 ## Conclusion
 

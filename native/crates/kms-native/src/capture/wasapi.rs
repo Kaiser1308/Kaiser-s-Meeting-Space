@@ -196,14 +196,19 @@ fn packet_flag_reason_suffix(flags: u32) -> &'static str {
         BUFFER_FLAG_DATA_DISCONTINUITY => ":flags=data_discontinuity",
         BUFFER_FLAG_SILENT => ":flags=silent_packet",
         BUFFER_FLAG_TIMESTAMP_ERROR => ":flags=timestamp_error",
-        BUFFER_FLAG_DATA_DISCONTINUITY | BUFFER_FLAG_SILENT => {
+        value if value == BUFFER_FLAG_DATA_DISCONTINUITY | BUFFER_FLAG_SILENT => {
             ":flags=data_discontinuity,silent_packet"
         }
-        BUFFER_FLAG_DATA_DISCONTINUITY | BUFFER_FLAG_TIMESTAMP_ERROR => {
+        value if value == BUFFER_FLAG_DATA_DISCONTINUITY | BUFFER_FLAG_TIMESTAMP_ERROR => {
             ":flags=data_discontinuity,timestamp_error"
         }
-        BUFFER_FLAG_SILENT | BUFFER_FLAG_TIMESTAMP_ERROR => ":flags=silent_packet,timestamp_error",
-        _ => ":flags=data_discontinuity,silent_packet,timestamp_error",
+        value if value == BUFFER_FLAG_SILENT | BUFFER_FLAG_TIMESTAMP_ERROR => {
+            ":flags=silent_packet,timestamp_error"
+        }
+        value if value == CAPTURE_FLAG_MASK => {
+            ":flags=data_discontinuity,silent_packet,timestamp_error"
+        }
+        _ => "",
     }
 }
 
@@ -677,6 +682,18 @@ mod tests {
         assert_eq!(
             packet_flag_reason_suffix(BUFFER_FLAG_DATA_DISCONTINUITY | BUFFER_FLAG_TIMESTAMP_ERROR),
             ":flags=data_discontinuity,timestamp_error"
+        );
+        assert_eq!(
+            packet_flag_reason_suffix(BUFFER_FLAG_DATA_DISCONTINUITY | BUFFER_FLAG_SILENT),
+            ":flags=data_discontinuity,silent_packet"
+        );
+        assert_eq!(
+            packet_flag_reason_suffix(BUFFER_FLAG_SILENT | BUFFER_FLAG_TIMESTAMP_ERROR),
+            ":flags=silent_packet,timestamp_error"
+        );
+        assert_eq!(
+            packet_flag_reason_suffix(CAPTURE_FLAG_MASK),
+            ":flags=data_discontinuity,silent_packet,timestamp_error"
         );
         assert_eq!(packet_flag_reason_suffix(0), "");
     }

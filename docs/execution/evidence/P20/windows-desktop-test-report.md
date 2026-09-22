@@ -5,7 +5,7 @@
 The current Windows Electron build was exercised with the available automated
 desktop suites. Core packaged behavior passed, but the complete Windows
 qualification did not pass because the repository verify gate and desktop lint
-failed, and the configured desktop Playwright gate does not actually run.
+failed, and several physical/manual/reader qualification gates remain open.
 
 ### Passes
 
@@ -16,6 +16,8 @@ failed, and the configured desktop Playwright gate does not actually run.
 - Desktop TypeScript typecheck: pass.
 - Playwright desktop E2E: 3/3 pass through the root wrapper, covering shell,
   diagnostics/capture controls, and Record/Library switching.
+- Native Windows Rust suite: initial 77/78 exposed a flag-reporting defect;
+  after the fix, full suite is 78/78 pass and the rebuilt packaged smoke is 3/3.
 
 ### Failures / missing coverage
 
@@ -27,6 +29,8 @@ failed, and the configured desktop Playwright gate does not actually run.
 - The Templates and Settings sidebar controls are visible but currently have no
   click handler or destination view in the desktop renderer; they remain an
   open functional defect.
+- The WASAPI flag-reporting defect was fixed and verified through the native
+  regression test, full Rust suite, release sidecar build, and packaged smoke.
 - Physical microphone/system-audio, local model runtime, reader compatibility,
   accessibility, long-session, provider, and signed-install qualification were
   not claimed as passed.
