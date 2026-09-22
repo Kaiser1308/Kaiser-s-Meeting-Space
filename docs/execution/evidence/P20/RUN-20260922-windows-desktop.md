@@ -229,6 +229,34 @@ and root `pnpm test:integration` exits 0.
 
 ## Conclusion
 
+## Windows simulator stability continuation — 2026-09-22
+
+The packaged Electron simulator baseline was rerun against a freshly rebuilt
+worktree package after fixing the simulated start path to initialize native
+storage before capture. The run used an isolated temporary user-data directory
+and the real packaged `Kaiser's Meeting Space.exe` plus its adjacent native
+sidecar; no browser preview or mocked preload bridge was used.
+
+- Vitest result: 18 passed, 1 diagnostic-only test skipped.
+- Stability duration: 300026 ms; 60/60 five-second chunks; virtual time
+  300000 ms.
+- State transitions: `idle -> capturing -> idle`; final state `idle`.
+- Health: 30/30 scheduled samples healthy; storage ready, simulator active,
+  event overruns 0; no missed intervals or health failures.
+- Errors: no renderer errors and no expected event errors.
+- Memory: 75.74–76.78 MiB private working set across 24 operational samples;
+  every process-tree query succeeded and the process remained alive during
+  capture.
+- Evidence: `evidence/P20/windows-simulator-5m/RUN-20260922-133457-packaged-simulator-5m/`.
+- Packaged executable SHA-256:
+  `2C918FA39AFD2011EA515AF716B36CB25EE5DA42922828B5D5CED1E9F5EECA10`
+  (source package rebuild used the existing verified native sidecar; native
+  source rebuild remains environment-blocked by CMake/Opus tooling).
+
+This is a verified synthetic Windows packaged stability run only. It does not
+promote P20 to VERIFIED and does not qualify physical devices, real meeting
+content, provider/model behavior, or the inherited deferred gates.
+
 The Windows desktop unit, packaged smoke, typecheck, and Windows x64 packaging
 passed. The software is not fully qualified: repository verify, lint, and the
 desktop E2E gate have failures or invalid coverage, and the physical/manual /

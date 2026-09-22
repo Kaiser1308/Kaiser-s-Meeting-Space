@@ -32,6 +32,13 @@ empty-title validation defect was fixed by moving the shared guard before the
 capture-mode branch; its focused regression test passes. P20 remains
 IN_PROGRESS.
 
+The Windows packaged simulator continuation (2026-09-22) ran the freshly
+rebuilt Electron package for 300026 ms with 60/60 synthetic chunks, 30/30
+healthy runtime samples, valid `idle -> capturing -> idle` transitions, no
+renderer/native event errors, and successful process-tree sampling. Evidence:
+`evidence/P20/windows-simulator-5m/RUN-20260922-133457-packaged-simulator-5m/`.
+This is synthetic stability evidence only; P20 remains IN_PROGRESS.
+
 Renderer/reader smoke passes export 11/11 and synthetic DOCX-to-PDF
 LibreOffice/pypdf/PNG checks. Poppler installation remained unavailable due to
 the Windows Installer lock; full target-reader qualification remains open.

@@ -1,0 +1,630 @@
+{
+  "startedAt": "2026-09-22T06:34:57.845Z",
+  "endedAt": "2026-09-22T06:39:58.762Z",
+  "elapsedMs": 300026,
+  "iterations": 60,
+  "virtualTimeMs": 300000,
+  "chunkCount": 60,
+  "stateTransitions": [
+    "idle",
+    "capturing",
+    "idle"
+  ],
+  "finalState": "idle",
+  "healthFailures": [],
+  "rendererErrors": [],
+  "expectedEventErrors": [],
+  "memorySamples": [
+    {
+      "elapsedMs": 10013,
+      "alive": true,
+      "privateWorkingSetBytes": 76173312,
+      "cpuSeconds": 0.59375,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 20016,
+      "alive": true,
+      "privateWorkingSetBytes": 76189696,
+      "cpuSeconds": 0.59375,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 35015,
+      "alive": true,
+      "privateWorkingSetBytes": 76345344,
+      "cpuSeconds": 0.609375,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 45015,
+      "alive": true,
+      "privateWorkingSetBytes": 76361728,
+      "cpuSeconds": 0.625,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 55015,
+      "alive": true,
+      "privateWorkingSetBytes": 76783616,
+      "cpuSeconds": 0.625,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 70015,
+      "alive": true,
+      "privateWorkingSetBytes": 75763712,
+      "cpuSeconds": 0.625,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 80015,
+      "alive": true,
+      "privateWorkingSetBytes": 75948032,
+      "cpuSeconds": 0.640625,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 95014,
+      "alive": true,
+      "privateWorkingSetBytes": 75771904,
+      "cpuSeconds": 0.65625,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 110014,
+      "alive": true,
+      "privateWorkingSetBytes": 75788288,
+      "cpuSeconds": 0.6875,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 125014,
+      "alive": true,
+      "privateWorkingSetBytes": 75902976,
+      "cpuSeconds": 0.6875,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 140014,
+      "alive": true,
+      "privateWorkingSetBytes": 76230656,
+      "cpuSeconds": 0.71875,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 155013,
+      "alive": true,
+      "privateWorkingSetBytes": 75739136,
+      "cpuSeconds": 0.71875,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 165014,
+      "alive": true,
+      "privateWorkingSetBytes": 76390400,
+      "cpuSeconds": 0.734375,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 180012,
+      "alive": true,
+      "privateWorkingSetBytes": 75943936,
+      "cpuSeconds": 0.75,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 190013,
+      "alive": true,
+      "privateWorkingSetBytes": 75907072,
+      "cpuSeconds": 0.765625,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 200014,
+      "alive": true,
+      "privateWorkingSetBytes": 75923456,
+      "cpuSeconds": 0.828125,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 215012,
+      "alive": true,
+      "privateWorkingSetBytes": 75825152,
+      "cpuSeconds": 0.828125,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 225012,
+      "alive": true,
+      "privateWorkingSetBytes": 76111872,
+      "cpuSeconds": 0.84375,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 235012,
+      "alive": true,
+      "privateWorkingSetBytes": 75845632,
+      "cpuSeconds": 0.84375,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 245013,
+      "alive": true,
+      "privateWorkingSetBytes": 76038144,
+      "cpuSeconds": 0.859375,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 255013,
+      "alive": true,
+      "privateWorkingSetBytes": 75853824,
+      "cpuSeconds": 0.859375,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 265013,
+      "alive": true,
+      "privateWorkingSetBytes": 75853824,
+      "cpuSeconds": 0.875,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 280011,
+      "alive": true,
+      "privateWorkingSetBytes": 75874304,
+      "cpuSeconds": 0.90625,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    },
+    {
+      "elapsedMs": 290011,
+      "alive": true,
+      "privateWorkingSetBytes": 75878400,
+      "cpuSeconds": 0.921875,
+      "childPids": [
+        8528,
+        16672,
+        17384,
+        24784,
+        24828
+      ],
+      "exitCode": null,
+      "treeQuerySucceeded": true
+    }
+  ],
+  "artifactDir": "C:\\Users\\thien\\AppData\\Local\\Temp\\kms-windows-sim-5m-Zjmj44",
+  "phase": "complete",
+  "errorCode": null,
+  "childExitCode": null,
+  "childSignal": null,
+  "stderrClassifications": [
+    "kms_native"
+  ],
+  "healthSamples": [
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 10013,
+      "scheduledElapsedMs": 10000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 20016,
+      "scheduledElapsedMs": 20000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 30014,
+      "scheduledElapsedMs": 30000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 40014,
+      "scheduledElapsedMs": 40000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 50015,
+      "scheduledElapsedMs": 50000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 60016,
+      "scheduledElapsedMs": 60000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 70015,
+      "scheduledElapsedMs": 70000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 80015,
+      "scheduledElapsedMs": 80000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 90014,
+      "scheduledElapsedMs": 90000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 100014,
+      "scheduledElapsedMs": 100000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 110014,
+      "scheduledElapsedMs": 110000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 120013,
+      "scheduledElapsedMs": 120000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 130014,
+      "scheduledElapsedMs": 130000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 140014,
+      "scheduledElapsedMs": 140000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 150013,
+      "scheduledElapsedMs": 150000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 160013,
+      "scheduledElapsedMs": 160000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 170013,
+      "scheduledElapsedMs": 170000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 180012,
+      "scheduledElapsedMs": 180000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 190013,
+      "scheduledElapsedMs": 190000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 200014,
+      "scheduledElapsedMs": 200000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 210011,
+      "scheduledElapsedMs": 210000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 220013,
+      "scheduledElapsedMs": 220000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 230012,
+      "scheduledElapsedMs": 230000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 240011,
+      "scheduledElapsedMs": 240000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 250012,
+      "scheduledElapsedMs": 250000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 260012,
+      "scheduledElapsedMs": 260000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 270012,
+      "scheduledElapsedMs": 270000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 280011,
+      "scheduledElapsedMs": 280000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 290011,
+      "scheduledElapsedMs": 290000
+    },
+    {
+      "status": "healthy",
+      "storageReady": true,
+      "simulatorActive": true,
+      "eventOverruns": 0,
+      "elapsedMs": 300010,
+      "scheduledElapsedMs": 300000
+    }
+  ],
+  "missedHealthIntervals": []
+}

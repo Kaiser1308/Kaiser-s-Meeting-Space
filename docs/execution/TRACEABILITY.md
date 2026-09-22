@@ -440,6 +440,14 @@ assertions; root resilience/performance commands selected no tests despite exit
 0 and are therefore not treated as passing evidence. These failures keep the
 integrated P20 gate open.
 
+Windows simulator stability continuation (2026-09-22): freshly rebuilt
+packaged Electron baseline ran 300026 ms with 60/60 synthetic chunks, 30/30
+healthy samples, no renderer/native event errors, valid idle/capturing/idle
+transitions, and clean process-tree sampling. Evidence:
+`evidence/P20/windows-simulator-5m/RUN-20260922-133457-packaged-simulator-5m/`.
+This evidence is limited to synthetic packaged Windows stability and does not
+close the deferred P20 qualification rows.
+
 The expanded desktop E2E also found a simulated-capture validation defect:
 empty meeting title returns `Local capture runtime is unavailable.` before the
 expected title error. The expected-failure test preserves this regression
