@@ -448,3 +448,8 @@ evidence; mode/source toggles and Library refresh pass.
 The navigation audit added expected-failure coverage for the visible Templates
 and Settings buttons: neither changes the rendered view because the current
 renderer has no handler or view state for them.
+
+Renderer/reader smoke also passes the 11/11 export seam suite and a synthetic
+DOCX-to-PDF LibreOffice reopen/render check. Poppler installation was blocked
+by the Windows Installer lock; the fallback render was performed with PyMuPDF.
+Full reader and branded-layout qualification remains OPEN.

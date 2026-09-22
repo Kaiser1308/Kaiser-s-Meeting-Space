@@ -21,14 +21,20 @@ integration fails 5 migration/schema baseline assertions. Root resilience and
 performance commands run zero tests despite exit 0, so their coverage is
 missing rather than passing. P20 remains IN_PROGRESS.
 
-The expanded Windows desktop E2E executes 6 tests; 5 pass and 1 expected-failure
-records simulated-mode title validation ordering. Mode/source toggles and
-Library refresh pass. P20 remains IN_PROGRESS pending the logged defect and
-the other qualification gates.
+The initial expanded Windows desktop E2E executed 6 tests; 5 passed and 1
+expected-failure recorded simulated-mode title validation ordering. That defect
+was fixed and the focused regression now passes; the other qualification gates
+remain open.
 
-The navigation audit expanded Windows E2E to 8 tests: 5 pass and 3 expected
-failures record simulated title validation plus missing Templates/Settings
-views. P20 remains IN_PROGRESS.
+The navigation audit expanded Windows E2E to 8 tests: 6 normal passes and 2
+expected failures record the missing Templates/Settings views. The simulated
+empty-title validation defect was fixed by moving the shared guard before the
+capture-mode branch; its focused regression test passes. P20 remains
+IN_PROGRESS.
+
+Renderer/reader smoke passes export 11/11 and synthetic DOCX-to-PDF
+LibreOffice/pypdf/PNG checks. Poppler installation remained unavailable due to
+the Windows Installer lock; full target-reader qualification remains open.
 
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.

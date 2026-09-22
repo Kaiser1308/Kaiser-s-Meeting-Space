@@ -16,6 +16,7 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm install --frozen-lockfile`                              |    0 | Dependencies installed; pnpm warned that native build scripts for `cpu-features`, `msgpackr-extract`, `protobufjs`, and `ssh2` were ignored.         |
 | `pnpm --filter @kms/desktop test:unit`                        |    0 | 19 files / 183 tests passed, including packaged Electron smoke tests.                                                                                |
 | `pnpm --filter @kms/desktop test:smoke`                       |    0 | 1 file / 3 tests passed; physical packaged flow, SQLite/hash/reopen, Markdown export, and concurrent isolated instances passed.                      |
+| `pnpm --filter @kms/export test:unit`                        |    0 | 2 files / 11 renderer and export-job tests passed, covering Markdown/TXT/JSON/audio/DOCX/PDF seams and resource bounds.                         |
 | `pnpm --filter @kms/desktop typecheck`                        |    0 | TypeScript check passed.                                                                                                                             |
 | `pnpm --filter @kms/desktop build:electron`                   |    0 | Windows `win32/x64` packaged build passed; output created under `apps/desktop/dist-packaged/win-unpacked`.                                           |
 | `cargo test -p kms-native` (initial)                          |  101 | 78 native tests ran; 77 passed and `packet_flags_preserve_every_applicable_reason` failed.                                                           |
@@ -33,6 +34,7 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm test:integration`                                       |    1 | API integration completed; database suite failed 5/352 tests because migration/schema fixtures expect obsolete counts (9 vs 14, 38 vs 55, 30 vs 36). |
 | `pnpm test:resilience`                                        |    0 | No selected workspace package exposes a `test:resilience` script; zero tests executed, so this is not evidence of a pass.                            |
 | `pnpm test:performance`                                       |    0 | No selected workspace package exposes a `test:performance` script; zero tests executed, so this is not evidence of a pass.                           |
+| LibreOffice DOCX/PDF reader smoke                             |    0 | LibreOffice 26.2.5.2 converted the synthetic DOCX to PDF; output reopened with pypdf (1 page, expected text) and rendered to PNG for visual review. |
 | `pnpm verify`                                                 |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                        |
 
 Raw command output was captured during the run in:
@@ -59,6 +61,12 @@ Raw command output was captured during the run in:
 - `%TEMP%\\kms-p20-performance-20260922.log`
 - `%TEMP%\\kms-p20-domain-contract-20260922.log`
 - `%TEMP%\\kms-p20-api-contract-20260922.log`
+- `%TEMP%\\kms-p20-export-renderer-tests-20260922.log`
+- `%TEMP%\\kms-p20-synthetic-reader-check.docx`
+- `%TEMP%\\kms-p20-synthetic-reader-check.pdf`
+- `%TEMP%\\kms-p20-synthetic-renderer-check.pdf`
+- `%TEMP%\\kms-p20-synthetic-reader-check-page-1.png`
+- `%TEMP%\\kms-p20-synthetic-renderer-page-1.png`
 - `%TEMP%\\kms-desktop-unit-rerun-20260922.log`
 - `%TEMP%\\kms-desktop-typecheck-rerun-20260922.log`
 - `%TEMP%\\kms-desktop-build-rerun-20260922.log`
@@ -85,8 +93,8 @@ Raw command output was captured during the run in:
 | Local speech/transcription                 | Optional feature suite 101/101 and release sidecar build pass; no real model/corpus was supplied                                                                                   | Automated feature pass; physical model/runtime qualification NOT RUN |
 | Library/detail                             | Packaged reopen/library path plus unit coverage                                                                                                                                    | Partial; full UI qualification NOT RUN                               |
 | Markdown export                            | Packaged Electron smoke clicks Export Markdown after reopen and observes success status; unit coverage also passes                                                                 | PASS for Markdown UI flow; full reader/manual qualification NOT RUN  |
-| DOCX/PDF/audio export and download/history | P20 implementation tests exist, but no current full Windows reader/storage run                                                                                                     | NOT VERIFIED                                                         |
-| Playwright desktop UI                      | Shell, diagnostics/capture controls, Record/Library switching, mode/source toggles, title validation, Library refresh, Templates/Settings navigation; 5 pass + 3 expected failures | PASS for covered flows; three defects                                |
+| DOCX/PDF/audio export and download/history | Exporter 11/11 plus synthetic DOCX-to-PDF reader smoke; no full branded/large-doc/audio-storage/download run                                     | Partial; target-reader/storage qualification NOT VERIFIED |
+| Playwright desktop UI                      | Shell, diagnostics/capture controls, Record/Library switching, mode/source toggles, title validation, Library refresh, Templates/Settings navigation; 6 pass + 2 expected failures | PASS for covered flows; two navigation defects remain                 |
 | Packaged executable visual boot            | Native Windows executable opened with Electron menu and Meetings/Templates/Settings shell visible                                                                                  | PASS for boot observation                                            |
 | Native OS click-through                    | Orca exposed the Electron renderer only as `Chrome Legacy Window`; coordinate clicks were reported unverified and produced no confirmed state change                               | NOT VERIFIED                                                         |
 
@@ -135,17 +143,24 @@ Raw command output was captured during the run in:
 11. `pnpm test:resilience` and `pnpm test:performance` exit zero while
     selecting no package scripts. They are false-green commands and provide no
     resilience/performance evidence; the missing package scripts remain open.
-12. The expanded Windows UI E2E found that an empty title in `Simulated (P11)`
-    mode returns `Local capture runtime is unavailable.` instead of the title
-    validation error. The cause is the simulated start path checking the native
-    bridge before applying the title guard; a Playwright expected-failure now
-    preserves this regression evidence.
+12. The expanded Windows UI E2E initially found that an empty title in
+    `Simulated (P11)` mode returned `Local capture runtime is unavailable.`
+    instead of the title validation error. The cause was the simulated start
+    path checking the native bridge before applying the title guard. The guard
+    was moved before the physical/simulated branch, and the focused regression
+    test now passes 1/1; the full desktop E2E run passes 8/8 with two expected
+    failures remaining for the unimplemented navigation views.
 13. The navigation audit found that clicking the visible `Templates` button
     does not open a Templates view or change the rendered content.
 14. The navigation audit found that clicking the visible `Settings` button
     does not open a Settings view or change the rendered content. Both are
     expected-failure E2E checks because the current renderer has no handlers or
     view state for these buttons.
+15. Windows had no Word/PDF CLI initially. LibreOffice was installed and its
+    26.2.5.2 headless conversion/reopen smoke passed using synthetic content;
+    Poppler installation was blocked by a concurrent Windows Installer lock,
+    so PyMuPDF was used for PNG rendering. This is not a substitute for the
+    required target-reader matrix or full branded/large-document qualification.
 
 ## Conclusion
 

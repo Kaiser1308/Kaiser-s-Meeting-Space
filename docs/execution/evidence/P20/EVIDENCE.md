@@ -145,3 +145,10 @@ before empty-title validation. Mode/source toggles and Library refresh pass.
 The defect and exact observed error are recorded in
 `RUN-20260922-windows-desktop.md` and
 `windows-desktop-test-report.md`.
+
+Renderer/reader continuation (2026-09-22): `@kms/export` passes 11/11 unit
+tests. A synthetic DOCX was converted by LibreOffice 26.2.5.2 to PDF, reopened
+with pypdf, and rendered to PNG for visual review; expected text and one-page
+output were present. Poppler remained unavailable because a concurrent Windows
+Installer lock blocked its installation. This does not close the full
+target-reader, branded-layout, large-document, or durable-storage gates.
