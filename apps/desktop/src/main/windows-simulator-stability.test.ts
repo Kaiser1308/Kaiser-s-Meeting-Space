@@ -19,6 +19,7 @@ import {
   persistFailureScreenshot,
   rejectPendingCdpRequests,
   resolvePackagedSidecarPath,
+  DEFAULT_CAPTURE_DURATION_MS,
   runWindowsSimulatorStability,
   selectSimulatorExpression,
   toSanitizedFailureMetadata,
@@ -45,6 +46,8 @@ const skipReason =
 const diagnosticOnly = process.env.KMS_SIMULATOR_STABILITY_DIAGNOSTIC_ONLY === '1';
 
 describe('Windows packaged simulator five-minute stability', () => {
+  const stabilityDurationMs = Number(process.env.KMS_SIMULATOR_STABILITY_DURATION_MS ?? DEFAULT_CAPTURE_DURATION_MS);
+  const stabilityIterations = stabilityDurationMs / 5_000;
   it('accepts a healthy lifecycle response without a simulator marker', () => {
     expect(
       assertHealthyLifecycleResponse({
@@ -241,29 +244,29 @@ describe('Windows packaged simulator five-minute stability', () => {
   });
 
   it(
-    'runs 60 synthetic five-second chunks through the packaged Electron preload bridge',
+    `runs ${stabilityIterations} synthetic five-second chunks through the packaged Electron preload bridge`,
     async (context) => {
       if (skipReason) {
         context.skip(skipReason);
         return;
       }
       if (diagnosticOnly) {
-        context.skip('Diagnostic-only startup run requested; the 300-second stability run is disabled.');
+        context.skip('Diagnostic-only startup run requested; the configured stability run is disabled.');
         return;
       }
 
-      const summary = await runWindowsSimulatorStability({ exePath: packagedExePath });
+      const summary = await runWindowsSimulatorStability({ exePath: packagedExePath, durationMs: stabilityDurationMs });
 
-      expect(summary.elapsedMs).toBeGreaterThanOrEqual(300_000);
-      expect(summary.iterations).toBe(60);
-      expect(summary.virtualTimeMs).toBe(300_000);
-      expect(summary.chunkCount).toBe(60);
+      expect(summary.elapsedMs).toBeGreaterThanOrEqual(stabilityDurationMs);
+      expect(summary.iterations).toBe(stabilityIterations);
+      expect(summary.virtualTimeMs).toBe(stabilityDurationMs);
+      expect(summary.chunkCount).toBe(stabilityIterations);
       expect(summary.finalState).toBe('idle');
       expect(summary.rendererErrors).toEqual([]);
       expect(summary.expectedEventErrors).toEqual([]);
       expect(summary.healthFailures).toEqual([]);
     },
-    420_000,
+    stabilityDurationMs + 120_000,
   );
 
   it('diagnoses packaged startup through simulated capture without entering the five-minute loop', async (context) => {

@@ -7,9 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(__dirname, '../..');
-const CAPTURE_DURATION_MS = 300_000;
+export const DEFAULT_CAPTURE_DURATION_MS = 300_000;
 const ITERATION_MS = 5_000;
-const ITERATIONS = CAPTURE_DURATION_MS / ITERATION_MS;
 const PROCESS_SAMPLE_MS = 10_000;
 
 type NativeResponse = {
@@ -61,6 +60,7 @@ export interface SimulatorRunSummary {
 export interface SimulatorRunOptions {
   exePath?: string;
   diagnosticOnly?: boolean;
+  durationMs?: number;
 }
 
 export interface OperationalHealthSample {
@@ -685,6 +685,11 @@ async function writeFailureMetadata(
 }
 
 export async function runWindowsSimulatorStability(options: SimulatorRunOptions = {}): Promise<SimulatorRunSummary> {
+  const captureDurationMs = options.durationMs ?? DEFAULT_CAPTURE_DURATION_MS;
+  if (!Number.isSafeInteger(captureDurationMs) || captureDurationMs < ITERATION_MS || captureDurationMs % ITERATION_MS !== 0) {
+    throw new Error('invalid_simulator_stability_duration');
+  }
+  const configuredIterations = captureDurationMs / ITERATION_MS;
   const exePath = options.exePath ?? process.env.KMS_PACKAGED_EXE ?? resolve(desktopRoot, "dist-packaged/win-unpacked/Kaiser's Meeting Space.exe");
   const sidecarPath = resolvePackagedSidecarPath(exePath);
   if (!existsSync(exePath)) throw new Error('packaged_executable_unavailable');
@@ -788,7 +793,7 @@ export async function runWindowsSimulatorStability(options: SimulatorRunOptions 
     let nextHealthSampleAt = PROCESS_SAMPLE_MS;
     const healthSampleBoundaries: number[] = [];
 
-    for (let index = 0; index < ITERATIONS; index += 1) {
+    for (let index = 0; index < configuredIterations; index += 1) {
       const waitMs = captureStartedAt + (index + 1) * ITERATION_MS - performance.now();
       if (waitMs > 0) await wait(waitMs);
       if (child.exitCode !== null) throw new Error('packaged_process_exited_during_capture');
@@ -826,8 +831,8 @@ export async function runWindowsSimulatorStability(options: SimulatorRunOptions 
       if (rendererErrors.length) throw new Error('unexpected_renderer_error');
     }
 
-    assertHealthSampleCoverage(healthSampleBoundaries, CAPTURE_DURATION_MS);
-    if (Math.round(performance.now() - captureStartedAt) < CAPTURE_DURATION_MS || virtualTimeMs !== CAPTURE_DURATION_MS || chunkCount !== ITERATIONS || healthFailures.length) throw new Error('simulator_baseline_assertion_failed');
+    assertHealthSampleCoverage(healthSampleBoundaries, captureDurationMs);
+    if (Math.round(performance.now() - captureStartedAt) < captureDurationMs || virtualTimeMs !== captureDurationMs || chunkCount !== configuredIterations || healthFailures.length) throw new Error('simulator_baseline_assertion_failed');
     phase = 'ui_stop_capture';
     await cdp.evaluate(`document.querySelector('button.record')?.click()`);
     finalState = normalizeSimulatorState((await pollForState(cdp, 'idle', expectedEventErrors)).state);
