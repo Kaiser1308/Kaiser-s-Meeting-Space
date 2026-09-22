@@ -5,7 +5,7 @@
 The current Windows Electron build was exercised with the available automated
 desktop suites. Core packaged behavior and the covered desktop gates pass, but
 the complete Windows qualification remains open because repository formatting,
-reader/manual, resilience/performance, and feature-coverage gates remain open.
+reader/manual, performance, and feature-coverage gates remain open.
 
 ### Passes
 
@@ -41,13 +41,9 @@ reader/manual, resilience/performance, and feature-coverage gates remain open.
 - Repository integration gate: initial run failed on 5 stale database
   migration/schema assertions; after the debug fixes, root integration passes
   API, database (352/352), and MinIO storage (15/15).
-- Resilience/performance root commands return exit 0 without running tests
-  because no selected workspace package provides those scripts; this is missing
-  coverage, not a pass.
-- Direct resilience execution with `tests/resilience/vitest.config.ts` could
-  not qualify the scenarios: setup failed to connect to PostgreSQL
-  `127.0.0.1:5433`, leaving 3 scenarios skipped. No performance target exists
-  in the repository.
+- Resilience root command was corrected and rerun with temporary Docker
+  PostgreSQL/Redis services: 1 file / 3 tests passed. Performance still has no
+  registered target; no performance pass is claimed.
 - Desktop ESLint rerun has 0 errors and 14 `no-explicit-any` warnings after
   removing unused imports/fixture state and documenting best-effort cleanup.
 - The initial E2E run was false-green because the desktop package had no E2E

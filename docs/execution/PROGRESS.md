@@ -72,6 +72,11 @@ Final packaged Windows verification (2026-09-22): serial packaged smoke passes
 Library reopen, Markdown export, and concurrency isolation are directly covered;
 remaining qualification rows stay open.
 
+Resilience root-command continuation (2026-09-22): `pnpm test:resilience` was
+corrected to run the dedicated suite and passes 3/3 with temporary Docker
+PostgreSQL/Redis services on ports 5433/6380; containers were removed after
+verification. Performance remains OPEN because no target is registered.
+
 **P20 continuation (2026-08-14):** P20-T03/T06 aligned the exporter format
 contract with domain/database `markdown` and added verified download resolution.
 Exporter tests pass 2 files / 11 tests and package typecheck exits 0. The

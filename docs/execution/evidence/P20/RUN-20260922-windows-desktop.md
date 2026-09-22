@@ -35,7 +35,8 @@ Environment: Windows `10.0.26200`, Node `v24.18.0`, pnpm `10.14.0`, Electron
 | `pnpm --filter @kms/database test:integration` (rerun)        |    0 | 19 files / 352 tests passed after aligning the migration/schema inventory with migrations 0000–0013. |
 | `pnpm --filter @kms/storage test:integration` (rerun)         |    0 | 1 MinIO integration file / 15 tests passed after replacing the Windows-incompatible glob script. |
 | `pnpm test:integration` (rerun)                               |    0 | API, database, and MinIO storage integration suites completed successfully. |
-| `pnpm test:resilience`                                        |    0 | No selected workspace package exposes a `test:resilience` script; zero tests executed, so this is not evidence of a pass.                            |
+| `pnpm test:resilience` (initial)                              |    0 | Previous root command selected no workspace scripts and ran zero tests; this was false-green evidence.                                             |
+| `pnpm test:resilience` (rerun with Docker services)           |    0 | Root command now runs the Redis-loss suite: 1 file / 3 tests passed with PostgreSQL/Redis test containers on ports 5433/6380.                       |
 | `pnpm test:performance`                                       |    0 | No selected workspace package exposes a `test:performance` script; zero tests executed, so this is not evidence of a pass.                           |
 | LibreOffice DOCX/PDF reader smoke                             |    0 | LibreOffice 26.2.5.2 converted the synthetic DOCX to PDF; output reopened with pypdf (1 page, expected text) and rendered to PNG for visual review. |
 | `pnpm verify`                                                 |    1 | Stopped at `prettier --check .`; 155 files reported formatting issues, so later verify gates did not execute.                                        |
@@ -145,9 +146,10 @@ Raw command output was captured during the run in:
     journal/schema/enum counts. The rerun passes after aligning the test with
     migrations 0000–0013; the initial failure is retained here as historical
     evidence.
-11. `pnpm test:resilience` and `pnpm test:performance` exit zero while
-    selecting no package scripts. They are false-green commands and provide no
-    resilience/performance evidence; the missing package scripts remain open.
+11. The initial `pnpm test:resilience` command exited zero while selecting no
+    package scripts. The root script was corrected to run the dedicated
+    resilience Vitest config; with Docker PostgreSQL/Redis services available,
+    the rerun passes 3/3. `test:performance` still has no registered target.
 12. The expanded Windows UI E2E initially found that an empty title in
     `Simulated (P11)` mode returned `Local capture runtime is unavailable.`
     instead of the title validation error. The cause was the simulated start
@@ -193,6 +195,12 @@ Raw command output was captured during the run in:
     typecheck exited 0. The smoke covered synthetic physical audio, SQLite
     manifest/hash/provenance, Library reopen, Markdown export, and concurrent
     isolated packaged instances.
+
+20. The corrected root resilience command was run with temporary Docker
+    PostgreSQL/Redis services on ports 5433/6380; `pnpm test:resilience` passed
+    1 file / 3 tests. The containers were removed after verification. This is
+    direct synthetic resilience evidence, not a claim of long-session or
+    production-service qualification.
 
 ## Debug continuation — 2026-09-22
 

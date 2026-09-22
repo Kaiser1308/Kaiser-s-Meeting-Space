@@ -189,3 +189,8 @@ Final packaged verification (2026-09-22): serial packaged smoke passes 3/3 and
 desktop typecheck exits 0. The smoke covers synthetic physical audio,
 SQLite/hash/provenance, Library reopen, Markdown export, and concurrency
 isolation. Remaining manual/reader/provider and missing-feature gates stay open.
+
+Resilience rerun (2026-09-22): root `pnpm test:resilience` now invokes the
+dedicated Vitest config and passes 3/3 with temporary Docker PostgreSQL/Redis
+services on ports 5433/6380. Containers were removed after verification. The
+performance gate remains open because no performance target is registered.

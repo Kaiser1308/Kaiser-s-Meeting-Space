@@ -481,3 +481,7 @@ was independently verified at 0 errors / 14 warnings; P20 remains OPEN.
 Final packaged verification (2026-09-22): serial Windows packaged smoke passes
 3/3 and desktop typecheck exits 0, covering the isolated physical meeting,
 Library reopen, Markdown export, and concurrency paths.
+
+Resilience rerun (2026-09-22): corrected root command passes the Redis-loss
+suite 3/3 with temporary Docker PostgreSQL/Redis services; containers were
+removed after verification. Performance remains OPEN with no registered target.
