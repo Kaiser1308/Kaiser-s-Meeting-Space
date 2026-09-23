@@ -14,6 +14,9 @@ export const WINDOWS_TEST_DURATIONS = {
   '4h': 14_400_000,
 } as const;
 
+const DEFAULT_CDP_COMMAND_TIMEOUT_MS = 10_000;
+const LOCAL_SPEECH_CDP_COMMAND_TIMEOUT_MS = 300_000;
+
 export type WindowsTestProfile = 'physical-recording' | 'simulator-full' | 'physical-full';
 export type WindowsTestDuration = keyof typeof WINDOWS_TEST_DURATIONS;
 
@@ -77,8 +80,8 @@ export type NativeResponse = {
 };
 
 export interface CdpSession {
-  evaluate(expression: string): Promise<unknown>;
-  command(method: string, params?: Record<string, unknown>): Promise<Record<string, unknown>>;
+  evaluate(expression: string, timeoutMs?: number): Promise<unknown>;
+  command(method: string, params?: Record<string, unknown>, timeoutMs?: number): Promise<Record<string, unknown>>;
   expectProcessExit(): void;
   close(): void;
 }
@@ -378,13 +381,13 @@ export function classifyOperationalStderr(lines: string[]): string[] {
   return classifications;
 }
 
-function makeInvokeExpression(command: string, payload: Record<string, unknown>): string {
+function makeInvokeExpression(command: string, payload: Record<string, unknown>, timeoutMs: number): string {
   return `(async () => window.kmsNative.invoke('kms-native-ipc', ${JSON.stringify({
     version: 1,
     correlationId: randomUUID(),
     command,
     payload,
-    timeoutMs: 30_000,
+    timeoutMs,
     cancel: false,
   })}))()`;
 }
@@ -431,7 +434,10 @@ export function createPackagedElectronSession(options: CreatePackagedElectronSes
     diagnostics,
     evaluate: (expression) => options.cdp.evaluate(expression),
     async invokeNative(command, payload = {}, recordFailure = true) {
-      const response = (await options.cdp.evaluate(makeInvokeExpression(command, payload))) as NativeResponse | undefined;
+      const timeoutMs = command.startsWith('local_speech_')
+        ? LOCAL_SPEECH_CDP_COMMAND_TIMEOUT_MS
+        : DEFAULT_CDP_COMMAND_TIMEOUT_MS;
+      const response = (await options.cdp.evaluate(makeInvokeExpression(command, payload, timeoutMs), timeoutMs)) as NativeResponse | undefined;
       if (!response?.success) {
         const errorCode = toSafeErrorCode(response?.error?.code, 'native_command_failed');
         if (recordFailure) diagnostics.commandErrors.push(errorCode);
@@ -585,13 +591,13 @@ async function connectToCdp(
       };
     });
     const transport = ws;
-    const command = async (method: string, params: Record<string, unknown> = {}) => {
+    const command = async (method: string, params: Record<string, unknown> = {}, timeoutMs = DEFAULT_CDP_COMMAND_TIMEOUT_MS) => {
       const id = nextId++;
       return new Promise<Record<string, unknown>>((resolvePromise, reject) => {
         const timer = setTimeout(() => {
           pending.delete(id);
           reject(new Error('cdp_command_timeout'));
-        }, 10_000);
+        }, timeoutMs);
         pending.set(id, {
           resolve: (value) => {
             clearTimeout(timer);
@@ -616,12 +622,12 @@ async function connectToCdp(
     await command('Page.enable');
     const session: CdpSession = {
       command,
-      async evaluate(expression: string): Promise<unknown> {
+      async evaluate(expression: string, timeoutMs = DEFAULT_CDP_COMMAND_TIMEOUT_MS): Promise<unknown> {
         const response = await command('Runtime.evaluate', {
           expression,
           returnByValue: true,
           awaitPromise: true,
-        });
+        }, timeoutMs);
         const result = response.result as { result?: { value?: unknown }; exceptionDetails?: unknown } | undefined;
         if (result?.exceptionDetails) throw new Error('renderer_evaluation_failed');
         return result?.result?.value;

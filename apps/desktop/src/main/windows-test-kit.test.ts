@@ -89,4 +89,29 @@ describe('Windows test kit contracts', () => {
       rmSync(userDataDir, { recursive: true, force: true });
     }
   });
+
+  it('allows local speech invocations enough time for large CPU models', async () => {
+    const evaluations: Array<{ expression: string; timeoutMs?: number }> = [];
+    const cdp = {
+      evaluate: async (expression: string, timeoutMs?: number) => {
+        evaluations.push({ expression, timeoutMs });
+        return { success: true };
+      },
+      command: async () => ({}),
+      expectProcessExit: () => undefined,
+      close: () => undefined,
+    };
+
+    const session = createPackagedElectronSession({
+      artifactDir: 'artifacts',
+      userDataDir: 'user-data',
+      child: new EventEmitter() as unknown as ChildProcess,
+      cdp,
+    });
+
+    await session.invokeNative('local_speech_transcribe_window', {}, false);
+
+    expect(evaluations[0]?.timeoutMs).toBe(300_000);
+    expect(evaluations[0]?.expression).toContain('"timeoutMs":300000');
+  });
 });
