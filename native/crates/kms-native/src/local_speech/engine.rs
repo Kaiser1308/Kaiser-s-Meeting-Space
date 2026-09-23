@@ -9,6 +9,19 @@ use thiserror::Error;
 use super::manifest::ManifestEntry;
 use super::{audio, model};
 
+const MIN_LOCAL_SPEECH_THREADS: usize = 2;
+const MAX_LOCAL_SPEECH_THREADS: usize = 8;
+
+fn default_thread_pool_size() -> u32 {
+    std::thread::available_parallelism()
+        .map(|parallelism| {
+            parallelism
+                .get()
+                .clamp(MIN_LOCAL_SPEECH_THREADS, MAX_LOCAL_SPEECH_THREADS) as u32
+        })
+        .unwrap_or(MIN_LOCAL_SPEECH_THREADS as u32)
+}
+
 #[derive(Debug, Error)]
 pub enum EngineError {
     #[error("Engine busy: queue full, retry later")]
@@ -40,7 +53,7 @@ impl Default for EngineOpts {
     fn default() -> Self {
         Self {
             memory_budget_mb: 512,
-            thread_pool_size: 2,
+            thread_pool_size: default_thread_pool_size(),
             model_root: PathBuf::from("."),
             audio_root: PathBuf::from("."),
         }
@@ -260,6 +273,16 @@ mod tests {
     fn init_succeeds_without_loading_untrusted_model() {
         let result = LocalSpeechEngine::init(make_entry("vi"), "vi".into(), EngineOpts::default());
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn default_thread_pool_size_tracks_available_parallelism_with_a_bound() {
+        let available = std::thread::available_parallelism()
+            .map(|parallelism| parallelism.get())
+            .unwrap_or(2);
+        let expected = available.clamp(2, 8) as u32;
+
+        assert_eq!(EngineOpts::default().thread_pool_size, expected);
     }
 
     #[test]
