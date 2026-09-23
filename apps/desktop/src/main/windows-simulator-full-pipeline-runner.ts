@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildRepeatedTranscript, loadAudioFixture, validateAudioFixture, type AudioFixtureManifest } from './windows-audio-fixture.js';
 import { compareTranscript, type QualityTranscriptSegment } from './windows-transcript-quality.js';
@@ -65,6 +65,23 @@ export function simulatorFullPrerequisiteFailure(options: SimulatorFullPipelineO
 
 function hashFile(path: string): string { return createHash('sha256').update(readFileSync(path)).digest('hex'); }
 
+export function materializeLocalSpeechModel(sourcePath: string, modelId: string, userDataDir: string): string {
+  if (!/^[A-Za-z0-9._-]+$/.test(modelId)) throw new Error('invalid_local_speech_model_id');
+  const modelsDir = resolve(userDataDir, 'native-storage', 'models');
+  mkdirSync(modelsDir, { recursive: true });
+  const targetPath = join(modelsDir, `${modelId}.bin`);
+  const temporaryPath = join(modelsDir, `.${modelId}.${randomUUID()}.tmp`);
+  let committed = false;
+  try {
+    copyFileSync(sourcePath, temporaryPath);
+    renameSync(temporaryPath, targetPath);
+    committed = true;
+    return targetPath;
+  } finally {
+    if (!committed && existsSync(temporaryPath)) rmSync(temporaryPath, { force: true });
+  }
+}
+
 function getPayloadRecord(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 
 function getSegments(value: unknown): QualityTranscriptSegment[] {
@@ -100,9 +117,8 @@ export async function runSimulatorFullPipeline(options: SimulatorFullPipelineOpt
     const fixturePath = `fixtures/${fixture.fixtureId}.wav`;
     if (!(await session.invokeNative('storage_atomic_write', { path: fixturePath, dataBase64: wavBytes.toString('base64') })).success) throw new Error('fixture_materialization_failed');
     evidence.storage!.fixtureWritten = true;
-    const modelBytes = readFileSync(modelPath);
     if (hashFile(modelPath) !== modelSha256.toLowerCase()) throw new Error('local_speech_model_hash_mismatch');
-    if (!(await session.invokeNative('storage_atomic_write', { path: `models/${modelId}.bin`, dataBase64: modelBytes.toString('base64') })).success) throw new Error('model_materialization_failed');
+    materializeLocalSpeechModel(modelPath, modelId, userDataDir);
     await session.invokeNative('manifest_init');
     if (!(await session.invokeNative('manifest_add_entry', { meetingId, source: 'synthetic-fixture', chunkIndex: 0, filePath: fixturePath, sha256: fixture.wavSha256, byteLength: wavBytes.length })).success) throw new Error('manifest_add_failed');
     evidence.storage!.manifestEntries = 1;
