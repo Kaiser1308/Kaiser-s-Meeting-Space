@@ -28,6 +28,7 @@
   "devDependencies": {
     "@types/react": "~19.1.10",
     "@types/react-test-renderer": "^19.0.0",
+    "@xmldom/xmldom": "0.9.12",
     "react-test-renderer": "19.1.0",
     "typescript": "^5.9.2",
     "vitest": "3.2.4"
