@@ -4,7 +4,7 @@
 >
 > Stay on the checked-out `master` branch. Do not create a worktree or dispatch subagents; the code/build/device steps are sequential and share one authorized phone.
 
-**Review status:** The design spec is approved by the owner; this implementation plan is awaiting review. Do not begin Task 1 before plan approval.
+**Review status:** The owner approved this plan on 2026-09-25 and selected the patched `@xmldom/xmldom` 0.9.12 update after the original 0.9.10 pin was found to be affected by a maintainer security advisory. The advisory lists `~0.9.12` as patched: [GHSA-27p8-2357-5qqv](https://github.com/xmldom/xmldom/security/advisories/GHSA-27p8-2357-5qqv).
 
 **Goal:** Fix the workspace-root Android build's missing `kms` deep-link scheme, then make a prompt-only physical-device attempt to reach Android's real microphone permission dialog without granting it or recording.
 
@@ -42,15 +42,15 @@
 - The root `.MainActivity` must handle `android.intent.action.VIEW`, `android.intent.category.DEFAULT`, `android.intent.category.BROWSABLE`, and `android:scheme="kms"` in one intent filter.
 - Do not modify `apps/mobile/App.tsx`, `createAuthRedirectUri`, OAuth/provider configuration, or any permission/capture implementation.
 
-- [ ] **Step 1: Add `@xmldom/xmldom` as a mobile dev dependency, pinned to the version already present in the workspace lockfile.**
+- [ ] **Step 1: Add patched `@xmldom/xmldom` 0.9.12 as a mobile dev dependency.**
 
 Run from the repository root:
 
 ```powershell
-pnpm --filter @kms/mobile add --save-dev --save-exact @xmldom/xmldom@0.9.10
+pnpm --filter @kms/mobile add --save-dev --save-exact @xmldom/xmldom@0.9.12
 ```
 
-Expected: only the `@kms/mobile` dev-dependency declaration and corresponding lockfile importer/resolution metadata change. Do not upgrade Expo or unrelated dependencies.
+Expected: only the `@kms/mobile` dev-dependency declaration and corresponding lockfile importer/package/snapshot metadata change. The prior pnpm invocation also rewrote an unrelated Vitest peer snapshot; if that recurs, restore that unrelated hunk to its committed value. Do not upgrade Expo or unrelated dependencies, and do not retain an `@xmldom/xmldom` version below 0.9.12 for this test dependency.
 
 - [ ] **Step 2: Create failing tests for the resolved root Expo scheme and parsed Android route.**
 
