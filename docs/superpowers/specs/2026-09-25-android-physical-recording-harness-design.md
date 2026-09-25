@@ -9,24 +9,27 @@ invocation, observe the real app, then report evidence without claiming tests
 that were not run.
 
 The first profile is `physical-recording`. Supported durations are `5m`, `1h`,
-`3h`, and `4h`. The harness measures recording continuity, durable chunk
-metadata, and cleanup/finalization. It does not test transcription or minutes
-generation.
+`3h`, and `4h`. The harness measures recording continuity, durable P07
+manifest/chunk metadata, and terminal-state/finalization. It does not test
+transcription or minutes generation.
 
 ## Approved approach
 
 Use a host-side Node.js runner with Android Debug Bridge (ADB) and Android's
 built-in UIAutomator hierarchy/input facilities to drive the installed app's
-production screens. Do not require a Maestro helper APK or add a test-only
-screen/deep link to the app.
+production screens. The product recording path persists sessions and chunks
+through the existing P07 SQLite `ManifestStore`; the existing recording
+screen exposes the current recording ID and safe manifest details through
+ordinary accessible UI. Do not require a Maestro helper APK, test-only screen,
+deep link, or external database dump.
 
 Alternatives considered:
 
-| Approach | Benefit | Trade-off | Decision |
-| --- | --- | --- | --- |
-| ADB + built-in UIAutomator through production screens | Exercises the same app flow and native recorder the user operates; no additional helper app | OEM/system-dialog and hierarchy differences need explicit handling | Selected |
-| Debug-only test screen or deep link | Easier deterministic control and status access | Adds a separate app path and can bypass production behavior | Deferred |
-| Android instrumentation that calls the native module directly | Focused and potentially stable native-module test | Does not cover app lifecycle, readiness, or production UI flow | Deferred |
+| Approach                                                                                        | Benefit                                                                                                                       | Trade-off                                                                                           | Decision |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------- |
+| ADB + UIAutomator, P07 SQLite manifest, and accessible details on the existing recording screen | Exercises the real app flow, persists through the accepted local manifest, and exposes only the active session to the harness | Requires a mobile SQLite adapter and a versioned manifest migration for Android's actual PCM format | Selected |
+| Android-only JSON sidecar manifest                                                              | Smaller Android implementation and easy scoped file inspection                                                                | Duplicates P07's authoritative SQLite manifest and can drift from upload/recovery state             | Rejected |
+| Debug-only test screen, hidden bridge, or instrumentation-only metadata API                     | Easier deterministic metadata access                                                                                          | Creates a separate/test-only path and does not validate normal product behavior                     | Rejected |
 
 The runner must locate controls from the current accessibility/UI hierarchy and
 their labels, not fixed screen coordinates. It may use coordinates derived from
@@ -41,11 +44,18 @@ Included:
 - The installed debuggable development APK and its real `AudioRecorder` native
   module. Results qualify that source/build on a physical device, not release
   signing or a production distribution package.
+- P07 SQLite persistence for recording-session state and Android `pcm/raw`
+  chunk entries, wired into the real mobile recording lifecycle.
+- An Expo SDK 54-compatible `expo-sqlite` dependency/adapter for the existing
+  P07 SQLite connection contract, stored in app-private persistent storage.
+- Recording ID and per-chunk manifest details exposed on the existing
+  recording screen as normal accessible product information; no hidden test
+  route or direct full-database export.
 - The normal app route: Home → Set up meeting → meeting setup → permission →
   readiness → Start recording → End.
 - One duration per run: `5m`, `1h`, `3h`, or `4h`.
 - Device/storage/permission/native-module preflight; monotonic duration timing;
-  periodic health observation; finalization and chunk-integrity checks.
+  periodic health observation; terminal-state and chunk-integrity checks.
 - Sanitized run summaries and a safe failure classification.
 
 Not included:
@@ -103,11 +113,14 @@ Before starting a recording, the runner verifies:
    about 28.8 MB for 5m, 345.6 MB for 1h, 1.04 GB for 3h, and 1.38 GB for 4h;
    the corresponding preflight floor with margin is approximately 36 MB,
    432 MB, 1.30 GB, and 1.73 GB. Recompute if the actual format changes.
-6. The debuggable package permits scoped `run-as` access so the runner can
-   read only the current run's manifest and invoke an on-device checksum over
-   its chunk files; raw audio is never transferred to or saved on the host. If
-   the run-owned path cannot be identified without scanning other meetings or
-   reading the app database, integrity verification is `BLOCKED`.
+6. The product can read the current recording's session and chunk entries from
+   the P07 SQLite `ManifestStore`; the runner obtains the exact recording ID,
+   safe file basenames, and expected hashes from the current recording
+   screen's accessible details. The debuggable package permits scoped
+   `run-as` access to calculate each named chunk's checksum on-device. The
+   runner never copies audio or the SQLite database to the host. If the exact
+   run-owned paths cannot be derived without scanning other meetings,
+   integrity verification is `BLOCKED`.
 7. The phone can remain unlocked, on the recording screen, and preferably
    charging for the whole foreground run. The harness does not alter
    screen-timeout, stay-awake, battery, or other device settings.
@@ -132,14 +145,16 @@ make an acoustic-quality or speech-recognition claim. Fixture identity/hash
 and route are recorded when used. No YouTube stream, network audio, live
 meeting, or copyrighted source is an automated PASS/FAIL fixture.
 
-The harness creates a clearly identifiable synthetic test meeting/session.
-Audio remains in the app's private storage and is not copied to the host or
-committed. The runner must inspect/hash only artifacts attributable to its
-unique run ID; it must not scan, export, or modify unrelated meeting data. It
-does not automatically delete the generated recording. Retention and cleanup
-remain explicit operator actions, and the summary reports the run ID and
-estimated on-device bytes so the user can locate and remove the test data
-through a supported app path later.
+The app creates its ordinary UUID recording ID at session start and displays
+it on the existing recording screen. The harness associates that ID with its
+own run ID in memory and reads only that session's manifest details. Audio
+remains in app-private storage and is not copied to the host or committed. The
+runner must checksum only the exact chunk basenames listed for that recording
+ID; it must not scan, export, or modify unrelated meeting data or copy the
+SQLite database. It does not automatically delete the generated recording.
+Retention and cleanup remain explicit operator actions, and the summary
+reports the recording ID and estimated on-device bytes so the user can locate
+and remove the test data through a supported app path later.
 
 Evidence must not contain raw audio, transcript text, meeting title, account
 identity, full UI dumps, screenshots, or unredacted logcat. Store only
@@ -152,10 +167,12 @@ durations, byte/sample/chunk counts, hashes, and aggregate health metadata.
    `--allow-real-audio` opt-in.
 2. Perform read-only device, app, permission-state, native-module, storage, and
    foreground preflight. Do not launch capture if any precondition fails.
-3. Open the app and use its real UI flow to create a synthetic run-named
-   meeting. Pause for the operator at the OS microphone prompt when needed.
-4. Start through the visible readiness action. Start the monotonic timer only
-   after the app/native state confirms `recording`.
+3. Open the app and use its real UI flow to configure a synthetic recording.
+   Pause for the operator at the OS microphone prompt when needed.
+4. Start through the visible readiness action. The app persists its generated
+   recording ID/session state in P07 SQLite and displays the ID on the
+   recording screen. Start the monotonic timer only after the app/native state
+   confirms `recording`.
 5. During the selected interval, poll foreground/app liveness and recording
    state every 5 seconds. Every 60 seconds, record a health sample containing
    committed-chunk progress, free storage, process PSS, and battery level and
@@ -163,12 +180,15 @@ durations, byte/sample/chunk counts, hashes, and aggregate health metadata.
    and safe error codes; never collect content logs. A missed required sample
    or unexplained gap is not silently ignored.
 6. At the deadline, send End using the visible production control and wait for
-   the app's terminal durable state. Verify that the run's chunks and manifest
-   are finalized, have monotonic boundaries and consistent byte/sample
-   metadata, and match their SHA-256 checksums computed on-device. The active
-   interval must be within 10 seconds of the selected 5-minute duration or 30
-   seconds for longer durations, measured from native recording acknowledgment
-   through native End acknowledgment.
+   the app's terminal durable state. The app must append each finalized native
+   chunk event to the P07 SQLite manifest before the UI acknowledges it as
+   committed; only after the final entry is durable may the session become
+   `finalized`. Verify that the run's manifest entries have monotonic
+   boundaries and consistent byte/sample metadata, and that each exact
+   run-owned chunk's on-device SHA-256 matches its persisted manifest hash.
+   The active interval must be within 10 seconds of the selected 5-minute
+   duration or 30 seconds for longer durations, measured from native recording
+   acknowledgment through native End acknowledgment.
 7. Write a sanitized summary and leave the synthetic recording in app-private
    storage. Do not force-stop, clear data, uninstall, or attempt destructive
    recovery if End fails.
@@ -181,6 +201,55 @@ it instructs the operator to inspect/end/recover the session manually and
 reports finalization as failed or unknown.
 
 ## Evidence and result states
+
+### Product-side session and manifest contract
+
+The production mobile path uses the existing `packages/local-recovery` P07
+SQLite manifest store, with the Expo SDK 54-compatible `expo-sqlite` package
+and an adapter implementing its existing `SqliteConnection` contract in
+app-private persistent storage. Keep metadata-only operations small when using
+the SDK-compatible synchronous SQLite methods; audio bytes and file hashing
+stay in the native writer, never on the JavaScript UI thread.
+
+Add versioned migrations that preserve existing rows and permit the Android
+recorder's actual `codec: 'pcm'` and `container: 'raw'` alongside the existing
+Opus/WebM values. A session record stores the recording ID, source, state
+(`configured`, `recording`, `paused`, `finalizing`, `finalized`, or
+`recovery_required`), start/end times, and version. A session-event table
+persists pause/resume/gap events already emitted by the recording service.
+Chunk entries retain the P07 fields for file identity, index, SHA-256, byte
+length, exact sample count, duration, monotonic/wall-clock boundaries, format,
+upload state, and version. Persist `sample_count` explicitly; do not infer
+captured samples from file size when gaps or partial frames can occur.
+
+`RecordingService` owns the lifecycle integration: persist the session before
+capture starts; update state on start/pause/resume/end; append a chunk entry
+after the native writer has flushed, hashed, and renamed that chunk; and only
+then dispatch `CHUNK_COMMITTED`. Insert the final chunk entry and update the
+session to `finalized` in one SQLite transaction before dispatching
+`FINALIZE_OK`. If manifest persistence fails, preserve the audio, report a
+recovery/error state, and never claim the chunk/session is locally safe. Reuse
+the existing P07 store and conformance tests; do not create a parallel JSON
+manifest.
+
+The existing `RecordingScreen` gains an accessible recording-details section
+showing the current UUID, persisted session state, and each current-session
+chunk's index, validated relative basename, byte length, sample count,
+duration, and SHA-256. It is ordinary product UI useful for support/recovery,
+not a hidden test surface. It must not display raw audio, transcript, account
+identity, or unrelated sessions. A stable accessibility label/test ID lets
+UIAutomator read this screen. The host runner uses only these details plus the
+app-private `run-as` checksum command for basenames matching
+`<recording-uuid>-chunk-<four-digit-index>.pcm`; it does not read/export the
+SQLite database or accept arbitrary paths from UI text.
+
+The product-side SQLite adapter must remain behind the existing P07
+`SqliteConnection` interface. Use the Expo SQLite version selected for the
+repository's Expo SDK 54 compatibility; its SDK-versioned APIs and synchronous
+connection methods are documented at
+[Expo SDK 54 SQLite documentation](https://docs.expo.dev/versions/v54.0.0/sdk/sqlite/).
+Keep each operation small and never perform audio I/O or whole-file hashing in
+a synchronous JS call.
 
 Each run writes one JSON summary plus a concise human-readable report under an
 ignored local test-results directory. The report includes:
@@ -211,7 +280,7 @@ States:
   storage, unsupported UI/system prompt, or inaccessible safe metadata).
 
 A shortened run, guessed UI action, synthetic device/provider, missing required
-health sample, or unknown finalization state can never be `PASS`.
+health sample, or unknown terminal/finalization state can never be `PASS`.
 
 ## Acceptance criteria for implementation
 
@@ -228,6 +297,13 @@ health sample, or unknown finalization state can never be `PASS`.
       samples and classifies early exit/crash/gap/end failure accurately.
 - [ ] Integrity verification is restricted to the unique harness run and
       produces hashes/metadata without retaining raw audio on the host.
+- [ ] P07 SQLite persists session lifecycle/events and Android `pcm/raw` chunk
+      entries; versioned migrations preserve existing Opus/WebM rows.
+- [ ] RecordingService appends chunk metadata before dispatching the durable
+      committed state and marks the session finalized only after the final
+      manifest transaction succeeds.
+- [ ] The existing RecordingScreen exposes accessible current-session ID and
+      chunk hash details; no hidden test route or whole-database export exists.
 - [ ] Every exit path writes a sanitized result; no audio, transcript, secrets,
       account identity, full UI hierarchy, or raw logs are persisted as
       evidence.
@@ -242,11 +318,13 @@ health sample, or unknown finalization state can never be `PASS`.
 ## Implementation boundary
 
 Implementation must be planned as a separate task after review of this spec.
-The first implementation task should validate ADB/UI hierarchy control and
-safe access to only the current run's finalized metadata on the existing
-physical device. If either requires a helper APK, permission mutation, broad
-private-data scan, or product test-only route, stop and return with the
-specific blocker for approval rather than silently changing this design.
+The first implementation task should prove the P07 schema migration and
+SQLite adapter with existing conformance tests, then validate that the existing
+recording screen exposes the current run's persisted metadata and that ADB can
+hash only its listed chunks on the existing physical device. If this requires
+a helper APK, permission mutation, broad private-data scan, full-database
+export, or product test-only route, stop and return with the specific blocker
+for approval rather than silently changing this design.
 
 Future `simulator-full` or `physical-full` Android profiles are separate
 proposals. They require a real supported Android speech/pipeline path and
