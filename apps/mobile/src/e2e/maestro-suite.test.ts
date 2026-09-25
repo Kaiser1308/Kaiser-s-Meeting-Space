@@ -14,6 +14,10 @@ const packageJson = JSON.parse(readFileSync(resolve(mobileDir, 'package.json'), 
 const appJson = JSON.parse(readFileSync(resolve(mobileDir, 'app.json'), 'utf8')) as {
   expo?: { android?: { package?: string } };
 };
+const workspaceAndroidManifest = readFileSync(
+  resolve(mobileDir, '../../android/app/src/main/AndroidManifest.xml'),
+  'utf8',
+);
 
 const requiredFlows = [
   {
@@ -50,9 +54,42 @@ const requiredFlows = [
       'permission-denied-error',
     ],
   },
+  {
+    file: 'microphone-permission-prompt.yaml',
+    selectors: [
+      'setup-meeting-button',
+      'meeting-title-input',
+      'meeting-language-vi',
+      'meeting-continue-button',
+      'permission-screen',
+      'permission-continue-button',
+    ],
+  },
 ] as const;
 
 describe('Android Maestro suite contract', () => {
+  it('declares microphone permission in the workspace Android manifest', () => {
+    expect(workspaceAndroidManifest).toContain('android.permission.RECORD_AUDIO');
+  });
+
+  it('has a microphone-prompt-only flow that preserves app data and stops before capture', () => {
+    const flowPath = resolve(maestroDir, 'flows/microphone-permission-prompt.yaml');
+    const flowExists = existsSync(flowPath);
+    expect(flowExists).toBe(true);
+    if (!flowExists) return;
+
+    const yaml = readFileSync(flowPath, 'utf8');
+    expect(yaml).toContain('microphone: unset');
+    expect(yaml).not.toContain('clearState: true');
+
+    const requestTap = yaml.indexOf('id: permission-continue-button');
+    expect(requestTap).toBeGreaterThanOrEqual(0);
+    const afterRequestTap = yaml.slice(yaml.indexOf('\n', requestTap) + 1);
+    expect(afterRequestTap).toMatch(/text:\s*["']\(\?i\).*(microphone|audio|ghi âm|âm thanh)/i);
+    expect(afterRequestTap).not.toContain('- tapOn:');
+    expect(afterRequestTap).not.toContain('start-recording-button');
+  });
+
   it('registers the real mobile E2E command and all required flows', () => {
     expect(packageJson.scripts?.['test:e2e']).toBe(
       'vitest run src/e2e/maestro-suite.test.ts && maestro test maestro',

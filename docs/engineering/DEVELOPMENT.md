@@ -147,11 +147,15 @@ pnpm --filter @kms/ai test:unit -- --coverage               # With coverage
 
 ### Android Maestro E2E
 
-The mobile E2E suite uses the Maestro CLI and contains three independently
-runnable flows covering only the Android pre-meeting journeys: Record
-setup/readiness, Translate cloud disclosure and consent, and microphone-denial
-remediation. It does not verify successful
-recording, upload, provider work, recovery, transcription, or iOS behavior.
+The mobile E2E suite uses the Maestro CLI; its four runnable flows include
+three independently runnable pre-meeting journeys: Record setup/readiness,
+Translate cloud disclosure and consent, and microphone-denial remediation. A
+fourth, independently runnable permission-prompt flow resets only the
+microphone permission to `unset`, preserves app state, taps the app's Continue
+button, asserts the Android microphone prompt, and stops without accepting the
+prompt or starting capture.
+The suite does not verify successful recording, upload, provider work, recovery,
+transcription, or iOS behavior.
 
 Before running it, prepare an Android 12+ device or emulator, install the
 current mobile development build, make sure the Maestro CLI is available on
@@ -166,7 +170,7 @@ Run:
 pnpm test:e2e:mobile
 ```
 
-This dispatches `pnpm --filter @kms/mobile test:e2e` and executes the three
+This dispatches `pnpm --filter @kms/mobile test:e2e` and executes the four
 flows in `apps/mobile/maestro/`. If Maestro, the Android device/build, or the
 authenticated session is unavailable, the command must produce a non-zero
 unavailable/blocked result. Record that result as external evidence; do not

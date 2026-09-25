@@ -1,0 +1,28 @@
+appId: com.anonymous.kaisermeetingspace
+name: Show the microphone permission prompt without starting capture
+tags:
+  - android
+  - permissions
+---
+- launchApp:
+    permissions:
+      microphone: unset
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: setup-meeting-button
+- assertVisible:
+    id: meeting-setup-screen
+- tapOn:
+    id: meeting-title-input
+- inputText: 'Synthetic Maestro Permission Prompt'
+- tapOn:
+    id: meeting-language-vi
+- tapOn:
+    id: meeting-continue-button
+- assertVisible:
+    id: permission-screen
+- tapOn:
+    id: permission-continue-button
+- assertVisible:
+    text: '(?i)(microphone|audio|ghi âm|âm thanh)'
