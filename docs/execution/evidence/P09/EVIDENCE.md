@@ -4,6 +4,10 @@
 > 36 now has fresh native-start evidence, but P09 remains IMPLEMENTED until
 > the physical interruption matrix and mandatory two-hour qualification pass.
 
+Latest task continuation: [`RUN-20260925-1418.md`](RUN-20260925-1418.md) verifies
+root Android autolinking and APK DEX inclusion of `AudioRecorderModule`. This
+APK was not installed or run on-device and adds no physical recording evidence.
+
 Latest run: [`RUN-20260806-1615.md`](RUN-20260806-1615.md).
 
 The latest physical run directly verified native start and durable End
@@ -149,3 +153,4 @@ P10 is unblocked: P09 provides the `RecordingService` state/subscription surface
 - [RUN-20260730-1155](RUN-20260730-1155.md): short-checkout/project-directory workaround produced a fresh APK with autolinked `audio-recorder`; installation was attempted but CPH2699 was disconnected/not visible to ADB. No runtime or physical qualification claim was added; P09 remains IMPLEMENTED.
 - [RUN-20260730-1535](RUN-20260730-1535.md): CPH2699 reconnected and accepted the native debug APK; Metro bundle reached the app, but Expo dev-runtime errors left the UI blank. No recording or physical qualification claim was added; P09 remains IMPLEMENTED.
 - [RUN-20260730-2212](RUN-20260730-2212.md): ADB enumerated CPH2699 as `unauthorized`; device property access and all physical recording scenarios were blocked before invocation. No physical qualification claim was added; P09 remains IMPLEMENTED.
+- [RUN-20260925-1418](RUN-20260925-1418.md): repaired root Android autolinking, passed 254 mobile unit tests and typecheck, and built a release APK containing `AudioRecorderModule`. No device install or recording was performed; P09 remains IMPLEMENTED.

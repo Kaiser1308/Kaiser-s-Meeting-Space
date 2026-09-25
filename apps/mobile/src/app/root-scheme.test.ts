@@ -21,6 +21,31 @@ describe('workspace-root Android deep-link contract', () => {
     expect(config.android?.package).toBe('com.anonymous.kaisermeetingspace');
   });
 
+  it('includes the local audio recorder module in root Android autolinking', () => {
+    const output = execSync(
+      'pnpm exec expo-modules-autolinking resolve --platform android --json',
+      {
+        cwd: PROJECT_ROOT,
+        encoding: 'utf8',
+      },
+    );
+    const resolution = JSON.parse(output) as {
+      modules?: Array<{
+        packageName?: string;
+        projects?: Array<{ modules?: string[] }>;
+      }>;
+    };
+
+    const recorderModule = resolution.modules?.find(
+      (module) => module.packageName === 'audio-recorder',
+    );
+    const hasNativeRecorderClass = recorderModule?.projects?.some((project) =>
+      project.modules?.includes('expo.modules.audiorecorder.AudioRecorderModule'),
+    );
+
+    expect(hasNativeRecorderClass).toBe(true);
+  });
+
   it('registers kms VIEW links on the root MainActivity', () => {
     const xml = readFileSync(
       resolve(PROJECT_ROOT, 'android/app/src/main/AndroidManifest.xml'),

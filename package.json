@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "main": "apps/mobile/index.js",
+  "expo": {
+    "autolinking": {
+      "nativeModulesDir": "apps/mobile/modules"
+    }
+  },
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev:api": "pnpm --filter @kms/api dev",

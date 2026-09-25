@@ -1,7 +1,7 @@
 # Requirement Traceability
 
 **Status:** Accepted planning baseline
-**Last reviewed:** 2026-08-11
+**Last reviewed:** 2026-09-25
 
 Exact test and report links are added only after execution. A missing evidence cell prevents `VERIFIED`.
 
@@ -95,6 +95,13 @@ IMPLEMENTED. See `docs/execution/evidence/P09/RUN-20260806-1615.md`.
 P09-A05 retry (2026-08-07): a fresh real CPH2699 capture ran for approximately
 44 minutes with writer progress to 277,909,504 bytes, then lost ADB transport.
 The two-hour duration and clean finalization remain unverified; no PASS claim.
+
+P09 root Android autolinking continuation (2026-09-25): root resolver regression
+passes, all 254 mobile unit tests and mobile typecheck pass, and a fresh release
+APK contains the compiled `AudioRecorderModule`. The APK was not installed or
+launched on-device; this adds no recording or physical qualification evidence.
+P09 remains IMPLEMENTED. See
+`docs/execution/evidence/P09/RUN-20260925-1418.md`.
 
 P14 implementation continuation (2026-08-11): finalization/backfill contracts,
 source verification, resumable jobs, reconciliation, speaker evidence,

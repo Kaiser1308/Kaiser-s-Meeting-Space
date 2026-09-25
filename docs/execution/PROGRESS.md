@@ -6,6 +6,13 @@
 **Next eligible phase:** P21 only after P20 handoff; P20 must stop before P21.
 **State:** P00-P08,P11 VERIFIED; P09-P10,P12-P15,P17-P19 IMPLEMENTED; P16 IN_PROGRESS; P20 IN_PROGRESS under the deferred policy
 
+**P09 root Android autolinking continuation (2026-09-25):** root Expo
+autolinking now resolves `apps/mobile/modules/audio-recorder`; the regression
+test passes, the mobile unit suite passes 254/254, mobile typecheck passes, and
+the release APK DEX contains `AudioRecorderModule`. The APK was not installed
+or exercised on-device. P09 remains IMPLEMENTED; physical interruption/route
+and two-hour gates remain open. Evidence: `evidence/P09/RUN-20260925-1418.md`.
+
 **P20 Windows desktop qualification continuation (2026-09-22):** Windows
 desktop unit tests pass 183/183, packaged smoke 3/3, Playwright E2E 3/3,
 native Rust 78/78, and optional local-speech 101/101; typecheck and Windows

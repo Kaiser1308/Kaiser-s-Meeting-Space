@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Owner:** Engineering  
-**Last reviewed:** 2026-08-11
+**Last reviewed:** 2026-09-25
 
 P08 latest Android run directly exercised the rebuilt APK, including the
 short-store/CMake fix, Home → setup → permission → readiness, and a real
@@ -24,6 +24,12 @@ phases to `VERIFIED`. P27 release preflight is blocked until every row closes.
 ADR-007 sets Windows and Android as the supported product platforms. Android
 12+ is the sole supported mobile target; existing iOS configuration and
 implementation remain a dormant, non-gating reserve.
+
+P09 continuation (2026-09-25): root Android autolinking now resolves and
+packages `AudioRecorderModule`; the mobile suite passes 254 tests and typecheck
+passes. The rebuilt APK was not installed or exercised on-device, so this adds
+no physical recording evidence. P09 remains Implemented; see
+`docs/execution/evidence/P09/RUN-20260925-1418.md`.
 
 | Capability                             | State                  | Evidence / next gate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | -------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
