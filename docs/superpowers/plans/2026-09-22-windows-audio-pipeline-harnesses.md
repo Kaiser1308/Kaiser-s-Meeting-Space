@@ -148,11 +148,11 @@
 - Consume `PackagedElectronSession`, `AudioFixtureManifest`, and the native commands `device_enumerate`, `storage_init`, `capture_start`, `capture_get_state`, and `capture_stop`.
 - Produce `PhysicalRecordingSummary` with profile, duration, route, stable device labels, mic/system chunk counts, gap/overflow/drift totals, audio file hashes/byte counts, cleanup state, and `PASS|FAIL|BLOCKED`.
 
-- [ ] **Step 1: Write failing validation tests**
+- [x] **Step 1: Write failing validation tests**
 
   Test that the runner returns `BLOCKED` unless `KMS_ALLOW_REAL_AUDIO=1`, `KMS_MIC_DEVICE_ID` is set, the selected device is present in `device_enumerate`, and the fixture validates. Test safe rejection of a missing playback executable and safe cleanup when capture start/stop fails.
 
-- [ ] **Step 2: Run the validation tests**
+- [x] **Step 2: Run the validation tests**
 
   ```powershell
   pnpm --filter @kms/desktop exec vitest run src/main/windows-physical-recording.test.ts -t "BLOCKED|device|fixture|cleanup"
@@ -160,13 +160,13 @@
 
   Expected: FAIL because the runner and playback helper do not exist.
 
-- [ ] **Step 3: Implement guarded fixture playback and capture control**
+- [x] **Step 3: Implement guarded fixture playback and capture control**
 
-  Use PowerShell `MediaPlayer`/SAPI-compatible local playback for the fixture and expose `speaker-to-mic` as the default physical route. Require explicit `KMS_MIC_DEVICE_ID` and optional `KMS_SYSTEM_DEVICE_ID`; never select the default device implicitly. Drive the packaged UI through CDP to choose Physical Capture, fill a synthetic title, and click Start/End meeting. Poll `capture_get_state` at 200 ms and sample process tree/health at 10 seconds.
+  Use PowerShell local WAV playback for the fixture and expose `speaker-to-mic` as the default physical route. Require explicit `KMS_MIC_DEVICE_ID` and optional `KMS_SYSTEM_DEVICE_ID`; never select the default device implicitly. Drive the packaged UI through CDP to choose Physical Capture, fill a synthetic title, and click Start/End meeting. Poll `capture_get_state` at 200 ms and sample process tree/health at 10 seconds.
 
-- [ ] **Step 4: Verify durable capture outputs**
+- [x] **Step 4: Verify durable capture outputs**
 
-  After stop, read only isolated user-data paths, verify WAV headers, non-zero bytes, manifest rows, SHA-256, chunk monotonicity, gap/overflow/drift counters, and no orphaned files. Store hashes and counts in evidence, not audio bytes.
+  After stop, read only isolated user-data paths, verify the native canonical WebM/Opus EBML signature, non-zero bytes, manifest rows, SHA-256, byte lengths, contiguous chunk indices, clean finalization, and no orphaned files. Query the finalized SQLite `capture_gaps` rows for exact gap/overflow totals; never infer zero overflow from a clean stop. Physical source chunks are WebM/Opus, not WAV; Task 5 decodes only verified source chunks into temporary derived WAV windows for the existing local speech reader. Store hashes and counts in evidence, not audio bytes.
 
 - [ ] **Step 5: Run the five-minute physical smoke only when explicitly enabled**
 
@@ -180,10 +180,10 @@
 
   Expected: PASS only with an approved device and actual captured bytes; otherwise BLOCKED. Do not claim `1h`, `3h`, or `4h` until each is deliberately selected.
 
-- [ ] **Step 6: Commit the physical-recording task**
+- [x] **Step 6: Commit the physical-recording task**
 
   ```powershell
-  git add apps/desktop/src/main/windows-physical-recording-runner.ts apps/desktop/src/main/windows-physical-recording.test.ts scripts/windows/play-audio-fixture.ps1 apps/desktop/src/main/windows-test-kit.ts
+  git add apps/desktop/src/main/windows-physical-recording-runner.ts apps/desktop/src/main/windows-physical-recording.test.ts docs/superpowers/plans/2026-09-22-windows-audio-pipeline-harnesses.md
   git commit -m "test(desktop): add guarded physical recording profile"
   ```
 
