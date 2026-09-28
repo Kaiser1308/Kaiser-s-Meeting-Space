@@ -20,6 +20,8 @@ export interface TranscriptComparison {
   failureCodes: string[];
 }
 
+const MIN_PHRASE_TOKEN_COVERAGE = 0.8;
+
 function normalizeText(value: string): string {
   return value
     .normalize('NFKC')
@@ -56,6 +58,48 @@ function flattenSegments(segments: readonly QualityTranscriptSegment[]): string 
   return segments.map((segment) => segment.text).join(' ');
 }
 
+function indexTokenPositions(actualWords: readonly string[]): Map<string, number[]> {
+  const positions = new Map<string, number[]>();
+  for (let index = 0; index < actualWords.length; index += 1) {
+    const word = actualWords[index]!;
+    const wordPositions = positions.get(word);
+    if (wordPositions) wordPositions.push(index);
+    else positions.set(word, [index]);
+  }
+  return positions;
+}
+
+function findTokenAtOrAfter(positions: readonly number[] | undefined, startIndex: number): number | undefined {
+  if (!positions) return undefined;
+  let low = 0;
+  let high = positions.length;
+  while (low < high) {
+    const middle = low + Math.floor((high - low) / 2);
+    if (positions[middle]! < startIndex) low = middle + 1;
+    else high = middle;
+  }
+  return positions[low];
+}
+
+function orderedTokenCoverage(
+  phrase: string,
+  actualTokenPositions: ReadonlyMap<string, readonly number[]>,
+  startIndex: number,
+): { coverage: number; nextIndex: number } {
+  const phraseWords = words(phrase);
+  if (phraseWords.length === 0) return { coverage: 1, nextIndex: startIndex };
+
+  let matched = 0;
+  let nextActualIndex = startIndex;
+  for (const word of phraseWords) {
+    const matchIndex = findTokenAtOrAfter(actualTokenPositions.get(word), nextActualIndex);
+    if (matchIndex === undefined) continue;
+    matched += 1;
+    nextActualIndex = matchIndex + 1;
+  }
+  return { coverage: matched / phraseWords.length, nextIndex: nextActualIndex };
+}
+
 function isValidTimestamp(segment: QualityTranscriptSegment, durationMs: number): boolean {
   return Number.isFinite(segment.startMs)
     && Number.isFinite(segment.endMs)
@@ -81,9 +125,18 @@ export function compareTranscript(
     : editDistance([...referenceText], [...actualText]) / referenceText.length;
 
   const phrases = expected
-    .map((segment) => normalizeText(segment.text))
+    .flatMap((segment) => segment.text.split(/(?<=[.!?])\s+/u).map(normalizeText))
     .filter((phrase) => phrase.length > 0);
-  const phraseMatches = phrases.filter((phrase) => actualText.includes(phrase)).length;
+  const actualTokenPositions = indexTokenPositions(actualWords);
+  let phraseCursor = 0;
+  let phraseMatches = 0;
+  for (const phrase of phrases) {
+    const coverage = orderedTokenCoverage(phrase, actualTokenPositions, phraseCursor);
+    if (coverage.coverage >= MIN_PHRASE_TOKEN_COVERAGE) {
+      phraseMatches += 1;
+      phraseCursor = coverage.nextIndex;
+    }
+  }
   const phraseCoverage = phrases.length === 0 ? (actualText.length === 0 ? 1 : 0) : phraseMatches / phrases.length;
   const durationMs = expected.reduce((maximum, segment) => Math.max(maximum, segment.endMs), 0);
   const timestampCoverage = actual.length === 0
