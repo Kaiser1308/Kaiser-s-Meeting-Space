@@ -35,6 +35,11 @@ impl TimelineAligner {
     /// Process a block of samples (at 48 kHz).
     /// Returns (gap_samples_detected, clean_derived_samples)
     pub fn align(&mut self, samples: &[f32]) -> (u64, Vec<f32>, TimelineState) {
+        if self.samples_processed == 0 && !samples.is_empty() {
+            // The first delivered packet starts the derived timeline; startup
+            // latency before any packet is not evidence of dropped samples.
+            self.start_time = Instant::now();
+        }
         let elapsed = self.start_time.elapsed();
         let expected_samples = ((elapsed.as_secs_f64() * 48000.0) as u64)
             .saturating_sub(self.total_gap_samples);
@@ -110,9 +115,22 @@ mod tests {
     }
 
     #[test]
+    fn first_packet_establishes_timeline_without_a_startup_gap() {
+        let mut aligner = TimelineAligner::new();
+        aligner.start_time = Instant::now() - Duration::from_secs(2);
+
+        let (gap, derived, state) = aligner.align(&vec![0.1f32; 480]);
+
+        assert_eq!(gap, 0);
+        assert_eq!(derived.len(), 480);
+        assert_eq!(state.gap_count, 0);
+    }
+
+    #[test]
     fn test_timeline_gap_simulation() {
         let mut aligner = TimelineAligner::new();
-        // Artificially manipulate start_time back in time to simulate a delay/gap
+        let _ = aligner.align(&vec![0.1f32; 480]);
+        // Artificially manipulate start_time back in time after capture starts.
         aligner.start_time = Instant::now() - Duration::from_secs(2);
         
         let samples = vec![0.1f32; 1000];
