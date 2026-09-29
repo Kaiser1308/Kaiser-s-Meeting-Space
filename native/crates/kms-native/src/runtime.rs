@@ -786,19 +786,14 @@ impl Runtime {
                 let source_path = request.payload.get("sourcePath").and_then(|v| v.as_str());
                 let source_sha256 = request.payload.get("sourceSha256").and_then(|v| v.as_str());
 
-                let (
-                    Some(run_id),
-                    Some(start_ms),
-                    Some(end_ms),
-                    Some(source_path),
-                    Some(source_sha256),
-                ) = (run_id, start_ms, end_ms, source_path, source_sha256)
+                let (Some(run_id), Some(start_ms), Some(source_path), Some(source_sha256)) =
+                    (run_id, start_ms, source_path, source_sha256)
                 else {
                     return NativeResponseV1::error(
                         &request.correlation_id,
                         "local_speech_transcribe_window",
                         "MISSING_FIELDS",
-                        "Required: runId, startMs, endMs, sourcePath, sourceSha256",
+                        "Required: runId, startMs, sourcePath, sourceSha256; endMs is optional",
                         "validation",
                     );
                 };
@@ -833,10 +828,10 @@ impl Runtime {
                     )
                     .await
                 {
-                    Ok(segments) => NativeResponseV1::success(
+                    Ok(result) => NativeResponseV1::success(
                         &request.correlation_id,
                         "local_speech_transcribe_window",
-                        serde_json::json!({"segments": segments, "isSimulated": false}),
+                        serde_json::json!({"segments": result.segments, "durationMs": result.duration_ms, "isSimulated": false}),
                     ),
                     Err(e) => NativeResponseV1::error(
                         &request.correlation_id,
@@ -1040,7 +1035,9 @@ mod tests {
         let response = rt.dispatch(&request).await;
         assert!(!response.success);
         assert_eq!(response.command, "local_speech_get_state");
-        let error = response.error.expect("default build must expose a safe error");
+        let error = response
+            .error
+            .expect("default build must expose a safe error");
         assert_eq!(error.code, "NOT_AVAILABLE");
         assert_eq!(error.category, "runtime");
         assert!(!error.retryable);

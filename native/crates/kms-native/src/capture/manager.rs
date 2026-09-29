@@ -2069,6 +2069,49 @@ mod tests {
         assert_eq!(accounting.playable_samples, source.len() as u64);
     }
 
+    #[cfg(test)]
+    #[test]
+    fn local_speech_loads_finalized_webm_opus_capture_chunks() {
+        use sha2::{Digest, Sha256};
+
+        let dir = TempDir::new().unwrap();
+        let source = (0..48_001)
+            .map(|sample| {
+                let phase = std::f32::consts::TAU * 440.0 * sample as f32 / 48_000.0;
+                phase.sin() * 0.25
+            })
+            .collect::<Vec<_>>();
+        let webm = mux_opus_webm(&source).unwrap();
+        std::fs::write(dir.path().join("meeting.webm"), &webm).unwrap();
+        let mut hasher = Sha256::new();
+        hasher.update(&webm);
+
+        let window = crate::local_speech_audio_test::load_audio_source(
+            &crate::local_speech_audio_test::AudioSourceRequest {
+                source_path: std::path::PathBuf::from("meeting.webm"),
+                source_sha256: format!("{:x}", hasher.finalize()),
+                start_ms: 0,
+                end_ms: None,
+            },
+            dir.path(),
+        )
+        .expect("finalized WebM/Opus microphone chunks must be readable by local speech");
+
+        assert_eq!(window.samples_16khz_mono.len(), 16_001);
+        assert_eq!(window.source_end_ms, 1_001);
+        let rms = (window
+            .samples_16khz_mono
+            .iter()
+            .map(|sample| sample * sample)
+            .sum::<f32>()
+            / window.samples_16khz_mono.len() as f32)
+            .sqrt();
+        assert!(
+            rms > 0.01,
+            "decoded audio should contain non-silent samples"
+        );
+    }
+
     #[test]
     fn capture_flags_and_overflow_are_nonfatal_diagnostics() {
         assert!(is_nonfatal_capture_error(

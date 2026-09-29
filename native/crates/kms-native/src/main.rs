@@ -7,13 +7,16 @@
 // and writes responses/events to stdout. It does NOT own UI, network,
 // cloud identity, provider credentials, or meeting business state.
 
-mod protocol;
-mod runtime;
-mod storage;
-mod simulator;
 mod capture;
 #[cfg(feature = "local-speech")]
 mod local_speech;
+#[cfg(test)]
+#[path = "local_speech/audio.rs"]
+mod local_speech_audio_test;
+mod protocol;
+mod runtime;
+mod simulator;
+mod storage;
 
 use runtime::{Runtime, RuntimeConfig};
 

@@ -73,6 +73,11 @@ pub struct LocalSpeechEngine {
     model: Option<model::WhisperModel>,
 }
 
+pub struct TranscriptionWindowResult {
+    pub segments: Vec<model::SyntheticSegment>,
+    pub duration_ms: i64,
+}
+
 impl LocalSpeechEngine {
     pub fn init(
         entry: ManifestEntry,
@@ -114,16 +119,16 @@ impl LocalSpeechEngine {
         run_id: &str,
         part_index: i32,
         start_ms: i64,
-        end_ms: i64,
+        end_ms: Option<i64>,
         _plan_hash: &str,
         source_path: PathBuf,
         source_sha256: String,
         event_tx: &NativeEventSender,
-    ) -> Result<Vec<model::SyntheticSegment>, EngineError> {
+    ) -> Result<TranscriptionWindowResult, EngineError> {
         if self.stop_signal.load(Ordering::Relaxed) {
             return Err(EngineError::Cancelled);
         }
-        if start_ms >= end_ms {
+        if end_ms.is_some_and(|end_ms| start_ms >= end_ms) {
             return Err(EngineError::InvalidWindow(
                 "start_ms must be < end_ms".into(),
             ));
@@ -146,8 +151,8 @@ impl LocalSpeechEngine {
             }),
         ));
 
-        let window = match audio::load_audio_window(
-            &audio::AudioWindowRequest {
+        let window = match audio::load_audio_source(
+            &audio::AudioSourceRequest {
                 source_path,
                 source_sha256,
                 start_ms,
@@ -191,6 +196,7 @@ impl LocalSpeechEngine {
             };
         }
 
+        let duration_ms = window.source_end_ms - window.source_start_ms;
         let result = self
             .model
             .as_mut()
@@ -213,7 +219,10 @@ impl LocalSpeechEngine {
                         "isSimulated": false,
                     }),
                 ));
-                Ok(segments)
+                Ok(TranscriptionWindowResult {
+                    segments,
+                    duration_ms,
+                })
             }
             Err(error) => {
                 let _ = event_tx.send(NativeEventV1::new(
@@ -301,7 +310,7 @@ mod tests {
                 "run-1",
                 0,
                 0,
-                60_000,
+                Some(60_000),
                 "hash",
                 PathBuf::from("missing.wav"),
                 "a".repeat(64),
@@ -322,7 +331,7 @@ mod tests {
                 "run-2",
                 0,
                 0,
-                300_000,
+                Some(300_000),
                 "hash",
                 PathBuf::from("missing.wav"),
                 "a".repeat(64),

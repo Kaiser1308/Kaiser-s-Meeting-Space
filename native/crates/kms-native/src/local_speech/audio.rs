@@ -1,7 +1,10 @@
-use std::path::{Path, PathBuf};
-use std::fs;
 use sha2::{Digest, Sha256};
+use std::fs;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
+
+const MAX_AUDIO_SOURCE_BYTES: u64 = 32 * 1024 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct AudioWindowRequest {
@@ -9,6 +12,14 @@ pub struct AudioWindowRequest {
     pub source_sha256: String,
     pub start_ms: i64,
     pub end_ms: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct AudioSourceRequest {
+    pub source_path: PathBuf,
+    pub source_sha256: String,
+    pub start_ms: i64,
+    pub end_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +47,26 @@ pub fn load_audio_window(
     request: &AudioWindowRequest,
     audio_root: &Path,
 ) -> Result<AudioWindow, AudioError> {
-    if request.start_ms < 0 || request.end_ms <= request.start_ms {
+    load_audio_source(
+        &AudioSourceRequest {
+            source_path: request.source_path.clone(),
+            source_sha256: request.source_sha256.clone(),
+            start_ms: request.start_ms,
+            end_ms: Some(request.end_ms),
+        },
+        audio_root,
+    )
+}
+
+pub fn load_audio_source(
+    request: &AudioSourceRequest,
+    audio_root: &Path,
+) -> Result<AudioWindow, AudioError> {
+    if request.start_ms < 0
+        || request
+            .end_ms
+            .is_some_and(|end_ms| end_ms <= request.start_ms)
+    {
         return Err(AudioError::Range);
     }
     if request.source_path.is_absolute()
@@ -48,14 +78,26 @@ pub fn load_audio_window(
         return Err(AudioError::InvalidSource);
     }
 
-    let root = audio_root.canonicalize().map_err(|_| AudioError::Unavailable)?;
+    let root = audio_root
+        .canonicalize()
+        .map_err(|_| AudioError::Unavailable)?;
     let path = root.join(&request.source_path);
     let canonical = path.canonicalize().map_err(|_| AudioError::Unavailable)?;
     if !canonical.starts_with(&root) {
         return Err(AudioError::InvalidSource);
     }
 
-    let bytes = fs::read(&canonical).map_err(|_| AudioError::Unavailable)?;
+    let file = fs::File::open(&canonical).map_err(|_| AudioError::Unavailable)?;
+    if file.metadata().map_err(|_| AudioError::Unavailable)?.len() > MAX_AUDIO_SOURCE_BYTES {
+        return Err(AudioError::Format);
+    }
+    let mut bytes = Vec::new();
+    file.take(MAX_AUDIO_SOURCE_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| AudioError::Unavailable)?;
+    if bytes.len() as u64 > MAX_AUDIO_SOURCE_BYTES {
+        return Err(AudioError::Format);
+    }
     let mut hasher = Sha256::new();
     hasher.update(&bytes);
     let actual_hash = format!("{:x}", hasher.finalize());
@@ -63,32 +105,28 @@ pub fn load_audio_window(
         return Err(AudioError::Integrity);
     }
 
-    let wav = ParsedWav::parse(&bytes)?;
-    let total_frames = wav.data_len / wav.block_align as usize;
-    let start_frame = ((request.start_ms as u64 * wav.sample_rate as u64) / 1_000) as usize;
-    let end_frame = ((request.end_ms as u64 * wav.sample_rate as u64) / 1_000) as usize;
-    if start_frame >= end_frame || end_frame > total_frames {
+    let decoded = if bytes.starts_with(b"RIFF") {
+        ParsedWav::parse(&bytes)?.decode_mono(&bytes)?
+    } else {
+        webm::decode_opus(&bytes).map_err(|_| AudioError::Format)?
+    };
+    let total_frames = decoded.samples.len();
+    let start_frame = frame_from_ms(request.start_ms, decoded.sample_rate)?;
+    let end_frame = request
+        .end_ms
+        .map(|end_ms| frame_from_ms(end_ms, decoded.sample_rate))
+        .transpose()?
+        .unwrap_or(total_frames);
+    if start_frame >= end_frame || end_frame > total_frames || start_frame >= total_frames {
         return Err(AudioError::Range);
     }
 
-    let mut mono = Vec::with_capacity(end_frame - start_frame);
-    for frame in start_frame..end_frame {
-        let frame_offset = wav.data_start + frame * wav.block_align as usize;
-        let mut sum = 0.0f32;
-        for channel in 0..wav.channels as usize {
-            let offset = frame_offset + channel * wav.bytes_per_sample;
-            sum += wav.sample(&bytes[offset..offset + wav.bytes_per_sample])?;
-        }
-        mono.push((sum / wav.channels as f32).clamp(-1.0, 1.0));
-    }
+    let mono = &decoded.samples[start_frame..end_frame];
 
-    let target_len = ((request.end_ms - request.start_ms) as u64 * 16_000)
-        .div_ceil(1_000) as usize;
-    let mut resampler = crate::capture::resample::AudioResampler::new(wav.sample_rate, 16_000)
+    let target_len = (mono.len() as u64 * 16_000).div_ceil(decoded.sample_rate as u64) as usize;
+    let mut resampler = crate::capture::resample::AudioResampler::new(decoded.sample_rate, 16_000)
         .map_err(|_| AudioError::Format)?;
-    let mut samples_16khz_mono = resampler
-        .process(&mono)
-        .map_err(|_| AudioError::Format)?;
+    let mut samples_16khz_mono = resampler.process(&mono).map_err(|_| AudioError::Format)?;
     samples_16khz_mono.extend(resampler.flush().map_err(|_| AudioError::Format)?);
     samples_16khz_mono.resize(target_len, 0.0);
     samples_16khz_mono.truncate(target_len);
@@ -96,9 +134,28 @@ pub fn load_audio_window(
     Ok(AudioWindow {
         samples_16khz_mono,
         source_start_ms: request.start_ms,
-        source_end_ms: request.end_ms,
+        source_end_ms: ((end_frame as u128 * 1_000).div_ceil(decoded.sample_rate as u128))
+            .try_into()
+            .map_err(|_| AudioError::Range)?,
     })
 }
+
+fn frame_from_ms(milliseconds: i64, sample_rate: u32) -> Result<usize, AudioError> {
+    let frame = u64::try_from(milliseconds)
+        .map_err(|_| AudioError::Range)?
+        .checked_mul(u64::from(sample_rate))
+        .ok_or(AudioError::Range)?
+        / 1_000;
+    usize::try_from(frame).map_err(|_| AudioError::Range)
+}
+
+struct DecodedAudio {
+    samples: Vec<f32>,
+    sample_rate: u32,
+}
+
+#[path = "audio/webm.rs"]
+mod webm;
 
 struct ParsedWav {
     data_start: usize,
@@ -173,10 +230,30 @@ impl ParsedWav {
         })
     }
 
+    fn decode_mono(&self, bytes: &[u8]) -> Result<DecodedAudio, AudioError> {
+        let frames = self.data_len / self.block_align as usize;
+        let mut samples = Vec::with_capacity(frames);
+        for frame in 0..frames {
+            let frame_offset = self.data_start + frame * self.block_align as usize;
+            let mut sum = 0.0f32;
+            for channel in 0..self.channels as usize {
+                let offset = frame_offset + channel * self.bytes_per_sample;
+                sum += self.sample(&bytes[offset..offset + self.bytes_per_sample])?;
+            }
+            samples.push((sum / self.channels as f32).clamp(-1.0, 1.0));
+        }
+        Ok(DecodedAudio {
+            samples,
+            sample_rate: self.sample_rate,
+        })
+    }
+
     fn sample(&self, bytes: &[u8]) -> Result<f32, AudioError> {
         let value = match (self.audio_format, self.bytes_per_sample) {
-            (1, 2) => i16::from_le_bytes(bytes.try_into().map_err(|_| AudioError::Format)?) as f32
-                / 32_768.0,
+            (1, 2) => {
+                i16::from_le_bytes(bytes.try_into().map_err(|_| AudioError::Format)?) as f32
+                    / 32_768.0
+            }
             (3, 4) => f32::from_le_bytes(bytes.try_into().map_err(|_| AudioError::Format)?),
             _ => return Err(AudioError::Format),
         };
@@ -261,7 +338,12 @@ mod tests {
         assert_eq!(window.samples_16khz_mono.len(), 16_000);
         assert_eq!(window.source_start_ms, 500);
         assert_eq!(window.source_end_ms, 1_500);
-        assert!(window.samples_16khz_mono.iter().all(|sample| sample.abs() < 0.01));
+        assert!(
+            window
+                .samples_16khz_mono
+                .iter()
+                .all(|sample| sample.abs() < 0.01)
+        );
     }
 
     #[test]
@@ -307,6 +389,23 @@ mod tests {
     }
 
     #[test]
+    fn rejects_ranges_that_overflow_frame_conversion() {
+        let dir = tempdir().unwrap();
+        let (_path, hash) = write_wav(dir.path(), 16_000, 1, 16_000);
+        let request = AudioWindowRequest {
+            source_path: PathBuf::from("meeting.wav"),
+            source_sha256: hash,
+            start_ms: 0,
+            end_ms: i64::MAX,
+        };
+
+        assert!(matches!(
+            load_audio_window(&request, dir.path()),
+            Err(AudioError::Range)
+        ));
+    }
+
+    #[test]
     fn rejects_truncated_and_unsupported_wav() {
         let dir = tempdir().unwrap();
         let (path, hash) = write_wav(dir.path(), 16_000, 1, 16_000);
@@ -328,5 +427,25 @@ mod tests {
             load_audio_window(&request, dir.path()),
             Err(AudioError::Format)
         ));
+    }
+
+    #[test]
+    fn rejects_audio_sources_larger_than_the_byte_limit_before_hashing() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("oversized.webm");
+        let file = fs::File::create(&path).unwrap();
+        file.set_len(MAX_AUDIO_SOURCE_BYTES + 1).unwrap();
+        drop(file);
+
+        let result = load_audio_source(
+            &AudioSourceRequest {
+                source_path: PathBuf::from("oversized.webm"),
+                source_sha256: "0".repeat(64),
+                start_ms: 0,
+                end_ms: None,
+            },
+            dir.path(),
+        );
+        assert_eq!(result.err(), Some(AudioError::Format));
     }
 }
