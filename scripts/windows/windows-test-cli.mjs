@@ -2,7 +2,12 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-const SUPPORTED_PROFILES = new Set(['physical-recording', 'simulator-full', 'physical-full']);
+const SUPPORTED_PROFILES = new Set([
+  'physical-recording',
+  'simulator-full',
+  'physical-full',
+  'online-headset-full',
+]);
 const SUPPORTED_DURATIONS = new Set(['5m', '1h', '3h', '4h']);
 
 export function parseWindowsTestCliArgs(args) {

@@ -9,6 +9,11 @@ describe('Windows test selector CLI', () => {
     });
   });
 
+  it('parses the explicit online headset profile', () => {
+    expect(parseWindowsTestCliArgs(['--profile', 'online-headset-full', '--duration', '5m']))
+      .toEqual({ profile: 'online-headset-full', duration: '5m' });
+  });
+
   it.each([
     [],
     ['--profile'],

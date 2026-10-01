@@ -17,7 +17,11 @@ export const WINDOWS_TEST_DURATIONS = {
 const DEFAULT_CDP_COMMAND_TIMEOUT_MS = 10_000;
 const LOCAL_SPEECH_CDP_COMMAND_TIMEOUT_MS = 300_000;
 
-export type WindowsTestProfile = 'physical-recording' | 'simulator-full' | 'physical-full';
+export type WindowsTestProfile =
+  | 'physical-recording'
+  | 'simulator-full'
+  | 'physical-full'
+  | 'online-headset-full';
 export type WindowsTestDuration = keyof typeof WINDOWS_TEST_DURATIONS;
 
 export interface WindowsTestDurationResult {
@@ -34,7 +38,12 @@ export function parseWindowsTestDuration(value: unknown): WindowsTestDurationRes
 }
 
 export function parseWindowsTestProfile(value: unknown): WindowsTestProfile {
-  if (value === 'physical-recording' || value === 'simulator-full' || value === 'physical-full') {
+  if (
+    value === 'physical-recording' ||
+    value === 'simulator-full' ||
+    value === 'physical-full' ||
+    value === 'online-headset-full'
+  ) {
     return value;
   }
   throw new Error('unsupported_windows_test_profile');

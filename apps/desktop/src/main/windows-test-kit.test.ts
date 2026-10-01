@@ -28,6 +28,11 @@ describe('Windows test kit contracts', () => {
     expect(() => parseWindowsTestProfile('simulator-5m')).toThrow('unsupported_windows_test_profile');
   });
 
+  it('accepts the explicit online-headset full profile only', () => {
+    expect(parseWindowsTestProfile('online-headset-full')).toBe('online-headset-full');
+    expect(() => parseWindowsTestProfile('online-headset')).toThrow('unsupported_windows_test_profile');
+  });
+
   it('requires explicit real-audio opt-in for physical profiles', () => {
     const options: WindowsPipelineRunOptions = {
       profile: 'physical-recording',
