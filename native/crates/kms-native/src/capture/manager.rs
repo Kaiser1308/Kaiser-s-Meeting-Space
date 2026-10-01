@@ -604,6 +604,31 @@ fn overflow_reason(prefix: &str, flags: u32) -> String {
     }
 }
 
+#[derive(Debug, Default)]
+struct CaptureDiagnosticSummary {
+    count: u64,
+    flags: u32,
+    first_sample: Option<u64>,
+    last_sample: Option<u64>,
+    first_qpc: Option<u64>,
+    last_qpc: Option<u64>,
+}
+
+impl CaptureDiagnosticSummary {
+    fn observe(&mut self, sample: u64, qpc_position: u64, flags: u32) {
+        self.count = self.count.saturating_add(1);
+        self.flags |= flags;
+        self.first_sample.get_or_insert(sample);
+        self.last_sample = Some(sample);
+        self.first_qpc.get_or_insert(qpc_position);
+        self.last_qpc = Some(qpc_position);
+    }
+
+    fn reason(&self) -> Option<&'static str> {
+        capture_packet_flag_reason(self.flags)
+    }
+}
+
 pub struct CaptureManager {
     session_id: String,
     meeting_id: String,
@@ -637,6 +662,8 @@ pub struct CaptureManager {
     sys_packet_segments: VecDeque<PacketSegment>,
     mic_unreported_overflow: Vec<CaptureGapRecord>,
     sys_unreported_overflow: Vec<CaptureGapRecord>,
+    mic_diagnostics: CaptureDiagnosticSummary,
+    sys_diagnostics: CaptureDiagnosticSummary,
     unreported_worker_error: bool,
 
     // Buffers and indices
@@ -833,6 +860,8 @@ impl CaptureManager {
             sys_packet_segments: VecDeque::new(),
             mic_unreported_overflow: Vec::new(),
             sys_unreported_overflow: Vec::new(),
+            mic_diagnostics: CaptureDiagnosticSummary::default(),
+            sys_diagnostics: CaptureDiagnosticSummary::default(),
             unreported_worker_error: false,
             mic_buffer: Vec::new(),
             sys_buffer: Vec::new(),
@@ -882,26 +911,24 @@ impl CaptureManager {
                                 continue;
                             }
                         };
-                        if let Some(reason) = capture_packet_flag_reason(packet.flags) {
+                        if capture_packet_flag_reason(packet.flags).is_some() {
                             let next_sample = if source == "microphone" {
                                 mgr.mic_source_next_sample
                             } else {
                                 mgr.sys_source_next_sample
                             };
-                            if Self::record_durable_capture_event(
-                                &mgr.meeting_id,
-                                &source,
-                                next_sample,
-                                packet.qpc_position,
-                                reason,
-                                storage.clone(),
-                                event_sender.clone(),
-                                mgr.session_id.clone(),
-                            )
-                            .await
-                            .is_err()
-                            {
-                                mgr.commit_recovery_required = true;
+                            if source == "microphone" {
+                                mgr.mic_diagnostics.observe(
+                                    next_sample,
+                                    packet.qpc_position,
+                                    packet.flags,
+                                );
+                            } else {
+                                mgr.sys_diagnostics.observe(
+                                    next_sample,
+                                    packet.qpc_position,
+                                    packet.flags,
+                                );
                             }
                         }
                         if source == "microphone" {
@@ -1564,6 +1591,26 @@ impl CaptureManager {
             }
         }
 
+        for (source, diagnostics) in [
+            ("microphone", std::mem::take(&mut self.mic_diagnostics)),
+            ("system_audio", std::mem::take(&mut self.sys_diagnostics)),
+        ] {
+            if diagnostics.count > 0
+                && Self::record_durable_capture_event(
+                    &self.meeting_id,
+                    source,
+                    diagnostics,
+                    storage.clone(),
+                    event_sender.clone(),
+                    self.session_id.clone(),
+                )
+                .await
+                .is_err()
+            {
+                commit_failed = true;
+            }
+        }
+
         let event_kind = if commit_failed {
             "recovery_required"
         } else {
@@ -1820,9 +1867,7 @@ impl CaptureManager {
     async fn record_durable_capture_event(
         meeting_id: &str,
         source: &str,
-        sample: u64,
-        qpc_position: u64,
-        reason: &str,
+        diagnostics: CaptureDiagnosticSummary,
         storage: Arc<Mutex<Option<StorageManager>>>,
         event_sender: NativeEventSender,
         session_id: String,
@@ -1831,16 +1876,21 @@ impl CaptureManager {
         let Some(mgr) = storage_guard.as_ref() else {
             return Err("Storage manager missing while recording capture diagnostic".to_string());
         };
+        let reason = diagnostics.reason().unwrap_or("CAPTURE_FLAG:unknown");
+        let start_sample = diagnostics.first_sample.unwrap_or(0);
+        // Diagnostics are not source-loss rows: retain a zero-width range so
+        // source integrity queries cannot mistake their aggregate for a gap.
+        let end_sample = start_sample;
         mgr.capture_record_gap(
             meeting_id,
             source,
-            sample,
-            sample,
-            Some(qpc_position),
-            Some(qpc_position),
+            start_sample,
+            end_sample,
+            diagnostics.first_qpc,
+            diagnostics.last_qpc,
             None,
             None,
-            reason,
+            &format!("CAPTURE_DIAGNOSTIC:count={}:{}", diagnostics.count, reason),
         )
         .map_err(|error| error.to_string())?;
         let _ = event_sender.try_send(NativeEventV1::new(
@@ -1850,7 +1900,8 @@ impl CaptureManager {
                 "eventKind": "capture_diagnostic_recorded",
                 "source": source,
                 "reason": reason,
-                "sourceRange": SourceRange::new(sample, sample),
+                "count": diagnostics.count,
+                "sourceRange": SourceRange::new(start_sample, end_sample),
                 "isSimulated": false,
             }),
         ));
@@ -1888,6 +1939,8 @@ mod tests {
             sys_packet_segments: VecDeque::new(),
             mic_unreported_overflow: Vec::new(),
             sys_unreported_overflow: Vec::new(),
+            mic_diagnostics: CaptureDiagnosticSummary::default(),
+            sys_diagnostics: CaptureDiagnosticSummary::default(),
             unreported_worker_error: false,
             mic_buffer: Vec::new(),
             sys_buffer: Vec::new(),
@@ -2129,6 +2182,66 @@ mod tests {
         ));
         assert!(is_nonfatal_capture_error("CAPTURE_OVERFLOW:frames=10"));
         assert!(!is_nonfatal_capture_error("device disconnected"));
+    }
+
+    #[test]
+    fn repeated_packet_flags_are_aggregated_without_creating_source_loss() {
+        let mut diagnostics = CaptureDiagnosticSummary::default();
+        for index in 0..100 {
+            diagnostics.observe(index, 1_000 + index, 0x1);
+        }
+
+        assert_eq!(diagnostics.count, 100);
+        assert_eq!(diagnostics.first_sample, Some(0));
+        assert_eq!(diagnostics.last_sample, Some(99));
+        assert_eq!(
+            diagnostics.reason(),
+            Some("CAPTURE_FLAG:data_discontinuity")
+        );
+    }
+
+    #[tokio::test]
+    async fn aggregated_packet_flags_persist_one_zero_width_diagnostic() {
+        let temp = TempDir::new().unwrap();
+        let storage = Arc::new(Mutex::new(Some(
+            StorageManager::new(temp.path().to_str().unwrap()).unwrap(),
+        )));
+        let (event_sender, mut events) = NativeEventSender::new(4);
+        let mut diagnostics = CaptureDiagnosticSummary::default();
+        for index in 0..100 {
+            diagnostics.observe(4_800 + index, 10_000 + index, 0x1);
+        }
+
+        CaptureManager::record_durable_capture_event(
+            "meeting-test",
+            "microphone",
+            diagnostics,
+            storage,
+            event_sender,
+            "session-test".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let db = rusqlite::Connection::open(temp.path().join("manifest.db")).unwrap();
+        let row: (i64, i64, i64, i64, String) = db
+            .query_row(
+                "SELECT start_frame, end_frame, qpc_start, qpc_end, reason FROM capture_gaps WHERE meeting_id = 'meeting-test'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            )
+            .unwrap();
+        assert_eq!(row.0, 4_800);
+        assert_eq!(row.1, 4_800, "diagnostics must not create source loss");
+        assert_eq!((row.2, row.3), (10_000, 10_099));
+        assert_eq!(
+            row.4,
+            "CAPTURE_DIAGNOSTIC:count=100:CAPTURE_FLAG:data_discontinuity"
+        );
+
+        let event = events.try_recv().unwrap();
+        assert_eq!(event.payload["eventKind"], "capture_diagnostic_recorded");
+        assert_eq!(event.payload["count"], 100);
     }
 
     #[test]
