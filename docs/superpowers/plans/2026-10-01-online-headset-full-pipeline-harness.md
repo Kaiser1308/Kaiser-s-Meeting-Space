@@ -40,12 +40,11 @@
 - Modify: `apps/desktop/src/main/windows-test-kit.test.ts`
 - Modify: `scripts/windows/windows-test-cli.mjs:5-30`
 - Test: `scripts/windows/windows-test-cli.test.mjs`
-- Modify: `apps/desktop/src/main/windows-audio-pipeline.test.ts:1-38`
 
 **Interfaces:**
 
 - Produces `WindowsTestProfile = 'physical-recording' | 'simulator-full' | 'physical-full' | 'online-headset-full'`.
-- Consumes `runOnlineHeadsetFullPipeline(common)` from Task 4.
+- Task 4 adds dispatcher integration after its runner exists; this task stays independently buildable.
 
 - [ ] **Step 1: Write the failing parser and CLI tests**
 
@@ -71,26 +70,18 @@ Expected: FAIL because `online-headset-full` is unsupported.
 ```ts
 export type WindowsTestProfile =
   | 'physical-recording' | 'simulator-full' | 'physical-full' | 'online-headset-full';
-
-const summary = selectedProfile === 'simulator-full'
-  ? await runSimulatorFullPipeline(common)
-  : selectedProfile === 'physical-recording'
-    ? await runPhysicalRecording(common)
-    : selectedProfile === 'online-headset-full'
-      ? await runOnlineHeadsetFullPipeline(common)
-      : await runPhysicalFullPipeline(common);
 ```
 
 - [ ] **Step 4: Run focused tests to verify GREEN**
 
-Run: `pnpm --filter @kms/desktop exec vitest run src/main/windows-test-kit.test.ts src/main/windows-audio-pipeline.test.ts && node --test scripts/windows/windows-test-cli.test.mjs`
+Run: `pnpm --filter @kms/desktop exec vitest run src/main/windows-test-kit.test.ts && pnpm exec vitest run scripts/windows/windows-test-cli.test.mjs`
 
-Expected: PASS; the dispatcher skips unless selection environment is explicitly set.
+Expected: PASS; profile selection remains explicit at the CLI boundary.
 
 - [ ] **Step 5: Commit Task 1**
 
 ```powershell
-git add -- apps/desktop/src/main/windows-test-kit.ts apps/desktop/src/main/windows-test-kit.test.ts apps/desktop/src/main/windows-audio-pipeline.test.ts scripts/windows/windows-test-cli.mjs scripts/windows/windows-test-cli.test.mjs
+git add -- apps/desktop/src/main/windows-test-kit.ts apps/desktop/src/main/windows-test-kit.test.ts scripts/windows/windows-test-cli.mjs scripts/windows/windows-test-cli.test.mjs
 git commit -m "feat(harness): register online headset profile"
 ```
 
@@ -234,6 +225,7 @@ git commit -m "feat(harness): enforce headset dual-source capture policy"
 
 - Modify: `apps/desktop/src/main/windows-physical-full-pipeline-runner.ts:1-760`
 - Modify: `apps/desktop/src/main/windows-physical-full-pipeline.test.ts`
+- Modify: `apps/desktop/src/main/windows-audio-pipeline.test.ts:1-38`
 
 **Interfaces:**
 
