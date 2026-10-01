@@ -1004,7 +1004,12 @@ impl CaptureManager {
                             if let Ok(resampled) =
                                 process_derived_packet(&mut mgr.mic_resampler, packet.format, &data)
                             {
-                                let (gap, _aligned, _state) = mgr.mic_aligner.align(&resampled);
+                                let (gap, _aligned, _state) = mgr.mic_aligner.align(
+                                    &resampled,
+                                    packet.device_position,
+                                    packet.frames,
+                                    packet.format.sample_rate,
+                                );
                                 if gap > 0 {
                                     let _ = event_sender.try_send(NativeEventV1::new(
                                         "capture_event",
@@ -1117,7 +1122,12 @@ impl CaptureManager {
                             if let Ok(resampled) =
                                 process_derived_packet(&mut mgr.sys_resampler, packet.format, &data)
                             {
-                                let (gap, _aligned, _state) = mgr.sys_aligner.align(&resampled);
+                                let (gap, _aligned, _state) = mgr.sys_aligner.align(
+                                    &resampled,
+                                    packet.device_position,
+                                    packet.frames,
+                                    packet.format.sample_rate,
+                                );
                                 if gap > 0 {
                                     let _ = event_sender.try_send(NativeEventV1::new(
                                         "capture_event",
@@ -1434,12 +1444,12 @@ impl CaptureManager {
         if let Ok(tail) = self.mic_resampler.flush()
             && !tail.is_empty()
         {
-            let _ = self.mic_aligner.align(&tail);
+            let _ = self.mic_aligner.append_tail(&tail);
         }
         if let Ok(tail) = self.sys_resampler.flush()
             && !tail.is_empty()
         {
-            let _ = self.sys_aligner.align(&tail);
+            let _ = self.sys_aligner.append_tail(&tail);
         }
 
         let mut commit_failed = self.commit_recovery_required;
