@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   classifyPhysicalRecordingResult,
@@ -13,6 +14,15 @@ import {
   finalizePhysicalRecordingSummary,
   verifyPhysicalCaptureArtifacts,
   runPhysicalRecording,
+  waitForPhysicalCaptureStarted,
+  resolveFixturePlaybackScriptPath,
+  writePhysicalRecordingFailureEvidence,
+  setPhysicalDeviceExpression,
+  resolvePhysicalCapturePolicy,
+  classifyPhysicalSourceHealth,
+  waitForPhysicalCaptureSelector,
+  shouldContinuePhysicalCapturePolling,
+  hasRequiredCaptureGap,
 } from './windows-physical-recording-runner.js';
 
 const webmChunk = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x81, 0x00]);
@@ -50,6 +60,155 @@ function createCaptureSession(
 }
 
 describe('Windows physical recording profile', () => {
+  it('requires system loopback signal while allowing a silent microphone for headset capture', () => {
+    const policy = resolvePhysicalCapturePolicy({
+      requiredSources: ['microphone', 'system_audio'],
+      requireMicrophoneSignal: false,
+    });
+    expect(policy).toEqual({
+      requiredSources: ['microphone', 'system_audio'],
+      requireMicrophoneSignal: false,
+      requireSystemAudioSignal: true,
+    });
+    expect(classifyPhysicalSourceHealth(policy, { micPeak: 0, systemPeak: 0.2 })).toBeNull();
+    expect(classifyPhysicalSourceHealth(policy, { micPeak: 0, systemPeak: 0 })).toBe(
+      'system_audio_signal_missing',
+    );
+  });
+
+  it('clears the system-audio selector for a microphone-only run', () => {
+    class FakeSelect {
+      private selected = 'default';
+      get value() { return this.selected; }
+      set value(next: string) { this.selected = next; }
+      dispatchEvent() { return true; }
+    }
+    const mic = new FakeSelect();
+    const system = new FakeSelect();
+    const document = {
+      querySelector: (selector: string) =>
+        selector.endsWith('(1)') ? mic : selector.endsWith('(2)') ? system : null,
+    };
+
+    expect(runInNewContext(setPhysicalDeviceExpression('mic-1'), {
+      document,
+      HTMLSelectElement: FakeSelect,
+      Event: class {},
+    })).toBe(true);
+    expect(mic.value).toBe('mic-1');
+    expect(system.value).toBe('');
+  });
+
+  it('preserves sanitized health samples and live gap counts when capture fails', () => {
+    const root = mkdtempSync(join(tmpdir(), 'kms-physical-failure-evidence-'));
+    const evidence = {
+      profile: 'physical-recording' as const,
+      duration: '5m' as const,
+      status: 'FAIL' as const,
+      route: 'speaker-to-mic' as const,
+    };
+    try {
+      writePhysicalRecordingFailureEvidence(root, evidence, [
+        { elapsedMs: 10_000, micGapCount: 0, systemGapCount: 0, micPeak: 0.002, systemPeak: 0.1 },
+        { elapsedMs: 20_000, micGapCount: 2, systemGapCount: 0, micPeak: 0.004, systemPeak: 0.3 },
+      ]);
+      expect(evidence).toMatchObject({
+        liveMicGapCount: 2,
+        liveSystemGapCount: 0,
+        liveMicPeak: 0.004,
+        liveSystemPeak: 0.3,
+      });
+      expect(readFileSync(join(root, 'metrics.ndjson'), 'utf8').trim().split('\n')).toHaveLength(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves the executable playback script from the repository root', () => {
+    expect(existsSync(resolveFixturePlaybackScriptPath())).toBe(true);
+  });
+
+  it('waits for the real recording UI before querying native capture state', async () => {
+    let recordingReady = false;
+    let uiPolls = 0;
+    const nativeCommands: string[] = [];
+    const session = {
+      pollRenderer: async (expression: string, predicate: (value: boolean) => boolean) => {
+        expect(expression).toContain('End meeting');
+        for (const visible of [false, false, true]) {
+          uiPolls += 1;
+          if (predicate(visible)) {
+            recordingReady = true;
+            return visible;
+          }
+        }
+        throw new Error('recording_ui_never_ready');
+      },
+      invokeNative: async (command: string) => {
+        nativeCommands.push(command);
+        if (!recordingReady) throw new Error('NOT_CAPTURING');
+        return { success: true, payload: { state: 'recording' } };
+      },
+    };
+
+    await waitForPhysicalCaptureStarted(session as unknown as Parameters<typeof waitForPhysicalCaptureStarted>[0]);
+
+    expect(uiPolls).toBe(3);
+    expect(nativeCommands).toEqual(['capture_get_state']);
+  });
+
+  it('waits for the physical selector to render before selecting capture mode', async () => {
+    let attempts = 0;
+    const session = {
+      pollRenderer: async (expression: string, predicate: (value: boolean) => boolean) => {
+        expect(expression).toContain('Physical Capture');
+        for (const visible of [false, true]) {
+          attempts += 1;
+          if (predicate(visible)) return visible;
+        }
+        throw new Error('physical_selector_never_ready');
+      },
+    };
+
+    await waitForPhysicalCaptureSelector(
+      session as unknown as Parameters<typeof waitForPhysicalCaptureSelector>[0],
+    );
+
+    expect(attempts).toBe(2);
+  });
+
+  it('keeps polling through the final required health-sample boundary', () => {
+    expect(shouldContinuePhysicalCapturePolling(300_000, 300_000, 300_000)).toBe(true);
+    expect(shouldContinuePhysicalCapturePolling(300_001, 300_000, 310_000)).toBe(false);
+  });
+
+  it('uses finalized source gaps rather than derived timeline counters for integrity', () => {
+    expect(
+      hasRequiredCaptureGap({
+        gapCount: 0,
+        overflowCount: 0,
+        missingFrames: 0,
+        diagnosticCount: 12,
+      }),
+    ).toBe(false);
+    expect(
+      hasRequiredCaptureGap({
+        gapCount: 0,
+        overflowCount: 0,
+        missingFrames: 480,
+        diagnosticCount: 0,
+      }),
+    ).toBe(true);
+    expect(
+      hasRequiredCaptureGap({
+        gapCount: 0,
+        overflowCount: 1,
+        missingFrames: 0,
+        diagnosticCount: 0,
+      }),
+    ).toBe(true);
+  });
+
   it('blocks before launch without explicit real-audio opt-in', () => {
     expect(
       physicalRecordingPrerequisiteFailure({
@@ -165,12 +324,20 @@ describe('Windows physical recording profile', () => {
       70,
       'device_discontinuity',
     );
+    db.prepare('INSERT INTO capture_gaps VALUES (?, ?, ?, ?, ?)').run(
+      '58afed39-744a-49ca-9f14-984bc4e70d25',
+      'system_audio',
+      70,
+      70,
+      'CAPTURE_FLAG:data_discontinuity',
+    );
     db.close();
     try {
       expect(readPhysicalCaptureGapSummary(root, '58afed39-744a-49ca-9f14-984bc4e70d25')).toEqual({
         gapCount: 2,
         overflowCount: 1,
         missingFrames: 60,
+        diagnosticCount: 0,
       });
     } finally {
       rmSync(root, { recursive: true, force: true });

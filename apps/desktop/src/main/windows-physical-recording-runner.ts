@@ -38,6 +38,8 @@ export interface PhysicalRecordingOptions {
   allowRealAudio?: boolean;
   micDeviceId?: string;
   systemAudioDeviceId?: string;
+  requiredSources?: readonly PhysicalCaptureSource[];
+  requireMicrophoneSignal?: boolean;
   artifactDir?: string;
   userDataDir?: string;
   launch?: (options: {
@@ -50,6 +52,14 @@ export interface PhysicalRecordingOptions {
     capture: PhysicalCaptureContext,
   ) => Promise<void>;
   platform?: NodeJS.Platform;
+}
+
+export type PhysicalCaptureSource = 'microphone' | 'system_audio';
+
+export interface PhysicalCapturePolicy {
+  requiredSources: readonly PhysicalCaptureSource[];
+  requireMicrophoneSignal: boolean;
+  requireSystemAudioSignal: boolean;
 }
 
 export interface PhysicalRecordingSummary extends WindowsPipelineEvidence {
@@ -99,7 +109,53 @@ type PhysicalCaptureSession = Pick<PackagedElectronSession, 'invokeNative'>;
 const HEALTH_SAMPLE_INTERVAL_MS = 10_000;
 const CAPTURE_STATE_POLL_INTERVAL_MS = 200;
 const MIN_MIC_PEAK = 0.01;
+
+export function shouldContinuePhysicalCapturePolling(
+  elapsedMs: number,
+  durationMs: number,
+  nextSampleAt: number,
+): boolean {
+  return elapsedMs < durationMs || nextSampleAt <= durationMs;
+}
+
 const MEETING_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function resolvePhysicalCapturePolicy(
+  options: Pick<PhysicalRecordingOptions, 'requiredSources' | 'requireMicrophoneSignal'>,
+): PhysicalCapturePolicy {
+  const requiredSources = options.requiredSources ?? ['microphone'];
+  if (
+    requiredSources.length === 0 ||
+    new Set(requiredSources).size !== requiredSources.length ||
+    requiredSources.some((source) => source !== 'microphone' && source !== 'system_audio')
+  ) {
+    throw new Error('physical_capture_sources_invalid');
+  }
+  return {
+    requiredSources,
+    requireMicrophoneSignal: options.requireMicrophoneSignal ?? true,
+    requireSystemAudioSignal: requiredSources.includes('system_audio'),
+  };
+}
+
+export function classifyPhysicalSourceHealth(
+  policy: PhysicalCapturePolicy,
+  levels: { micPeak: number; systemPeak: number },
+): string | null {
+  if (!Number.isFinite(levels.micPeak) || !Number.isFinite(levels.systemPeak))
+    return 'capture_health_payload_invalid';
+  if (policy.requireMicrophoneSignal && levels.micPeak < MIN_MIC_PEAK)
+    return 'microphone_signal_missing';
+  if (policy.requireSystemAudioSignal && levels.systemPeak < MIN_MIC_PEAK)
+    return 'system_audio_signal_missing';
+  return null;
+}
+
+export function hasRequiredCaptureGap(
+  summary: PhysicalCaptureGapSummary,
+): boolean {
+  return summary.gapCount !== 0 || summary.missingFrames !== 0 || summary.overflowCount !== 0;
+}
 
 export function durationLabelForMs(durationMs: number): WindowsTestDuration {
   for (const label of ['5m', '1h', '3h', '4h'] as const) {
@@ -129,10 +185,18 @@ function blockedSummary(
 export function physicalRecordingPrerequisiteFailure(
   options: PhysicalRecordingOptions,
 ): string | null {
+  const policy = resolvePhysicalCapturePolicy(options);
   if ((options.platform ?? process.platform) !== 'win32') return 'windows_required';
   if (options.allowRealAudio !== true || process.env.KMS_ALLOW_REAL_AUDIO !== '1')
     return 'real_audio_opt_in_required';
-  if (!(options.micDeviceId ?? process.env.KMS_MIC_DEVICE_ID)?.trim()) return 'missing_mic_device';
+  if (
+    policy.requiredSources.includes('microphone') &&
+    !(options.micDeviceId ?? process.env.KMS_MIC_DEVICE_ID)?.trim()
+  ) return 'missing_mic_device';
+  if (
+    policy.requiredSources.includes('system_audio') &&
+    !(options.systemAudioDeviceId ?? process.env.KMS_SYSTEM_DEVICE_ID)?.trim()
+  ) return 'missing_system_device';
   const exePath = options.exePath ?? process.env.KMS_PACKAGED_EXE ?? defaultExePath;
   if (!existsSync(exePath)) return 'packaged_executable_unavailable';
   if (!existsSync(resolvePackagedSidecarPath(exePath))) return 'packaged_sidecar_unavailable';
@@ -143,6 +207,7 @@ export interface PhysicalCaptureGapSummary {
   gapCount: number;
   overflowCount: number;
   missingFrames: number;
+  diagnosticCount: number;
 }
 
 export function readPhysicalCaptureGapSummary(
@@ -157,9 +222,10 @@ export function readPhysicalCaptureGapSummary(
     const row = database
       .prepare(
         `
-      SELECT COUNT(*) AS gap_count,
+      SELECT COALESCE(SUM(CASE WHEN end_frame > start_frame THEN 1 ELSE 0 END), 0) AS gap_count,
         COALESCE(SUM(CASE WHEN reason LIKE 'CAPTURE_OVERFLOW%' THEN 1 ELSE 0 END), 0) AS overflow_count,
-        COALESCE(SUM(MAX(0, end_frame - start_frame)), 0) AS missing_frames
+        COALESCE(SUM(MAX(0, end_frame - start_frame)), 0) AS missing_frames,
+        COALESCE(SUM(CASE WHEN reason LIKE 'CAPTURE_DIAGNOSTIC:%' THEN 1 ELSE 0 END), 0) AS diagnostic_count
       FROM capture_gaps WHERE meeting_id = ?
     `,
       )
@@ -169,6 +235,7 @@ export function readPhysicalCaptureGapSummary(
       gapCount: Number(row.gap_count),
       overflowCount: Number(row.overflow_count),
       missingFrames: Number(row.missing_frames),
+      diagnosticCount: Number(row.diagnostic_count),
     };
   } catch {
     throw new Error('capture_gap_query_failed');
@@ -351,11 +418,21 @@ export function selectPhysicalCaptureExpression(): string {
   return `(() => { const button = Array.from(document.querySelectorAll('button')).find((item) => item.textContent?.trim() === 'Physical Capture'); if (!button) return false; button.click(); return true; })()`;
 }
 
+export async function waitForPhysicalCaptureSelector(
+  session: Pick<PackagedElectronSession, 'pollRenderer'>,
+): Promise<void> {
+  await session.pollRenderer<boolean>(
+    selectPhysicalCaptureExpression(),
+    (selected) => selected === true,
+    15_000,
+  );
+}
+
 export function setPhysicalDeviceExpression(
   micDeviceId: string,
   systemAudioDeviceId?: string,
 ): string {
-  return `(() => { const set = (selector, value) => { const element = document.querySelector(selector); if (!element) return false; const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set; if (!setter) return false; setter.call(element, value); element.dispatchEvent(new Event('change', { bubbles: true })); return true; }; return set('select.device-select:nth-of-type(1)', ${JSON.stringify(micDeviceId)}) && ${systemAudioDeviceId ? `set('select.device-select:nth-of-type(2)', ${JSON.stringify(systemAudioDeviceId)})` : 'true'}; })()`;
+  return `(() => { const set = (selector, value) => { const element = document.querySelector(selector); if (!element) return false; const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set; if (!setter) return false; setter.call(element, value); element.dispatchEvent(new Event('change', { bubbles: true })); return true; }; return set('select.device-select:nth-of-type(1)', ${JSON.stringify(micDeviceId)}) && set('select.device-select:nth-of-type(2)', ${JSON.stringify(systemAudioDeviceId ?? '')}); })()`;
 }
 
 export function fillPhysicalTitleExpression(): string {
@@ -384,11 +461,15 @@ export function parseFinalizedMeetingSummary(value: unknown): FinalizedMeetingSu
   };
 }
 
+export function resolveFixturePlaybackScriptPath(): string {
+  return resolve(currentDir, '../../../../scripts/windows/play-audio-fixture.ps1');
+}
+
 async function playFixture(
   fixture: AudioFixtureManifest,
   durationMs: number,
 ): Promise<ChildProcess> {
-  const script = resolve(currentDir, '../../../scripts/windows/play-audio-fixture.ps1');
+  const script = resolveFixturePlaybackScriptPath();
   const child = spawn(
     'powershell.exe',
     [
@@ -436,9 +517,40 @@ function devicesFromPayload(
     : [];
 }
 
+export async function waitForPhysicalCaptureStarted(
+  session: Pick<PackagedElectronSession, 'pollRenderer' | 'invokeNative'>,
+): Promise<void> {
+  await session.pollRenderer<boolean>(
+    `(() => document.querySelector('button.record')?.textContent?.trim() === 'End meeting')()`,
+    (value) => value === true,
+    15_000,
+  );
+  await session.invokeNative('capture_get_state', {}, false);
+}
+
+export function writePhysicalRecordingFailureEvidence(
+  artifactDir: string,
+  evidence: PhysicalRecordingSummary,
+  samples: readonly Record<string, unknown>[],
+): void {
+  const last = samples.at(-1);
+  if (last) {
+    evidence.liveMicGapCount = last.micGapCount;
+    evidence.liveSystemGapCount = last.systemGapCount;
+    evidence.liveMicPeak = Math.max(0,
+      ...samples.map((sample) => Number(sample.micPeak)).filter(Number.isFinite),
+    );
+    evidence.liveSystemPeak = Math.max(0,
+      ...samples.map((sample) => Number(sample.systemPeak)).filter(Number.isFinite),
+    );
+  }
+  writePipelineEvidence(artifactDir, evidence, samples);
+}
+
 export async function runPhysicalRecording(
   options: PhysicalRecordingOptions,
 ): Promise<PhysicalRecordingSummary> {
+  const policy = resolvePhysicalCapturePolicy(options);
   const duration = durationLabelForMs(options.durationMs);
   const dirs =
     options.artifactDir && options.userDataDir
@@ -473,13 +585,14 @@ export async function runPhysicalRecording(
     profile: 'physical-recording',
     duration,
     status: 'FAIL',
-    route: systemAudioDeviceId ? 'speaker-to-mic+loopback' : 'speaker-to-mic',
+    route: policy.requiredSources.includes('system_audio') ? 'speaker-to-mic+loopback' : 'speaker-to-mic',
     fixtureId: fixture.fixtureId,
     wavSha256: fixture.wavSha256,
     cleanup: { status: 'unknown' },
   };
   let session: (PackagedElectronSession & { loadedTargetUrl: string }) | null = null;
   let playback: ChildProcess | null = null;
+  const samples: Record<string, unknown>[] = [];
   try {
     session = await (options.launch ?? launchPackagedElectronSession)({
       exePath,
@@ -498,7 +611,7 @@ export async function runPhysicalRecording(
     )
       throw new Error('selected_mic_device_unavailable');
     if (
-      systemAudioDeviceId &&
+      policy.requiredSources.includes('system_audio') &&
       !devices.some(
         (device) =>
           device.deviceId === systemAudioDeviceId &&
@@ -507,9 +620,10 @@ export async function runPhysicalRecording(
       )
     )
       throw new Error('selected_system_device_unavailable');
-    evidence.deviceLabels = systemAudioDeviceId ? ['microphone', 'system-audio'] : ['microphone'];
-    if ((await session.evaluate(selectPhysicalCaptureExpression())) !== true)
-      throw new Error('physical_selector_unavailable');
+    evidence.deviceLabels = policy.requiredSources.map((source) =>
+      source === 'system_audio' ? 'system-audio' : 'microphone',
+    );
+    await waitForPhysicalCaptureSelector(session);
     if (
       (await session.evaluate(setPhysicalDeviceExpression(micDeviceId, systemAudioDeviceId))) !==
       true
@@ -523,22 +637,24 @@ export async function runPhysicalRecording(
       )) !== true
     )
       throw new Error('physical_start_button_unavailable');
-    await session.pollRenderer(
-      () => session!.invokeNative('capture_get_state', {}, false),
-      (value) => Boolean((value as { success?: boolean }).success),
-      15_000,
-    );
+    await waitForPhysicalCaptureStarted(session);
     playback = await playFixture(fixture, options.durationMs);
     const startedAt = performance.now();
     let nextSampleAt = HEALTH_SAMPLE_INTERVAL_MS;
-    const samples: Record<string, unknown>[] = [];
     const sampledBoundaries: number[] = [];
     let micPeak = 0;
+    let systemPeak = 0;
     let lastMicGapCount = 0;
     let lastSystemGapCount = 0;
     let maxDriftSamples = 0;
     let eventOverruns = 0;
-    while (performance.now() - startedAt < options.durationMs) {
+    while (
+      shouldContinuePhysicalCapturePolling(
+        performance.now() - startedAt,
+        options.durationMs,
+        nextSampleAt,
+      )
+    ) {
       const elapsedBeforeWait = performance.now() - startedAt;
       await new Promise((resolvePromise) =>
         setTimeout(
@@ -556,6 +672,7 @@ export async function runPhysicalRecording(
       const mic = asRecord(state.mic);
       const system = asRecord(state.sys);
       const sampleMicPeak = Number(mic.peak);
+      const sampleSystemPeak = Number(system.peak);
       lastMicGapCount = Number(mic.gapCount);
       lastSystemGapCount = Number(system.gapCount);
       const sampleDriftSamples = Number(state.driftSamples);
@@ -563,6 +680,7 @@ export async function runPhysicalRecording(
       if (
         ![
           sampleMicPeak,
+          sampleSystemPeak,
           lastMicGapCount,
           lastSystemGapCount,
           sampleDriftSamples,
@@ -571,6 +689,7 @@ export async function runPhysicalRecording(
       )
         throw new Error('capture_health_payload_invalid');
       micPeak = Math.max(micPeak, sampleMicPeak);
+      systemPeak = Math.max(systemPeak, sampleSystemPeak);
       if (elapsedMs >= nextSampleAt) {
         const sampleDeadline = getHealthSampleDeadline(nextSampleAt, elapsedMs);
         if (sampleDeadline.missed || sampleDeadline.scheduledElapsedMs === null)
@@ -589,6 +708,7 @@ export async function runPhysicalRecording(
           elapsedMs,
           scheduledElapsedMs: sampleDeadline.scheduledElapsedMs,
           micPeak: sampleMicPeak,
+          systemPeak: sampleSystemPeak,
           micGapCount: lastMicGapCount,
           systemGapCount: lastSystemGapCount,
           driftSamples: sampleDriftSamples,
@@ -610,9 +730,6 @@ export async function runPhysicalRecording(
     stopPlayback(playback);
     playback = null;
     assertHealthSampleCoverage(sampledBoundaries, options.durationMs, HEALTH_SAMPLE_INTERVAL_MS);
-    if (eventOverruns !== 0) throw new Error('native_event_overrun');
-    if (lastMicGapCount + lastSystemGapCount !== 0) throw new Error('capture_gap_detected');
-    if (micPeak < MIN_MIC_PEAK) throw new Error('microphone_signal_missing');
     if (
       (await session.evaluate(
         `(() => { const button = document.querySelector('button.record'); if (button?.textContent?.trim() !== 'End meeting') return false; button.click(); return true; })()`,
@@ -644,10 +761,16 @@ export async function runPhysicalRecording(
     evidence.overflowCount = gapSummary.overflowCount;
     evidence.missingFrames = gapSummary.missingFrames;
     evidence.eventOverruns = eventOverruns;
-    if (gapSummary.gapCount !== 0 || lastMicGapCount + lastSystemGapCount !== 0)
+    if (hasRequiredCaptureGap(gapSummary))
       throw new Error('capture_gap_detected');
     if (gapSummary.overflowCount !== 0) throw new Error('capture_overflow_detected');
     if (eventOverruns !== 0) throw new Error('native_event_overrun');
+    const sourceHealthFailure = classifyPhysicalSourceHealth(policy, { micPeak, systemPeak });
+    if (sourceHealthFailure) throw new Error(sourceHealthFailure);
+    if (
+      policy.requiredSources.includes('system_audio') &&
+      finalized.totalSysChunks <= 0
+    ) throw new Error('system_audio_chunks_missing');
     const captureIntegrity = await verifyPhysicalCaptureArtifacts(
       session,
       finalized.meetingId,
@@ -691,7 +814,7 @@ export async function runPhysicalRecording(
   } catch (error) {
     evidence.failureCode = error instanceof Error ? error.message : 'physical_recording_failed';
     evidence.status = classifyPhysicalRecordingFailure(evidence.failureCode);
-    writePipelineEvidence(artifactDir, evidence);
+    writePhysicalRecordingFailureEvidence(artifactDir, evidence, samples);
     return evidence;
   } finally {
     stopPlayback(playback);
@@ -707,6 +830,6 @@ export async function runPhysicalRecording(
       evidence.cleanup = { status: 'unknown' };
     }
     finalizePhysicalRecordingSummary(evidence);
-    writePipelineEvidence(artifactDir, evidence);
+    writePipelineEvidence(artifactDir, evidence, samples);
   }
 }

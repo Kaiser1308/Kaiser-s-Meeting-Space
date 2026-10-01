@@ -664,6 +664,10 @@ pub struct CaptureManager {
     sys_unreported_overflow: Vec<CaptureGapRecord>,
     mic_diagnostics: CaptureDiagnosticSummary,
     sys_diagnostics: CaptureDiagnosticSummary,
+    mic_overflow_count: u64,
+    mic_overflow_frames: u64,
+    sys_overflow_count: u64,
+    sys_overflow_frames: u64,
     unreported_worker_error: bool,
 
     // Buffers and indices
@@ -862,6 +866,10 @@ impl CaptureManager {
             sys_unreported_overflow: Vec::new(),
             mic_diagnostics: CaptureDiagnosticSummary::default(),
             sys_diagnostics: CaptureDiagnosticSummary::default(),
+            mic_overflow_count: 0,
+            mic_overflow_frames: 0,
+            sys_overflow_count: 0,
+            sys_overflow_frames: 0,
             unreported_worker_error: false,
             mic_buffer: Vec::new(),
             sys_buffer: Vec::new(),
@@ -1206,6 +1214,17 @@ impl CaptureManager {
         match message {
             CaptureMessage::Gap { source, gap } => {
                 let missing_frames = gap.frames;
+                if source == "microphone" {
+                    mgr.mic_overflow_count = mgr.mic_overflow_count.saturating_add(1);
+                    mgr.mic_overflow_frames = mgr
+                        .mic_overflow_frames
+                        .saturating_add(u64::from(missing_frames));
+                } else {
+                    mgr.sys_overflow_count = mgr.sys_overflow_count.saturating_add(1);
+                    mgr.sys_overflow_frames = mgr
+                        .sys_overflow_frames
+                        .saturating_add(u64::from(missing_frames));
+                }
                 if source == "microphone" && !mgr.mic_buffer.is_empty() {
                     let chunk = std::mem::take(&mut mgr.mic_buffer);
                     let index = mgr.mic_chunk_index;
@@ -1632,20 +1651,34 @@ impl CaptureManager {
 
     /// Retrieve the diagnostic state of levels, gaps, and drift.
     pub fn get_metrics(&self) -> serde_json::Value {
+        let mic_timeline = self.mic_aligner.state();
+        let sys_timeline = self.sys_aligner.state();
         serde_json::json!({
             "mic": {
                 "rms": self.mic_level.rms(),
                 "peak": self.mic_level.peak(),
                 "clipped": self.mic_level.clipped(),
-                "gapCount": self.mic_aligner.state().gap_count,
+                "sourceGapCount": mic_timeline.gap_count,
+                "missingSourceFrames": mic_timeline.total_gap_samples,
+                "overflowCount": self.mic_overflow_count,
+                "overflowFrames": self.mic_overflow_frames,
+                "diagnosticCount": self.mic_diagnostics.count,
+                "diagnosticReasons": self.mic_diagnostics.reason().into_iter().collect::<Vec<_>>(),
+                "gapCount": mic_timeline.gap_count,
             },
             "sys": {
                 "rms": self.sys_level.rms(),
                 "peak": self.sys_level.peak(),
                 "clipped": self.sys_level.clipped(),
-                "gapCount": self.sys_aligner.state().gap_count,
+                "sourceGapCount": sys_timeline.gap_count,
+                "missingSourceFrames": sys_timeline.total_gap_samples,
+                "overflowCount": self.sys_overflow_count,
+                "overflowFrames": self.sys_overflow_frames,
+                "diagnosticCount": self.sys_diagnostics.count,
+                "diagnosticReasons": self.sys_diagnostics.reason().into_iter().collect::<Vec<_>>(),
+                "gapCount": sys_timeline.gap_count,
             },
-            "driftSamples": self.mic_aligner.state().drift_samples,
+            "driftSamples": mic_timeline.drift_samples,
         })
     }
 
@@ -1941,6 +1974,10 @@ mod tests {
             sys_unreported_overflow: Vec::new(),
             mic_diagnostics: CaptureDiagnosticSummary::default(),
             sys_diagnostics: CaptureDiagnosticSummary::default(),
+            mic_overflow_count: 0,
+            mic_overflow_frames: 0,
+            sys_overflow_count: 0,
+            sys_overflow_frames: 0,
             unreported_worker_error: false,
             mic_buffer: Vec::new(),
             sys_buffer: Vec::new(),
@@ -1984,6 +2021,12 @@ mod tests {
 
         CaptureManager::dispatch_message(&mut manager, message, storage.clone(), event_sender)
             .await;
+
+        let live_health = manager.get_metrics();
+        let health = &live_health[if source == "microphone" { "mic" } else { "sys" }];
+        let expected_overflow_count = i64::from(expected_reason.starts_with("CAPTURE_OVERFLOW"));
+        assert_eq!(health["overflowCount"], expected_overflow_count);
+        assert_eq!(health["overflowFrames"], expected_overflow_count * 3);
 
         let db_path = temp.path().join("manifest.db");
         let db = rusqlite::Connection::open(db_path).unwrap();
@@ -2197,6 +2240,32 @@ mod tests {
         assert_eq!(
             diagnostics.reason(),
             Some("CAPTURE_FLAG:data_discontinuity")
+        );
+    }
+
+    #[test]
+    fn capture_metrics_separate_diagnostics_from_source_loss() {
+        let mut manager = test_manager();
+        manager.mic_diagnostics.observe(480, 1_000, 0x1);
+        manager.sys_diagnostics.observe(960, 2_000, 0x4);
+
+        let metrics = manager.get_metrics();
+        for source in ["mic", "sys"] {
+            let health = &metrics[source];
+            assert_eq!(health["sourceGapCount"], 0);
+            assert_eq!(health["missingSourceFrames"], 0);
+            assert_eq!(health["overflowCount"], 0);
+            assert_eq!(health["overflowFrames"], 0);
+            assert_eq!(health["diagnosticCount"], 1);
+            assert_eq!(health["gapCount"], health["sourceGapCount"]);
+        }
+        assert_eq!(
+            metrics["mic"]["diagnosticReasons"],
+            serde_json::json!(["CAPTURE_FLAG:data_discontinuity"])
+        );
+        assert_eq!(
+            metrics["sys"]["diagnosticReasons"],
+            serde_json::json!(["CAPTURE_FLAG:timestamp_error"])
         );
     }
 

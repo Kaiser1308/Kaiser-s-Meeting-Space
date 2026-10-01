@@ -13,6 +13,7 @@ pub struct TimelineState {
     pub drift_samples: i64,
     pub gap_count: u64,
     pub total_gap_ms: u64,
+    pub total_gap_samples: u64,
 }
 
 pub struct TimelineAligner {
@@ -95,6 +96,7 @@ impl TimelineAligner {
             drift_samples: 0,
             gap_count: self.gap_count,
             total_gap_ms: (self.total_gap_samples * 1000) / 48000,
+            total_gap_samples: self.total_gap_samples,
         };
 
         (gap_detected, derived_samples, state)
@@ -114,6 +116,7 @@ impl TimelineAligner {
             drift_samples: 0,
             gap_count: self.gap_count,
             total_gap_ms: (self.total_gap_samples * 1000) / 48000,
+            total_gap_samples: self.total_gap_samples,
         }
     }
 }
