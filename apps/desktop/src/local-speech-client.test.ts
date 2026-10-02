@@ -152,7 +152,7 @@ describe('local speech client', () => {
     ];
     const sendMock = vi.fn().mockResolvedValue({
       success: true,
-      payload: { segments: rawSegments, isSimulated: false },
+      payload: { segments: rawSegments, durationMs: 5_000, isSimulated: false },
     });
     const native = { send: sendMock };
 
@@ -172,12 +172,34 @@ describe('local speech client', () => {
       endMs: 5000,
       sourcePath: 'chunks/chunk_000.webm',
       sourceSha256: '0000000000000000000000000000000000000000000000000000000000000000',
-    });
+    }, { timeoutMs: 300_000 });
     expect(result.isSimulated).toBe(false);
+    expect(result.durationMs).toBe(5_000);
     expect(result.segments).toEqual([
       { startMs: 0, endMs: 2500, text: 'Hello team, let us begin.', speaker: undefined },
       { startMs: 2600, endMs: 4800, text: 'Today we discuss M4.', speaker: 'Speaker 1' },
     ]);
+  });
+
+  it('rejects a transcription response without a verified source duration', async () => {
+    const native = {
+      send: vi.fn().mockResolvedValue({
+        success: true,
+        payload: { segments: [], isSimulated: false },
+      }),
+    };
+
+    await expect(
+      transcribeWindow(native, {
+        runId: '550e8400-e29b-41d4-a716-446655440000',
+        partIndex: 0,
+        startMs: 0,
+        sourcePath: 'chunks/550e8400-e29b-41d4-a716-446655440000_microphone_000.webm',
+        sourceSha256: 'a'.repeat(64),
+      }),
+    ).rejects.toEqual(
+      new LocalSpeechError('INVALID_RESPONSE', 'Transcription response duration is invalid'),
+    );
   });
 
   it('maps transcription failure to LocalSpeechError(TRANSCRIBE_FAILED)', async () => {

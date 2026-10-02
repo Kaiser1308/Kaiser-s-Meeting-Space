@@ -48,6 +48,7 @@ export type NativeSender = {
   send(
     command: string,
     payload?: Record<string, unknown>,
+    options?: { timeoutMs?: number; cancel?: boolean },
   ): Promise<{
     success: boolean;
     payload?: unknown;
@@ -97,15 +98,15 @@ export async function transcribeWindow(
     runId: string;
     partIndex: number;
     startMs: number;
-    endMs: number;
+    endMs?: number;
     sourcePath: string;
     sourceSha256: string;
     planHash?: string;
   },
-): Promise<{ segments: TranscriptSegment[]; isSimulated: boolean }> {
+): Promise<{ segments: TranscriptSegment[]; durationMs: number; isSimulated: boolean }> {
   let resp: { success: boolean; payload?: unknown; error?: { code?: string; message?: string } };
   try {
-    resp = await native.send('local_speech_transcribe_window', options);
+    resp = await native.send('local_speech_transcribe_window', options, { timeoutMs: 300_000 });
   } catch (err) {
     throw new LocalSpeechError('INVALID_RESPONSE', String(err));
   }
@@ -117,6 +118,10 @@ export async function transcribeWindow(
 
   const payload = (resp.payload ?? {}) as Record<string, unknown>;
   const rawSegments = Array.isArray(payload.segments) ? payload.segments : [];
+  const durationMs = Number(payload.durationMs);
+  if (!Number.isSafeInteger(durationMs) || durationMs <= 0) {
+    throw new LocalSpeechError('INVALID_RESPONSE', 'Transcription response duration is invalid');
+  }
   const segments: TranscriptSegment[] = rawSegments.map((s: Record<string, unknown>) => ({
     startMs: Number(s.startMs ?? 0),
     endMs: Number(s.endMs ?? 0),
@@ -126,6 +131,7 @@ export async function transcribeWindow(
 
   return {
     segments,
+    durationMs,
     isSimulated: Boolean(payload.isSimulated),
   };
 }

@@ -63,7 +63,12 @@ export function App() {
     'idle' | 'transcribing' | 'completed' | 'failed'
   >('idle');
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
+  const [transcriptSourceMetrics, setTranscriptSourceMetrics] = useState<{
+    durationMs: number;
+    chunksTranscribed: number;
+  } | null>(null);
   const [transcriptDiagnostic, setTranscriptDiagnostic] = useState<string | null>(null);
+  const [transcriptSource, setTranscriptSource] = useState<TranscriptSource>('microphone');
   const [activeTab, setActiveTab] = useState<'record' | 'library'>('record');
   const [libraryMeetings, setLibraryMeetings] = useState<MeetingSummary[]>([]);
   const [libraryLoading, setLibraryLoading] = useState<boolean>(false);
@@ -301,6 +306,7 @@ export function App() {
         setLastSessionSummary(null);
         setTranscriptState('idle');
         setTranscriptSegments([]);
+        setTranscriptSourceMetrics(null);
         setTranscriptDiagnostic(null);
         log('Physical capture started successfully.');
       } else {
@@ -327,6 +333,7 @@ export function App() {
           setLastSessionSummary(null);
           setTranscriptState('idle');
           setTranscriptSegments([]);
+          setTranscriptSourceMetrics(null);
           setTranscriptDiagnostic(null);
           log(`Capture started. Session ID: ${payload.sessionId}`);
 
@@ -435,6 +442,7 @@ export function App() {
     if (!targetMeetingId || !nativeClient) return;
     const targetLanguage = targetMeeting ? targetMeeting.language : meetingLanguage;
     setTranscriptState('transcribing');
+    setTranscriptSourceMetrics(null);
     setTranscriptDiagnostic(null);
     try {
       log(`Starting post-recording transcription for meeting ${targetMeetingId}...`);
@@ -443,9 +451,14 @@ export function App() {
         {
           meetingId: targetMeetingId,
           language: targetLanguage,
+          source: transcriptSource,
         },
       );
       setTranscriptSegments(result.segments);
+      setTranscriptSourceMetrics({
+        durationMs: result.durationMs,
+        chunksTranscribed: result.chunksTranscribed,
+      });
       setTranscriptState('completed');
       if (selectedMeeting) {
         saveTranscript(selectedMeeting.id, result.segments);
@@ -483,6 +496,7 @@ export function App() {
     try {
       const detail = await meetingApi.getLocalMeeting(meetingId);
       setSelectedMeeting(detail);
+      setTranscriptSourceMetrics(null);
       const cached = getTranscript(meetingId);
       if (cached && cached.length > 0) {
         setTranscriptSegments(cached);
@@ -800,6 +814,7 @@ export function App() {
                     onChange={(e) => setSelectedSysId(e.target.value)}
                     disabled={active}
                   >
+                    <option value="">No system audio</option>
                     <option value="default">Default Loopback Device</option>
                     {physicalSys.map((d: any) => (
                       <option key={d.deviceId} value={d.deviceId}>
@@ -864,7 +879,7 @@ export function App() {
                     }}
                   >
                     <span>
-                      Gap indicator: Mic ({micGapCount}) / Sys ({sysGapCount})
+                      SOURCE LOSS: Mic ({micGapCount}) / Sys ({sysGapCount})
                     </span>
                     <span>Drift indicator: {driftSamples} samples</span>
                   </div>
@@ -983,23 +998,33 @@ export function App() {
                   </p>
 
                   {(['idle', 'failed'] as string[]).includes(transcriptState) && (
-                    <button
-                      className="btn-transcribe"
-                      onClick={handleTranscribeMeeting}
-                      disabled={transcriptState === 'transcribing'}
-                      style={{
-                        marginTop: '16px',
-                        padding: '10px 16px',
-                        background: '#d8ff6a',
-                        color: '#14241e',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Transcribe meeting (Local Whisper)
-                    </button>
+                    <div style={{ marginTop: '16px' }}>
+                      <select
+                        data-testid="transcript-source-select"
+                        value={transcriptSource}
+                        onChange={(event) => setTranscriptSource(event.target.value as TranscriptSource)}
+                      >
+                        <option value="microphone">Microphone</option>
+                        <option value="system_audio">System audio</option>
+                      </select>
+                      <button
+                        className="btn-transcribe"
+                        onClick={handleTranscribeMeeting}
+                        disabled={transcriptState === 'transcribing'}
+                        style={{
+                          marginLeft: '8px',
+                          padding: '10px 16px',
+                          background: '#d8ff6a',
+                          color: '#14241e',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Transcribe meeting (Local Whisper)
+                      </button>
+                    </div>
                   )}
 
                   {transcriptState === 'transcribing' && (
@@ -1032,6 +1057,8 @@ export function App() {
                     <div
                       className="source-transcript-card"
                       data-testid="source-transcript-card"
+                      data-duration-ms={transcriptSourceMetrics?.durationMs}
+                      data-chunks-transcribed={transcriptSourceMetrics?.chunksTranscribed}
                       style={{
                         marginTop: '16px',
                         padding: '16px',
@@ -1112,6 +1139,8 @@ export function App() {
                           <div
                             key={idx}
                             className="transcript-segment"
+                            data-start-ms={seg.startMs}
+                            data-end-ms={seg.endMs}
                             style={{
                               padding: '8px 0',
                               borderBottom: '1px solid #2a473a',
@@ -1452,23 +1481,33 @@ export function App() {
                 )}
 
                 {transcriptSegments.length === 0 && (
-                  <button
-                    className="btn-transcribe"
-                    onClick={handleTranscribeMeeting}
-                    disabled={transcriptState === 'transcribing'}
-                    style={{
-                      marginTop: '16px',
-                      padding: '10px 16px',
-                      background: '#d8ff6a',
-                      color: '#14241e',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Transcribe meeting (Local Whisper)
-                  </button>
+                  <div style={{ marginTop: '16px' }}>
+                    <select
+                      data-testid="transcript-source-select"
+                      value={transcriptSource}
+                      onChange={(event) => setTranscriptSource(event.target.value as TranscriptSource)}
+                    >
+                      <option value="microphone">Microphone</option>
+                      <option value="system_audio">System audio</option>
+                    </select>
+                    <button
+                      className="btn-transcribe"
+                      onClick={handleTranscribeMeeting}
+                      disabled={transcriptState === 'transcribing'}
+                      style={{
+                        marginLeft: '8px',
+                        padding: '10px 16px',
+                        background: '#d8ff6a',
+                        color: '#14241e',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Transcribe meeting (Local Whisper)
+                    </button>
+                  </div>
                 )}
 
                 {transcriptState === 'transcribing' && (
@@ -1520,6 +1559,8 @@ export function App() {
                         <div
                           key={idx}
                           className="transcript-segment"
+                          data-start-ms={seg.startMs}
+                          data-end-ms={seg.endMs}
                           style={{
                             padding: '8px 0',
                             borderBottom: '1px solid #2a473a',
