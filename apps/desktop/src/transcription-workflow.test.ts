@@ -24,7 +24,7 @@ describe('transcriptionWorkflow', () => {
 
     expect(deps.initEngine).toHaveBeenCalledWith(
       deps.native,
-      expect.objectContaining({ language: 'vi', modelId: 'whisper-small-q5_1-vi' }),
+      expect.objectContaining({ language: 'vi', modelId: 'whisper-large-v3-turbo-q5_0' }),
     );
     expect(result).toEqual({
       meetingId,

@@ -10,16 +10,16 @@ import {
 describe('local speech client', () => {
   it('exposes known local model definitions for vi and en', () => {
     expect(LOCAL_SPEECH_MODELS.vi).toMatchObject({
-      modelId: 'whisper-small-q5_1-vi',
+      modelId: 'whisper-large-v3-turbo-q5_0',
       language: 'vi',
-      path: 'models/ggml-small-q5_1.bin',
-      sha256: 'ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb',
+      path: 'models/ggml-large-v3-turbo-q5_0.bin',
+      sha256: '394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2',
     });
     expect(LOCAL_SPEECH_MODELS.en).toMatchObject({
-      modelId: 'whisper-small-en-q5_1',
+      modelId: 'whisper-large-v3-turbo-q5_0',
       language: 'en',
-      path: 'models/ggml-small.en-q5_1.bin',
-      sha256: 'bfdff4894dcb76bbf647d56263ea2a96645423f1669176f4844a1bf8e478ad30',
+      path: 'models/ggml-large-v3-turbo-q5_0.bin',
+      sha256: '394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2',
     });
   });
 
