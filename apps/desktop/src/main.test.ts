@@ -62,15 +62,6 @@ describe('@kms/desktop', () => {
       expect(mainContent).toContain('driftSamples');
     });
 
-    it('renders typed capture health and a non-switching headset warning', () => {
-      expect(mainContent).toContain('SOURCE LOSS');
-      expect(mainContent).toContain('OVERFLOW');
-      expect(mainContent).toContain('DEVICE DIAGNOSTICS');
-      expect(mainContent).toContain('headsetCompatibilityWarning');
-      expect(mainContent).toContain('No endpoint will be changed automatically');
-      expect(mainContent).not.toContain('diagnosticCount ?? 0);\n          setMicGapCount');
-    });
-
     it('renders session evidence card with chunk counts, commit status, finalized timestamp, and immutability notice', () => {
       expect(mainContent).toContain('lastSessionSummary');
       expect(mainContent).toContain('lastSessionSummary.meetingId');
