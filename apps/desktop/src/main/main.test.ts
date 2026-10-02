@@ -1,12 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { startMock, supervisorOnMock, consoleErrorMock, loadURLMock, BrowserWindowMock } =
+const {
+  startMock,
+  supervisorOnMock,
+  consoleErrorMock,
+  loadURLMock,
+  BrowserWindowMock,
+  LocalModelManagerMock,
+  initializeModelManagerMock,
+  registerLocalModelIpcMock,
+  createPinnedArtifactTransportMock,
+} =
   vi.hoisted(() => ({
     startMock: vi.fn(),
     supervisorOnMock: vi.fn(),
     consoleErrorMock: vi.fn(),
     loadURLMock: vi.fn(),
     BrowserWindowMock: vi.fn(),
+    LocalModelManagerMock: vi.fn(),
+    initializeModelManagerMock: vi.fn(),
+    registerLocalModelIpcMock: vi.fn(),
+    createPinnedArtifactTransportMock: vi.fn(),
   }));
 
 vi.mock('electron', () => ({
@@ -14,6 +28,7 @@ vi.mock('electron', () => ({
     isPackaged: false,
     requestSingleInstanceLock: vi.fn(() => true),
     whenReady: vi.fn(() => Promise.resolve()),
+    getPath: vi.fn(() => 'C:/kms-test-user-data'),
     on: vi.fn(),
     quit: vi.fn(),
   },
@@ -41,6 +56,18 @@ vi.mock('./ipc-handler.js', () => ({
   IpcHandler: vi.fn().mockImplementation(() => ({ register: vi.fn() })),
 }));
 
+vi.mock('./local-model-manager.js', () => ({
+  LocalModelManager: LocalModelManagerMock,
+}));
+
+vi.mock('./local-model-ipc.js', () => ({
+  registerLocalModelIpc: registerLocalModelIpcMock,
+}));
+
+vi.mock('./local-model-transport.js', () => ({
+  createPinnedArtifactTransport: createPinnedArtifactTransportMock,
+}));
+
 vi.mock('@kms/native-contract', () => ({ NATIVE_EVENT_CHANNEL: 'native:event' }));
 
 const windowMock = {
@@ -61,6 +88,13 @@ describe('desktop bootstrap native startup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     startMock.mockReset();
+    initializeModelManagerMock.mockReset();
+    initializeModelManagerMock.mockResolvedValue(undefined);
+    LocalModelManagerMock.mockReset();
+    LocalModelManagerMock.mockImplementation(() => ({ initialize: initializeModelManagerMock }));
+    registerLocalModelIpcMock.mockReset();
+    createPinnedArtifactTransportMock.mockReset();
+    createPinnedArtifactTransportMock.mockReturnValue({ stream: vi.fn() });
     loadURLMock.mockResolvedValue(undefined);
     vi.spyOn(console, 'error').mockImplementation(consoleErrorMock);
   });
@@ -82,6 +116,21 @@ describe('desktop bootstrap native startup', () => {
         }),
       }),
     );
+  });
+
+  it('initializes the local model manager before the renderer can invoke its fixed IPC actions', async () => {
+    startMock.mockResolvedValueOnce(undefined);
+
+    const { bootstrap } = await import('./main.js');
+    await bootstrap();
+
+    expect(LocalModelManagerMock).toHaveBeenCalledWith(expect.objectContaining({
+      storageRoot: expect.stringMatching(/kms-test-user-data[\\\\/]native-storage$/),
+      transport: expect.anything(),
+    }));
+    expect(initializeModelManagerMock).toHaveBeenCalledTimes(1);
+    expect(registerLocalModelIpcMock).toHaveBeenCalledTimes(1);
+    expect(registerLocalModelIpcMock.mock.invocationCallOrder[0]!).toBeLessThan(loadURLMock.mock.invocationCallOrder[0]!);
   });
 
   it('keeps the desktop shell available when native startup rejects', async () => {

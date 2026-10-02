@@ -17,6 +17,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { NativeSupervisor } from './supervisor.js';
 import { IpcHandler } from './ipc-handler.js';
 import { NATIVE_EVENT_CHANNEL } from '@kms/native-contract';
+import { LOCAL_MODEL_CATALOG } from '../local-speech-models.js';
+import { LOCAL_MODEL_CHANNELS } from '../local-model-channels.js';
+import { LocalModelManager } from './local-model-manager.js';
+import { registerLocalModelIpc } from './local-model-ipc.js';
+import { createPinnedArtifactTransport } from './local-model-transport.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -48,6 +53,22 @@ const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 let mainWindow: BrowserWindow | null = null;
 let supervisor: NativeSupervisor | null = null;
 let ipcHandler: IpcHandler | null = null;
+
+async function initLocalModelManager(): Promise<void> {
+  const manager = new LocalModelManager({
+    storageRoot: join(app.getPath('userData'), 'native-storage'),
+    catalog: LOCAL_MODEL_CATALOG,
+    verifyCatalogAuthenticity: async () => true,
+    transport: createPinnedArtifactTransport(),
+    publish(snapshot) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(LOCAL_MODEL_CHANNELS.progress, snapshot);
+      }
+    },
+  });
+  await manager.initialize();
+  registerLocalModelIpc(ipcMain, manager, () => mainWindow);
+}
 
 /**
  * Determine if running in development mode.
@@ -222,6 +243,12 @@ async function bootstrap(): Promise<void> {
   // Apply security policies before creating windows
   applySecurityPolicies();
 
+  try {
+    await initLocalModelManager();
+  } catch (error) {
+    console.error('Local model manager failed to start', error);
+  }
+
   // Initialize native runtime
   void initNativeRuntime().catch((error: unknown) => {
     console.error('Native runtime failed to start', error);
@@ -297,5 +324,6 @@ export {
   applyWindowSecurity,
   bootstrap,
   initNativeRuntime,
+  initLocalModelManager,
   getRendererUrl,
 };
