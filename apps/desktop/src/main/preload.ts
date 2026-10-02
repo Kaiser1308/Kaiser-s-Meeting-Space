@@ -10,6 +10,7 @@ import { NATIVE_IPC_CHANNEL, NATIVE_COMMANDS } from '@kms/native-contract';
 import type { NativeRequestV1 } from '@kms/native-contract';
 import { LOCAL_MODEL_CHANNELS } from '../local-model-channels.js';
 import type { LocalModelId, SpeechLanguage } from '../local-speech-models.js';
+import type { LocalModelSnapshot } from './local-model-manager.js';
 
 /** Typed API exposed to renderer via window.kmsNative. */
 export interface KmsNativeApi {
@@ -81,4 +82,9 @@ contextBridge.exposeInMainWorld('kmsModels', {
   setPreferredModel: (language: SpeechLanguage, modelId: LocalModelId) =>
     ipcRenderer.invoke(LOCAL_MODEL_CHANNELS.preference, { language, modelId }),
   download: (modelId: LocalModelId) => ipcRenderer.invoke(LOCAL_MODEL_CHANNELS.download, { modelId }),
+  onProgress: (callback: (snapshot: LocalModelSnapshot) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, snapshot: LocalModelSnapshot) => callback(snapshot);
+    ipcRenderer.on(LOCAL_MODEL_CHANNELS.progress, handler);
+    return () => ipcRenderer.removeListener(LOCAL_MODEL_CHANNELS.progress, handler);
+  },
 });
