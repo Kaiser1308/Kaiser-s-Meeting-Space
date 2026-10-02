@@ -54,7 +54,7 @@ export async function startPhysicalMeeting(
     const capture = await deps.native.send('capture_start', {
       meetingId: created.id,
       micDeviceId: input.micDeviceId,
-      systemDeviceId: input.systemDeviceId,
+      ...(input.systemDeviceId ? { systemDeviceId: input.systemDeviceId } : {}),
     });
     if (!capture.success) throw new Error('capture start failed');
 

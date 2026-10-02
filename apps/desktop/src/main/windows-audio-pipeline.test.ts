@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { parseWindowsTestDuration, parseWindowsTestProfile } from './windows-test-kit.js';
-import { runPhysicalFullPipeline } from './windows-physical-full-pipeline-runner.js';
+import {
+  runOnlineHeadsetFullPipeline,
+  runPhysicalFullPipeline,
+} from './windows-physical-full-pipeline-runner.js';
 import { runPhysicalRecording } from './windows-physical-recording-runner.js';
 import { runSimulatorFullPipeline } from './windows-simulator-full-pipeline-runner.js';
 
@@ -31,6 +34,8 @@ describe('Windows audio pipeline dispatcher', () => {
       ? await runSimulatorFullPipeline(common)
       : selectedProfile === 'physical-recording'
         ? await runPhysicalRecording(common)
+        : selectedProfile === 'online-headset-full'
+          ? await runOnlineHeadsetFullPipeline(common)
         : await runPhysicalFullPipeline(common);
     process.stdout.write(`${JSON.stringify({ profile: selectedProfile, duration, status: summary.status, failureCode: summary.failureCode ?? null })}\n`);
     expect(summary.status, summary.failureCode ?? 'windows_pipeline_not_passed').toBe('PASS');

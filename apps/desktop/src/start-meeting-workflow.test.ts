@@ -16,13 +16,6 @@ function successfulDeps() {
   const native = {
     send: vi.fn(async (command: string, payload?: Record<string, unknown>) => {
       calls.push(command);
-      if (command === 'capture_start') {
-        expect(payload).toMatchObject({
-          meetingId,
-          micDeviceId: 'mic-1',
-          systemDeviceId: 'system-1',
-        });
-      }
       return { success: true, payload: {} };
     }),
   };
@@ -46,11 +39,27 @@ function successfulDeps() {
 }
 
 describe('physical meeting start workflow', () => {
+  it('omits the system source from native capture when microphone-only is selected', async () => {
+    const { deps } = successfulDeps();
+
+    await startPhysicalMeeting(deps, { ...input, systemDeviceId: '' });
+
+    expect(deps.native.send).toHaveBeenCalledWith('capture_start', {
+      meetingId,
+      micDeviceId: 'mic-1',
+    });
+  });
+
   it('starts physical capture with the UUID returned by the API in exact order', async () => {
     const { calls, deps } = successfulDeps();
 
     await expect(startPhysicalMeeting(deps, input)).resolves.toEqual({ meetingId });
     expect(calls).toEqual(['create', 'start', 'storage_init', 'capture_start']);
+    expect(deps.native.send).toHaveBeenCalledWith('capture_start', {
+      meetingId,
+      micDeviceId: 'mic-1',
+      systemDeviceId: 'system-1',
+    });
   });
 
   it.each(['storage_init', 'capture_start'] as const)(
