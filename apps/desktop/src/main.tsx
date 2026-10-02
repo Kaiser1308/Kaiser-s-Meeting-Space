@@ -19,6 +19,8 @@ import {
 } from './transcription-workflow.js';
 import { headsetCompatibilityWarning } from './headset-compatibility.js';
 import type { LocalModelId, SpeechLanguage } from './local-speech-models.js';
+import type { LocalModelSnapshot } from './main/local-model-manager.js';
+import { LocalModelManagerPanel } from './local-model-manager-panel.js';
 import './styles.css';
 
 type Mode = 'record' | 'translate';
@@ -30,9 +32,17 @@ const kmsNativeApi =
     ? (window as unknown as { kmsNative?: NativeIpcTransport }).kmsNative
     : undefined;
 const nativeClient = kmsNativeApi ? new NativeBridgeClient(kmsNativeApi) : null;
+type KmsModelsApi = {
+  listModels(): Promise<readonly LocalModelSnapshot[]>;
+  getPreferredModel(language: SpeechLanguage): Promise<LocalModelId>;
+  setPreferredModel(language: SpeechLanguage, modelId: LocalModelId): Promise<void>;
+  download(modelId: LocalModelId): Promise<void>;
+  onProgress(callback: (snapshot: LocalModelSnapshot) => void): () => void;
+};
+
 const kmsModelsApi =
   typeof window !== 'undefined'
-    ? (window as unknown as { kmsModels?: { getPreferredModel(language: SpeechLanguage): Promise<LocalModelId> } }).kmsModels
+    ? (window as unknown as { kmsModels?: KmsModelsApi }).kmsModels
     : undefined;
 const meetingApi = createLocalMeetingStore();
 const meetingLanguage: 'vi' | 'en' =
@@ -82,6 +92,8 @@ export function App() {
   const [activeMeetingRecord, setActiveMeetingRecord] = useState<MeetingDetailResult | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [localModels, setLocalModels] = useState<readonly LocalModelSnapshot[]>([]);
+  const [localModelError, setLocalModelError] = useState<string | null>(null);
 
   // Capture mode configuration
   const [captureType, setCaptureType] = useState<'physical' | 'simulated'>('physical');
@@ -158,6 +170,41 @@ export function App() {
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!kmsModelsApi) return;
+    let active = true;
+    kmsModelsApi.listModels().then(
+      (models) => { if (active) setLocalModels(models); },
+      () => { if (active) setLocalModelError('Could not load local speech models.'); },
+    );
+    const unsubscribe = kmsModelsApi.onProgress((snapshot) => {
+      if (!active) return;
+      setLocalModels((models) => models.map((model) => model.modelId === snapshot.modelId ? snapshot : model));
+    });
+    return () => { active = false; unsubscribe(); };
+  }, []);
+
+  const downloadLocalModel = async (modelId: LocalModelId) => {
+    if (!kmsModelsApi) return;
+    setLocalModelError(null);
+    try {
+      await kmsModelsApi.download(modelId);
+    } catch {
+      setLocalModelError('Model download failed. Check storage and network, then try again.');
+    }
+  };
+
+  const selectLocalModel = async (language: SpeechLanguage, modelId: LocalModelId) => {
+    if (!kmsModelsApi) return;
+    setLocalModelError(null);
+    try {
+      await kmsModelsApi.setPreferredModel(language, modelId);
+      setLocalModels(await kmsModelsApi.listModels());
+    } catch {
+      setLocalModelError('Could not select this local model.');
+    }
+  };
 
   // Monitor local meeting API connectivity
   useEffect(() => {
@@ -1487,6 +1534,16 @@ export function App() {
                   >
                     {exportError}
                   </div>
+                )}
+
+                {kmsModelsApi && (
+                  <LocalModelManagerPanel
+                    models={localModels}
+                    language={selectedMeeting.language}
+                    error={localModelError}
+                    onDownload={downloadLocalModel}
+                    onSelect={selectLocalModel}
+                  />
                 )}
 
                 {transcriptSegments.length === 0 && (
