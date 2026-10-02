@@ -110,4 +110,30 @@ describe('LocalModelManager state and preferences', () => {
       await cleanup();
     }
   });
+
+  it('removes a verified model from private storage without changing its preference', async () => {
+    const storageRoot = await mkdtemp(join(tmpdir(), 'kms-model-remove-'));
+    const bytes = Buffer.from('synthetic removable model');
+    const digest = createHash('sha256').update(bytes).digest('hex');
+    const modelId = 'whisper-small-q5_1-vi' as const;
+    const profile = { ...LOCAL_MODEL_CATALOG.models[modelId], byteLength: bytes.length, sha256: digest };
+    const manager = new LocalModelManager({
+      storageRoot,
+      catalog: { ...LOCAL_MODEL_CATALOG, models: { ...LOCAL_MODEL_CATALOG.models, [modelId]: profile } },
+      verifyCatalogAuthenticity: async () => true,
+      publish: vi.fn(),
+      transport: { stream: async () => ({ body: Readable.from([bytes]), status: 200 }) },
+    });
+    try {
+      await manager.download(modelId);
+      await manager.setPreferredModel('vi', modelId);
+      await manager.remove(modelId);
+      expect((await manager.listModels()).find((model) => model.modelId === modelId)).toMatchObject({
+        state: 'absent', downloadedBytes: 0, preferredFor: ['vi'],
+      });
+      await expect(manager.resolveVerifiedModel(modelId, 'vi')).rejects.toMatchObject({ code: 'MODEL_NOT_FOUND' });
+    } finally {
+      await rm(storageRoot, { recursive: true, force: true });
+    }
+  });
 });

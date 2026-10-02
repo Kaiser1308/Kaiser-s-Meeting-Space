@@ -3,5 +3,6 @@ export const LOCAL_MODEL_CHANNELS = {
   preferred: 'kms-models:preferred',
   preference: 'kms-models:preference',
   download: 'kms-models:download',
+  remove: 'kms-models:remove',
   progress: 'kms-models:progress',
 } as const;

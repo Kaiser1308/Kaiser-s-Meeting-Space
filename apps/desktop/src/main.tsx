@@ -37,6 +37,7 @@ type KmsModelsApi = {
   getPreferredModel(language: SpeechLanguage): Promise<LocalModelId>;
   setPreferredModel(language: SpeechLanguage, modelId: LocalModelId): Promise<void>;
   download(modelId: LocalModelId): Promise<void>;
+  remove(modelId: LocalModelId): Promise<void>;
   onProgress(callback: (snapshot: LocalModelSnapshot) => void): () => void;
 };
 
@@ -203,6 +204,16 @@ export function App() {
       setLocalModels(await kmsModelsApi.listModels());
     } catch {
       setLocalModelError('Could not select this local model.');
+    }
+  };
+
+  const removeLocalModel = async (modelId: LocalModelId) => {
+    if (!kmsModelsApi || !window.confirm('Remove this local model from this device?')) return;
+    setLocalModelError(null);
+    try {
+      await kmsModelsApi.remove(modelId);
+    } catch {
+      setLocalModelError('Could not remove this local model.');
     }
   };
 
@@ -1543,6 +1554,7 @@ export function App() {
                     error={localModelError}
                     onDownload={downloadLocalModel}
                     onSelect={selectLocalModel}
+                    onRemove={removeLocalModel}
                   />
                 )}
 

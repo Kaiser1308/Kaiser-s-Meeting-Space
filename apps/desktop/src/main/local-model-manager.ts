@@ -181,6 +181,28 @@ export class LocalModelManager {
     }
   }
 
+  async remove(modelId: LocalModelId): Promise<void> {
+    await this.initialize();
+    const profile = this.options.catalog.models[modelId];
+    if (this.modelState.get(modelId) === 'downloading' || this.modelState.get(modelId) === 'verifying') {
+      throw new LocalModelError('STORAGE', 'A local model operation is already in progress');
+    }
+    const target = await resolveCatalogPath(this.options.storageRoot, profile);
+    this.modelState.set(modelId, 'removing');
+    this.publish(profile);
+    try {
+      await rm(target, { force: true });
+      await rm(`${target}.partial`, { force: true });
+      this.modelState.set(modelId, 'absent');
+      this.downloadedBytes.set(modelId, 0);
+      this.publish(profile);
+    } catch {
+      this.modelState.set(modelId, 'failed');
+      this.publish(profile);
+      throw new LocalModelError('STORAGE', 'Local model could not be removed');
+    }
+  }
+
   async resolveVerifiedModel(modelId: LocalModelId, language: SpeechLanguage): Promise<NativeModelBinding> {
     await this.initialize();
     const profile = this.options.catalog.models[modelId];

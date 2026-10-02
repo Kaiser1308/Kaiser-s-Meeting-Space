@@ -82,6 +82,7 @@ contextBridge.exposeInMainWorld('kmsModels', {
   setPreferredModel: (language: SpeechLanguage, modelId: LocalModelId) =>
     ipcRenderer.invoke(LOCAL_MODEL_CHANNELS.preference, { language, modelId }),
   download: (modelId: LocalModelId) => ipcRenderer.invoke(LOCAL_MODEL_CHANNELS.download, { modelId }),
+  remove: (modelId: LocalModelId) => ipcRenderer.invoke(LOCAL_MODEL_CHANNELS.remove, { modelId }),
   onProgress: (callback: (snapshot: LocalModelSnapshot) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, snapshot: LocalModelSnapshot) => callback(snapshot);
     ipcRenderer.on(LOCAL_MODEL_CHANNELS.progress, handler);

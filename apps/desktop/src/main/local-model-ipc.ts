@@ -26,7 +26,7 @@ function language(payload: unknown): SpeechLanguage {
 
 export function registerLocalModelIpc(
   ipcMain: IpcMain,
-  manager: Pick<LocalModelManager, 'listModels' | 'getPreferredModel' | 'setPreferredModel' | 'download' | 'subscribe'>,
+  manager: Pick<LocalModelManager, 'listModels' | 'getPreferredModel' | 'setPreferredModel' | 'download' | 'remove' | 'subscribe'>,
   getMainWindow: () => BrowserWindow | null,
 ): void {
   ipcMain.handle(LOCAL_MODEL_CHANNELS.list, async (event) => {
@@ -44,5 +44,9 @@ export function registerLocalModelIpc(
   ipcMain.handle(LOCAL_MODEL_CHANNELS.download, async (event, payload) => {
     requireMainSender(event, getMainWindow);
     return manager.download(modelId(payload));
+  });
+  ipcMain.handle(LOCAL_MODEL_CHANNELS.remove, async (event, payload) => {
+    requireMainSender(event, getMainWindow);
+    return manager.remove(modelId(payload));
   });
 }

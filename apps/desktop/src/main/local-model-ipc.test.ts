@@ -11,6 +11,7 @@ describe('local model IPC', () => {
       getPreferredModel: vi.fn(),
       setPreferredModel: vi.fn(),
       download: vi.fn(),
+      remove: vi.fn(),
       subscribe: vi.fn(() => () => undefined),
     };
     registerLocalModelIpc(
@@ -29,5 +30,7 @@ describe('local model IPC', () => {
       modelId: 'whisper-large-v3-turbo-q5_0',
     });
     expect(manager.download).toHaveBeenCalledWith('whisper-large-v3-turbo-q5_0');
+    await handlers.get('kms-models:remove')!({ sender: mainSender }, { modelId: 'whisper-large-v3-turbo-q5_0' });
+    expect(manager.remove).toHaveBeenCalledWith('whisper-large-v3-turbo-q5_0');
   });
 });

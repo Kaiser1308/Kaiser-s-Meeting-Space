@@ -12,12 +12,14 @@ export function LocalModelManagerPanel({
   error,
   onDownload,
   onSelect,
+  onRemove,
 }: {
   models: readonly LocalModelSnapshot[];
   language: SpeechLanguage;
   error: string | null;
   onDownload(modelId: LocalModelId): void;
   onSelect(language: SpeechLanguage, modelId: LocalModelId): void;
+  onRemove(modelId: LocalModelId): void;
 }) {
   return (
     <section data-testid="local-model-manager" aria-label="Local speech models" style={{ marginTop: '16px' }}>
@@ -39,7 +41,8 @@ export function LocalModelManagerPanel({
               </div>
               {action.kind === 'download' && <button onClick={() => onDownload(model.modelId)}>{action.label}</button>}
               {action.kind === 'select' && <button onClick={() => onSelect(language, model.modelId)}>{action.label}</button>}
-              {(action.kind === 'waiting' || action.kind === 'selected' || action.kind === 'unavailable') && (
+              {action.kind === 'selected' && <><span role="status">{action.label}</span> <button onClick={() => onRemove(model.modelId)}>Remove</button></>}
+              {(action.kind === 'waiting' || action.kind === 'unavailable') && (
                 <span role="status">{action.label}</span>
               )}
             </div>
