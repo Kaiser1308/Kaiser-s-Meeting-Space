@@ -50,7 +50,10 @@ function profile(
   };
 }
 
-export const LOCAL_MODEL_ALLOWED_HTTPS_ORIGINS = ['https://huggingface.co'] as const;
+export const LOCAL_MODEL_ALLOWED_HTTPS_ORIGINS = [
+  'https://huggingface.co',
+  'https://us.aws.cdn.hf.co',
+] as const;
 
 export const LOCAL_MODEL_CATALOG: LocalModelCatalogV1 = {
   version: 1,

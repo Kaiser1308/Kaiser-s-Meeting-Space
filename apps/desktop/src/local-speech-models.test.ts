@@ -21,7 +21,10 @@ describe('local speech model catalog', () => {
       sourceUrl:
         'https://huggingface.co/ggerganov/whisper.cpp/resolve/98aa99a0a9db05ae2342309f5096248665f7cba3/ggml-large-v3-turbo-q5_0.bin',
     });
-    expect(LOCAL_MODEL_ALLOWED_HTTPS_ORIGINS).toEqual(['https://huggingface.co']);
+    expect(LOCAL_MODEL_ALLOWED_HTTPS_ORIGINS).toEqual([
+      'https://huggingface.co',
+      'https://us.aws.cdn.hf.co',
+    ]);
   });
 
   it('retains Small as an explicit compatible fallback without allowing English-only Small for Vietnamese', () => {
