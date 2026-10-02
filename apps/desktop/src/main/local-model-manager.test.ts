@@ -1,6 +1,8 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { Readable } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 import { LOCAL_MODEL_CATALOG } from '../local-speech-models.js';
 import { LocalModelManager } from './local-model-manager.js';
@@ -30,6 +32,38 @@ describe('LocalModelManager state and preferences', () => {
         .toMatchObject({ state: 'absent', downloadedBytes: 0 });
     } finally {
       await cleanup();
+    }
+  });
+
+  it('downloads only on request and exposes a verified binding after atomic activation', async () => {
+    const storageRoot = await mkdtemp(join(tmpdir(), 'kms-model-download-'));
+    const bytes = Buffer.from('synthetic model lifecycle fixture');
+    const digest = createHash('sha256').update(bytes).digest('hex');
+    const modelId = 'whisper-small-q5_1-vi' as const;
+    const profile = {
+      ...LOCAL_MODEL_CATALOG.models[modelId],
+      byteLength: bytes.length,
+      sha256: digest,
+    };
+    const manager = new LocalModelManager({
+      storageRoot,
+      catalog: { ...LOCAL_MODEL_CATALOG, models: { ...LOCAL_MODEL_CATALOG.models, [modelId]: profile } },
+      verifyCatalogAuthenticity: async () => true,
+      publish: vi.fn(),
+      transport: { stream: vi.fn(async () => ({ body: Readable.from([bytes]), status: 200 })) },
+      getAvailableBytes: async () => Number.MAX_SAFE_INTEGER,
+    });
+    try {
+      await manager.initialize();
+      expect((await manager.listModels()).find((model) => model.modelId === modelId)?.state).toBe('absent');
+      await manager.download(modelId);
+      await expect(manager.resolveVerifiedModel(modelId, 'vi')).resolves.toMatchObject({
+        modelId,
+        modelSha256: digest,
+        modelPath: profile.relativePath,
+      });
+    } finally {
+      await rm(storageRoot, { recursive: true, force: true });
     }
   });
 
