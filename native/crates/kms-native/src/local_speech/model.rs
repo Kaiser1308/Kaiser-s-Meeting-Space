@@ -1,5 +1,4 @@
-use std::path::Path;
-use std::fs;
+use std::{fs::File, io::Read, path::Path};
 
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -39,6 +38,24 @@ pub struct WhisperModel {
     thread_count: usize,
 }
 
+fn hash_model_file(path: &Path) -> Result<String, ModelError> {
+    let mut file = File::open(path).map_err(|_| ModelError::Unavailable)?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+
+    loop {
+        let count = file
+            .read(&mut buffer)
+            .map_err(|_| ModelError::Unavailable)?;
+        if count == 0 {
+            break;
+        }
+        hasher.update(&buffer[..count]);
+    }
+
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
 impl WhisperModel {
     pub fn load(
         path: &Path,
@@ -50,7 +67,9 @@ impl WhisperModel {
             return Err(ModelError::Language);
         }
         if expected_sha256.len() != 64
-            || !expected_sha256.chars().all(|character| character.is_ascii_hexdigit())
+            || !expected_sha256
+                .chars()
+                .all(|character| character.is_ascii_hexdigit())
         {
             return Err(ModelError::Load);
         }
@@ -58,17 +77,13 @@ impl WhisperModel {
             return Err(ModelError::Unavailable);
         }
 
-        let bytes = fs::read(path).map_err(|_| ModelError::Unavailable)?;
-        let actual_sha256 = format!("{:x}", Sha256::digest(&bytes));
+        let actual_sha256 = hash_model_file(path)?;
         if !actual_sha256.eq_ignore_ascii_case(expected_sha256) {
             return Err(ModelError::Load);
         }
 
-        let context = WhisperContext::new_with_params(
-            path,
-            WhisperContextParameters::default(),
-        )
-        .map_err(|_| ModelError::Load)?;
+        let context = WhisperContext::new_with_params(path, WhisperContextParameters::default())
+            .map_err(|_| ModelError::Load)?;
 
         Ok(Self {
             context,
@@ -95,7 +110,10 @@ impl WhisperModel {
         params.set_print_progress(false);
         params.set_print_realtime(false);
         params.set_print_timestamps(false);
-        params.set_token_timestamps(true);
+        // Segment timestamps already provide the timeline needed by the app.
+        // Token-level alignment enables Whisper's experimental DTW path and
+        // makes normal local transcription prohibitively slow on CPU.
+        params.set_token_timestamps(false);
         state
             .full(params, samples_16khz_mono)
             .map_err(|_| ModelError::Transcribe)?;
@@ -116,5 +134,30 @@ impl WhisperModel {
             });
         }
         Ok(segments)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{hash_model_file, ModelError};
+
+    #[test]
+    fn hashes_model_file_incrementally() {
+        let file = tempfile::NamedTempFile::new().expect("temporary model file");
+        std::fs::write(file.path(), b"abc").expect("write model bytes");
+
+        assert_eq!(
+            hash_model_file(file.path()).expect("hash model file"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        );
+    }
+
+    #[test]
+    fn missing_model_file_is_unavailable() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        assert!(matches!(
+            hash_model_file(&directory.path().join("missing.bin")),
+            Err(ModelError::Unavailable)
+        ));
     }
 }
