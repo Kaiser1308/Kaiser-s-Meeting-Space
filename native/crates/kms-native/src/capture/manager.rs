@@ -579,15 +579,15 @@ fn capture_error_frames(error: &str) -> Option<u64> {
 }
 
 fn capture_packet_flag_reason(flags: u32) -> Option<&'static str> {
-    match flags & 0x7 {
+    // WASAPI marks ordinary zero-filled packets as SILENT. They retain their
+    // frame count and are already serialized as source audio, so they are not
+    // a discontinuity or a durable capture gap.
+    match flags & (0x1 | 0x4) {
         0 => None,
         1 => Some("CAPTURE_FLAG:data_discontinuity"),
-        2 => Some("CAPTURE_FLAG:silent_packet"),
         4 => Some("CAPTURE_FLAG:timestamp_error"),
-        3 => Some("CAPTURE_FLAG:data_discontinuity,silent_packet"),
         5 => Some("CAPTURE_FLAG:data_discontinuity,timestamp_error"),
-        6 => Some("CAPTURE_FLAG:silent_packet,timestamp_error"),
-        _ => Some("CAPTURE_FLAG:data_discontinuity,silent_packet,timestamp_error"),
+        _ => Some("CAPTURE_FLAG:data_discontinuity,timestamp_error"),
     }
 }
 
@@ -2311,6 +2311,19 @@ mod tests {
         let event = events.try_recv().unwrap();
         assert_eq!(event.payload["eventKind"], "capture_diagnostic_recorded");
         assert_eq!(event.payload["count"], 100);
+    }
+
+    #[test]
+    fn silent_capture_packet_does_not_create_a_durable_gap() {
+        assert_eq!(capture_packet_flag_reason(0x2), None);
+        assert_eq!(
+            capture_packet_flag_reason(0x1 | 0x2),
+            Some("CAPTURE_FLAG:data_discontinuity")
+        );
+        assert_eq!(
+            capture_packet_flag_reason(0x2 | 0x4),
+            Some("CAPTURE_FLAG:timestamp_error")
+        );
     }
 
     #[test]
