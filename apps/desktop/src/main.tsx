@@ -14,8 +14,10 @@ import {
 import {
   transcribeMeeting,
   TranscriptionWorkflowError,
+  type TranscriptSource,
   type TranscriptSegment,
 } from './transcription-workflow.js';
+import { headsetCompatibilityWarning } from './headset-compatibility.js';
 import './styles.css';
 
 type Mode = 'record' | 'translate';
@@ -84,6 +86,10 @@ export function App() {
   const [micGapCount, setMicGapCount] = useState<number>(0);
   const [sysGapCount, setSysGapCount] = useState<number>(0);
   const [driftSamples, setDriftSamples] = useState<number>(0);
+  const [micOverflowCount, setMicOverflowCount] = useState<number>(0);
+  const [sysOverflowCount, setSysOverflowCount] = useState<number>(0);
+  const [micDiagnosticCount, setMicDiagnosticCount] = useState<number>(0);
+  const [sysDiagnosticCount, setSysDiagnosticCount] = useState<number>(0);
 
   // Add structured log message
   const log = (msg: string) => {
@@ -217,8 +223,12 @@ export function App() {
           const metrics = resp.payload as any;
           setMicLevel(Math.round((metrics.mic?.peak ?? 0) * 100));
           setSysLevel(Math.round((metrics.sys?.peak ?? 0) * 100));
-          setMicGapCount(metrics.mic?.gapCount ?? 0);
-          setSysGapCount(metrics.sys?.gapCount ?? 0);
+          setMicGapCount(metrics.mic?.sourceGapCount ?? metrics.mic?.gapCount ?? 0);
+          setSysGapCount(metrics.sys?.sourceGapCount ?? metrics.sys?.gapCount ?? 0);
+          setMicOverflowCount(metrics.mic?.overflowCount ?? 0);
+          setSysOverflowCount(metrics.sys?.overflowCount ?? 0);
+          setMicDiagnosticCount(metrics.mic?.diagnosticCount ?? 0);
+          setSysDiagnosticCount(metrics.sys?.diagnosticCount ?? 0);
           setDriftSamples(metrics.driftSamples ?? 0);
         }
       } catch {
@@ -797,6 +807,14 @@ export function App() {
                       </option>
                     ))}
                   </select>
+                {headsetCompatibilityWarning(
+                  physicalMics.find((device: any) => device.deviceId === selectedMicId)?.deviceName ?? '',
+                  physicalSys.find((device: any) => device.deviceId === selectedSysId)?.deviceName ?? '',
+                ) && (
+                  <p role="status" className="headset-warning">
+                    No endpoint will be changed automatically.
+                  </p>
+                )}
                 </div>
               )}
 
@@ -821,7 +839,7 @@ export function App() {
                 <div className="level-meters" data-testid="capture-health-indicators">
                   <div className="level-meter-track">
                     <label>
-                      MIC LEVEL ({micLevel}%) — GAPS: {micGapCount}
+                      MIC LEVEL ({micLevel}%) — SOURCE LOSS: {micGapCount} — OVERFLOW: {micOverflowCount} — DEVICE DIAGNOSTICS: {micDiagnosticCount}
                     </label>
                     <div className="level-meter-bar-outer">
                       <div className="level-meter-bar-inner" style={{ width: `${micLevel}%` }} />
@@ -829,7 +847,7 @@ export function App() {
                   </div>
                   <div className="level-meter-track">
                     <label>
-                      SYSTEM AUDIO LEVEL ({sysLevel}%) — GAPS: {sysGapCount}
+                      SYSTEM AUDIO LEVEL ({sysLevel}%) — SOURCE LOSS: {sysGapCount} — OVERFLOW: {sysOverflowCount} — DEVICE DIAGNOSTICS: {sysDiagnosticCount}
                     </label>
                     <div className="level-meter-bar-outer">
                       <div className="level-meter-bar-inner" style={{ width: `${sysLevel}%` }} />
