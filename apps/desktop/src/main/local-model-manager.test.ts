@@ -62,6 +62,19 @@ describe('LocalModelManager state and preferences', () => {
         modelSha256: digest,
         modelPath: profile.relativePath,
       });
+
+      const reopened = new LocalModelManager({
+        storageRoot,
+        catalog: { ...LOCAL_MODEL_CATALOG, models: { ...LOCAL_MODEL_CATALOG.models, [modelId]: profile } },
+        verifyCatalogAuthenticity: async () => true,
+        publish: vi.fn(),
+        transport: { stream: vi.fn(async () => { throw new Error('offline'); }) },
+      });
+      await reopened.initialize();
+      await expect(reopened.resolveVerifiedModel(modelId, 'vi')).resolves.toMatchObject({
+        modelId,
+        modelSha256: digest,
+      });
     } finally {
       await rm(storageRoot, { recursive: true, force: true });
     }

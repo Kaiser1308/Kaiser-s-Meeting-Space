@@ -92,6 +92,13 @@ export class LocalModelManager {
     try {
       await mkdir(resolve(this.options.storageRoot, 'models'), { recursive: true });
       this.state = await this.readState();
+      for (const profile of Object.values(this.options.catalog.models)) {
+        const verifiedBytes = await this.verifyInstalledModel(profile);
+        if (verifiedBytes !== undefined) {
+          this.modelState.set(profile.modelId, 'ready');
+          this.downloadedBytes.set(profile.modelId, verifiedBytes);
+        }
+      }
       await this.writeState();
     } catch (error) {
       if (error instanceof LocalModelError) throw error;
@@ -222,6 +229,30 @@ export class LocalModelManager {
     const temp = resolve(root, `${STATE_FILE}.tmp`);
     await writeFile(temp, JSON.stringify(this.requireState()), { encoding: 'utf8', mode: 0o600 });
     await rename(temp, target);
+  }
+
+  private async verifyInstalledModel(profile: LocalModelProfileV1): Promise<number | undefined> {
+    try {
+      const path = await resolveCatalogPath(this.options.storageRoot, profile);
+      const file = await open(path, 'r');
+      const hash = createHash('sha256');
+      const buffer = Buffer.allocUnsafe(64 * 1024);
+      let total = 0;
+      try {
+        for (;;) {
+          const { bytesRead } = await file.read(buffer, 0, buffer.length, null);
+          if (bytesRead === 0) break;
+          total += bytesRead;
+          if (total > profile.byteLength) return undefined;
+          hash.update(buffer.subarray(0, bytesRead));
+        }
+      } finally {
+        await file.close();
+      }
+      return total === profile.byteLength && hash.digest('hex') === profile.sha256 ? total : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   private snapshot(model: LocalModelProfileV1): LocalModelSnapshot {
