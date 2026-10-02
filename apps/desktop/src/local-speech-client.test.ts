@@ -4,26 +4,10 @@ import {
   transcribeWindow,
   cancelLocalSpeech,
   LocalSpeechError,
-  LOCAL_SPEECH_MODELS,
 } from './local-speech-client.js';
 
 describe('local speech client', () => {
-  it('exposes known local model definitions for vi and en', () => {
-    expect(LOCAL_SPEECH_MODELS.vi).toMatchObject({
-      modelId: 'whisper-large-v3-turbo-q5_0',
-      language: 'vi',
-      path: 'models/ggml-large-v3-turbo-q5_0.bin',
-      sha256: '394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2',
-    });
-    expect(LOCAL_SPEECH_MODELS.en).toMatchObject({
-      modelId: 'whisper-large-v3-turbo-q5_0',
-      language: 'en',
-      path: 'models/ggml-large-v3-turbo-q5_0.bin',
-      sha256: '394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2',
-    });
-  });
-
-  it('sends local_speech_engine_init with valid model metadata and returns success', async () => {
+  it('sends only model identity to local_speech_engine_init and returns success', async () => {
     const sendMock = vi.fn().mockResolvedValue({
       success: true,
       payload: { initialized: true, isSimulated: false },
@@ -33,20 +17,16 @@ describe('local speech client', () => {
     const result = await initLocalSpeechEngine(native, {
       modelId: 'whisper-small-en-q5_1',
       language: 'en',
-      modelPath: 'models/ggml-small.en-q5_1.bin',
-      modelSha256: 'bfdff4894dcb76bbf647d56263ea2a96645423f1669176f4844a1bf8e478ad30',
       memoryBudgetMb: 2048,
     });
 
     expect(sendMock).toHaveBeenCalledWith(
       'local_speech_engine_init',
-      expect.objectContaining({
+      {
         modelId: 'whisper-small-en-q5_1',
         language: 'en',
-        modelPath: 'models/ggml-small.en-q5_1.bin',
-        modelSha256: 'bfdff4894dcb76bbf647d56263ea2a96645423f1669176f4844a1bf8e478ad30',
         memoryBudgetMb: 2048,
-      }),
+      },
     );
     expect(result).toEqual({ initialized: true, isSimulated: false });
   });
@@ -66,19 +46,17 @@ describe('local speech client', () => {
       initLocalSpeechEngine(native, {
         modelId: 'whisper-small-en-q5_1',
         language: 'en',
-        modelPath: 'models/ggml-small.en-q5_1.bin',
-        modelSha256: 'bfdff4894dcb76bbf647d56263ea2a96645423f1669176f4844a1bf8e478ad30',
       }),
     ).rejects.toEqual(
       new LocalSpeechError('NOT_AVAILABLE', 'Local speech was not included in this native build'),
     );
   });
 
-  it('maps INVALID_MODEL / MISSING_FIELDS native error codes to LocalSpeechError(MISSING_MODEL)', async () => {
+  it('maps unavailable verified models to LocalSpeechError(MISSING_MODEL)', async () => {
     const nativeInvalidModel = {
       send: vi.fn().mockResolvedValue({
         success: false,
-        error: { code: 'INVALID_MODEL', message: 'Model file missing or invalid checksum' },
+        error: { code: 'MODEL_NOT_FOUND', message: 'Selected local model is unavailable' },
       }),
     };
 
@@ -86,11 +64,9 @@ describe('local speech client', () => {
       initLocalSpeechEngine(nativeInvalidModel, {
         modelId: 'whisper-small-en-q5_1',
         language: 'en',
-        modelPath: 'models/ggml-small.en-q5_1.bin',
-        modelSha256: 'invalid-sha',
       }),
     ).rejects.toEqual(
-      new LocalSpeechError('MISSING_MODEL', 'Model file missing or invalid checksum'),
+      new LocalSpeechError('MISSING_MODEL', 'Selected local model is unavailable'),
     );
 
     const nativeMissingFields = {
@@ -104,8 +80,6 @@ describe('local speech client', () => {
       initLocalSpeechEngine(nativeMissingFields, {
         modelId: 'whisper-small-en-q5_1',
         language: 'en',
-        modelPath: 'models/ggml-small.en-q5_1.bin',
-        modelSha256: 'any',
       }),
     ).rejects.toEqual(
       new LocalSpeechError('MISSING_MODEL', 'Required fields missing from payload'),
@@ -124,8 +98,6 @@ describe('local speech client', () => {
       initLocalSpeechEngine(native, {
         modelId: 'whisper-small-en-q5_1',
         language: 'en',
-        modelPath: 'models/ggml-small.en-q5_1.bin',
-        modelSha256: 'any',
       }),
     ).rejects.toEqual(new LocalSpeechError('ENGINE_INIT_FAILED', 'Failed to allocate memory'));
   });
@@ -139,8 +111,6 @@ describe('local speech client', () => {
       initLocalSpeechEngine(native, {
         modelId: 'whisper-small-en-q5_1',
         language: 'en',
-        modelPath: 'models/ggml-small.en-q5_1.bin',
-        modelSha256: 'any',
       }),
     ).rejects.toEqual(new LocalSpeechError('INVALID_RESPONSE', 'Error: IPC disconnected'));
   });

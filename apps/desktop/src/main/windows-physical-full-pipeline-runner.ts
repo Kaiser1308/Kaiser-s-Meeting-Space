@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LOCAL_SPEECH_MODELS } from '../local-speech-client.js';
+import {
+  getDefaultModelId,
+  LOCAL_MODEL_CATALOG,
+  type LocalModelProfileV1,
+} from '../local-speech-models.js';
 import { generateExportFilename, type ExportableMeeting } from '../markdown-export.js';
 import {
   buildRepeatedTranscript,
@@ -124,13 +128,13 @@ function hashFile(path: string): string {
 }
 
 function modelSettings(options: PhysicalFullPipelineOptions, language: 'vi' | 'en') {
-  const config = LOCAL_SPEECH_MODELS[language];
+  const config = LOCAL_MODEL_CATALOG.models[getDefaultModelId(language)];
   return {
     config,
     modelPath:
       options.modelPath ??
       process.env.KMS_LOCAL_SPEECH_MODEL_PATH ??
-      resolve(currentDir, '../../../..', 'native', config.path),
+      resolve(currentDir, '../../../..', 'native', 'models', config.fileName),
     modelSha256:
       options.modelSha256 ?? process.env.KMS_LOCAL_SPEECH_MODEL_SHA256 ?? config.sha256,
     modelId: options.modelId ?? process.env.KMS_LOCAL_SPEECH_MODEL_ID ?? config.modelId,
@@ -140,10 +144,10 @@ function modelSettings(options: PhysicalFullPipelineOptions, language: 'vi' | 'e
 function stageAppLocalSpeechModel(
   sourcePath: string,
   userDataDir: string,
-  config: (typeof LOCAL_SPEECH_MODELS)['vi' | 'en'],
+  config: LocalModelProfileV1,
 ): string {
   const storageRoot = resolve(userDataDir, 'native-storage');
-  const stagedPath = resolve(storageRoot, config.path);
+  const stagedPath = resolve(storageRoot, config.relativePath);
   if (
     !stagedPath.startsWith(
       `${storageRoot}${process.platform === 'win32' ? '\\' : '/'}`,

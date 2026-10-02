@@ -53,6 +53,7 @@ const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 let mainWindow: BrowserWindow | null = null;
 let supervisor: NativeSupervisor | null = null;
 let ipcHandler: IpcHandler | null = null;
+let localModelManager: LocalModelManager | null = null;
 
 async function initLocalModelManager(): Promise<void> {
   const manager = new LocalModelManager({
@@ -67,6 +68,7 @@ async function initLocalModelManager(): Promise<void> {
     },
   });
   await manager.initialize();
+  localModelManager = manager;
   registerLocalModelIpc(ipcMain, manager, () => mainWindow);
 }
 
@@ -214,7 +216,7 @@ async function initNativeRuntime(): Promise<void> {
     console.error('Native runtime error', error);
   });
 
-  ipcHandler = new IpcHandler(supervisor);
+  ipcHandler = new IpcHandler(supervisor, localModelManager ?? undefined);
   ipcHandler.register(ipcMain);
 
   await supervisor.start();

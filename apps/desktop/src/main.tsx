@@ -18,6 +18,7 @@ import {
   type TranscriptSegment,
 } from './transcription-workflow.js';
 import { headsetCompatibilityWarning } from './headset-compatibility.js';
+import type { LocalModelId, SpeechLanguage } from './local-speech-models.js';
 import './styles.css';
 
 type Mode = 'record' | 'translate';
@@ -29,6 +30,10 @@ const kmsNativeApi =
     ? (window as unknown as { kmsNative?: NativeIpcTransport }).kmsNative
     : undefined;
 const nativeClient = kmsNativeApi ? new NativeBridgeClient(kmsNativeApi) : null;
+const kmsModelsApi =
+  typeof window !== 'undefined'
+    ? (window as unknown as { kmsModels?: { getPreferredModel(language: SpeechLanguage): Promise<LocalModelId> } }).kmsModels
+    : undefined;
 const meetingApi = createLocalMeetingStore();
 const meetingLanguage: 'vi' | 'en' =
   typeof navigator !== 'undefined' && navigator.language?.startsWith('vi') ? 'vi' : 'en';
@@ -440,6 +445,10 @@ export function App() {
     const targetMeeting = selectedMeeting ?? activeMeetingRecord;
     const targetMeetingId = targetMeeting ? targetMeeting.id : lastSessionSummary?.meetingId;
     if (!targetMeetingId || !nativeClient) return;
+    if (!kmsModelsApi) {
+      setTranscriptDiagnostic('Local model management is unavailable. Restart the desktop application.');
+      return;
+    }
     const targetLanguage = targetMeeting ? targetMeeting.language : meetingLanguage;
     setTranscriptState('transcribing');
     setTranscriptSourceMetrics(null);
@@ -447,7 +456,7 @@ export function App() {
     try {
       log(`Starting post-recording transcription for meeting ${targetMeetingId}...`);
       const result = await transcribeMeeting(
-        { native: nativeClient },
+        { native: nativeClient, resolveModel: (language) => kmsModelsApi.getPreferredModel(language) },
         {
           meetingId: targetMeetingId,
           language: targetLanguage,

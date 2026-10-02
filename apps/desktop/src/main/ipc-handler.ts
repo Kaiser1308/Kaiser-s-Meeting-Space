@@ -19,13 +19,23 @@ import {
   MAX_ENVELOPE_BYTES,
 } from '@kms/native-contract';
 import { validateCommandAllowlist, validateProtocolVersion } from '@kms/native-contract';
+import { isLocalModelId, isSpeechLanguage } from '../local-speech-models.js';
+import { LocalModelError, type LocalModelManager } from './local-model-manager.js';
 import type { NativeSupervisor } from './supervisor.js';
+
+type LocalModelResolver = Pick<LocalModelManager, 'resolveVerifiedModel'>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
 
 export class IpcHandler {
   private supervisor: NativeSupervisor;
+  private localModelManager?: LocalModelResolver;
 
-  constructor(supervisor: NativeSupervisor) {
+  constructor(supervisor: NativeSupervisor, localModelManager?: LocalModelResolver) {
     this.supervisor = supervisor;
+    this.localModelManager = localModelManager;
   }
 
   /**
@@ -92,6 +102,48 @@ export class IpcHandler {
           'validation',
           request.command,
         );
+      }
+
+      if (request.command === 'local_speech_engine_init') {
+        const rawPayload = isRecord(rawRequest) ? rawRequest.payload : undefined;
+        if (
+          !isRecord(rawPayload) ||
+          'modelPath' in rawPayload ||
+          'modelSha256' in rawPayload ||
+          !isLocalModelId(rawPayload.modelId) ||
+          !isSpeechLanguage(rawPayload.language)
+        ) {
+          return this.makeErrorResponse(
+            request.correlationId,
+            'INVALID_MODEL_REQUEST',
+            'Invalid local model request',
+            'validation',
+            request.command,
+          );
+        }
+        try {
+          const binding = await this.localModelManager?.resolveVerifiedModel(
+            rawPayload.modelId,
+            rawPayload.language,
+          );
+          if (!binding) throw new LocalModelError('MODEL_NOT_FOUND', 'Selected local model is unavailable');
+          request = {
+            ...request,
+            payload: {
+              ...rawPayload,
+              modelPath: binding.modelPath,
+              modelSha256: binding.modelSha256,
+            },
+          };
+        } catch {
+          return this.makeErrorResponse(
+            request.correlationId,
+            'MODEL_NOT_FOUND',
+            'Selected local model is unavailable',
+            'validation',
+            request.command,
+          );
+        }
       }
 
       // Check if supervisor is running

@@ -24,6 +24,7 @@ describe('transcriptionWorkflow', () => {
       native: {
         send: vi.fn().mockResolvedValue({ success: true, payload: { entries } }),
       },
+      resolveModel: vi.fn().mockResolvedValue('whisper-large-v3-turbo-q5_0'),
       initEngine: vi.fn().mockResolvedValue({ initialized: true, isSimulated: false }),
       transcribeWindow: vi.fn().mockResolvedValue({
         segments: [{ startMs: 0, endMs: 1_000, text: 'Hello everyone' }],
@@ -38,10 +39,11 @@ describe('transcriptionWorkflow', () => {
     const deps = makeDeps();
     const result = await transcribeMeeting(deps, { meetingId, language: 'vi' });
 
-    expect(deps.initEngine).toHaveBeenCalledWith(
-      deps.native,
-      expect.objectContaining({ language: 'vi', modelId: 'whisper-large-v3-turbo-q5_0' }),
-    );
+    expect(deps.resolveModel).toHaveBeenCalledWith('vi');
+    expect(deps.initEngine).toHaveBeenCalledWith(deps.native, {
+      language: 'vi',
+      modelId: 'whisper-large-v3-turbo-q5_0',
+    });
     expect(deps.native.send).toHaveBeenCalledWith('manifest_list_entries', { meetingId });
     expect(deps.transcribeWindow).toHaveBeenCalledWith(deps.native, {
       runId: meetingId,

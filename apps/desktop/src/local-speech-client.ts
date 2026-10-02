@@ -22,28 +22,6 @@ export interface TranscriptSegment {
   speaker?: string;
 }
 
-export interface LocalSpeechModelConfig {
-  modelId: string;
-  language: 'vi' | 'en';
-  path: string;
-  sha256: string;
-}
-
-export const LOCAL_SPEECH_MODELS: Record<'vi' | 'en', LocalSpeechModelConfig> = {
-  vi: {
-    modelId: 'whisper-large-v3-turbo-q5_0',
-    language: 'vi',
-    path: 'models/ggml-large-v3-turbo-q5_0.bin',
-    sha256: '394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2',
-  },
-  en: {
-    modelId: 'whisper-large-v3-turbo-q5_0',
-    language: 'en',
-    path: 'models/ggml-large-v3-turbo-q5_0.bin',
-    sha256: '394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2',
-  },
-};
-
 export type NativeSender = {
   send(
     command: string,
@@ -59,10 +37,8 @@ export type NativeSender = {
 export async function initLocalSpeechEngine(
   native: NativeSender,
   options: {
-    modelId: string;
-    language: string;
-    modelPath: string;
-    modelSha256: string;
+    modelId: LocalModelId;
+    language: SpeechLanguage;
     memoryBudgetMb?: number;
   },
 ): Promise<{ initialized: boolean; isSimulated: boolean }> {
@@ -79,7 +55,7 @@ export async function initLocalSpeechEngine(
     if (errCode === 'NOT_AVAILABLE') {
       throw new LocalSpeechError('NOT_AVAILABLE', msg);
     }
-    if (errCode === 'INVALID_MODEL' || errCode === 'MISSING_FIELDS') {
+    if (errCode === 'INVALID_MODEL' || errCode === 'MISSING_FIELDS' || errCode === 'MODEL_NOT_FOUND') {
       throw new LocalSpeechError('MISSING_MODEL', msg);
     }
     throw new LocalSpeechError('ENGINE_INIT_FAILED', msg);
@@ -139,3 +115,4 @@ export async function transcribeWindow(
 export async function cancelLocalSpeech(native: NativeSender): Promise<void> {
   await native.send('local_speech_cancel');
 }
+import type { LocalModelId, SpeechLanguage } from './local-speech-models.js';

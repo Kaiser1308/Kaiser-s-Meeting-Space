@@ -1,11 +1,11 @@
 import {
   initLocalSpeechEngine,
   transcribeWindow,
-  LOCAL_SPEECH_MODELS,
   LocalSpeechError,
   type TranscriptSegment,
   type NativeSender,
 } from './local-speech-client.js';
+import type { LocalModelId } from './local-speech-models.js';
 
 export type { TranscriptSegment };
 export type TranscriptSource = 'microphone' | 'system_audio';
@@ -35,6 +35,7 @@ export interface TranscriptionMeetingInput {
 
 export interface TranscriptionWorkflowDependencies {
   native: NativeSender;
+  resolveModel(language: 'vi' | 'en'): Promise<LocalModelId>;
   initEngine?: typeof initLocalSpeechEngine;
   transcribeWindow?: typeof transcribeWindow;
 }
@@ -108,14 +109,11 @@ export async function transcribeMeeting(
   const transcribeWindowFn = deps.transcribeWindow ?? transcribeWindow;
   const source = input.source ?? 'microphone';
 
-  const modelConfig = LOCAL_SPEECH_MODELS[input.language] ?? LOCAL_SPEECH_MODELS.en;
-
   try {
+    const modelId = await deps.resolveModel(input.language);
     const initialized = await initEngineFn(deps.native, {
-      modelId: modelConfig.modelId,
+      modelId,
       language: input.language,
-      modelPath: modelConfig.path,
-      modelSha256: modelConfig.sha256,
     });
     if (!initialized.initialized || initialized.isSimulated) {
       throw new TranscriptionWorkflowError(
@@ -135,7 +133,7 @@ export async function transcribeMeeting(
       if (error.code === 'MISSING_MODEL') {
         throw new TranscriptionWorkflowError(
           'MODEL_NOT_FOUND',
-          `Local Whisper model file was not found at ${modelConfig.path}. Please ensure models are installed.`,
+          'Selected local model is unavailable. Download it before transcription.',
         );
       }
       throw new TranscriptionWorkflowError('ENGINE_INIT_FAILED', error.message);
