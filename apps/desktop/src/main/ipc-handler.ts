@@ -14,6 +14,7 @@ import type { IpcMain, IpcMainInvokeEvent } from 'electron';
 import {
   NATIVE_IPC_CHANNEL,
   NativeRequestV1Schema,
+  type NativeRequestV1,
   type NativeResponseV1,
   MAX_ENVELOPE_BYTES,
 } from '@kms/native-contract';
@@ -40,6 +41,7 @@ export class IpcHandler {
    * Handle an incoming IPC request from the renderer.
    */
   private async handleRequest(rawRequest: unknown): Promise<NativeResponseV1> {
+    let request: NativeRequestV1 | undefined;
     try {
       // Validate the request shape
       const parseResult = NativeRequestV1Schema.safeParse(rawRequest);
@@ -52,7 +54,7 @@ export class IpcHandler {
         );
       }
 
-      const request = parseResult.data;
+      request = parseResult.data;
 
       // Validate protocol version
       try {
@@ -107,7 +109,13 @@ export class IpcHandler {
       return await this.supervisor.send(request);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Internal error';
-      return this.makeErrorResponse('unknown', 'INTERNAL', message, 'internal');
+      return this.makeErrorResponse(
+        request?.correlationId ?? 'unknown',
+        'INTERNAL',
+        message,
+        'internal',
+        request?.command,
+      );
     }
   }
 
