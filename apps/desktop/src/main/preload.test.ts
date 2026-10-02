@@ -27,6 +27,14 @@ describe('desktop preload bridge', () => {
     );
   });
 
+  it('exposes only fixed local-model actions', async () => {
+    await import('./preload.js');
+    expect(exposeInMainWorld).toHaveBeenCalledWith(
+      'kmsModels',
+      expect.objectContaining({ listModels: expect.any(Function), download: expect.any(Function) }),
+    );
+  });
+
   it('forwards the IPC channel and request as separate arguments', async () => {
     await import('./preload.js');
     const bridge = exposeInMainWorld.mock.calls[0]?.[1] as {
